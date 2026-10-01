@@ -1,0 +1,11 @@
+sample_id,true_Fe3_pfu,is_feasible,violation_type
+SPOT-01,0.0032,True,
+SPOT-02,0.0606,False,low_total
+SPOT-03,0.0296,True,
+SPOT-04,0.0802,True,
+SPOT-05,0.0418,False,high_total
+SPOT-06,0.0644,False,no_valid_iron_split
+SPOT-07,0.0689,True,
+SPOT-08,0.0321,True,
+SPOT-09,0.058,False,silica_excess
+SPOT-10,0.0173,True,
