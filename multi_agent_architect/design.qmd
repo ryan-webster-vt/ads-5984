@@ -1,4 +1,280 @@
 ---
 title: "Design Document"
-format: pdf
+subtitle: "Ryan Webster"
+format:
+  pdf:
+    include-in-header:
+      text: |
+        \usepackage{geometry}
+        \usepackage{pdflscape}
 ---
+
+```{=latex}
+\newgeometry{margin=0.5in}
+\begin{landscape}
+```
+
+# Deliverable A
+```{mermaid}
+%%| fig-width: 10
+%%| fig-height: 4.7
+%%| out-width: 90%
+classDiagram
+    direction LR
+
+    class Message {
+        +str sender
+        +str role
+        +str content
+    }
+
+    class LLMClient {
+        +str model
+        +complete(messages) str
+    }
+
+    class Tool {
+        <<interface>>
+        +str name
+        +run(args) str
+    }
+
+    class ReadTicket {
+        +run(ticket_id) str
+    }
+    class ReadRoster {
+        +run(engineer_id) None
+    }
+    class WriteRoster {
+        +run(ticket_id, engineer_id) None
+    }
+    class KnowledgeBaseLookup {
+        +run(query) str
+    }
+
+    class Agent {
+        +str name
+        +str system_prompt
+        +LLMClient llm
+        +dict tools
+        +act(transcript) Message
+    }
+
+    class Orchestrator {
+        +dict agents
+        +list transcript
+        +ask(name, prompt) Message
+        +reach_consensus(...) Message
+        +run() None
+    }
+    
+    class Roster {
+        +engineers: List[Engineer]
+    }
+
+    class Engineer {
+        +str name
+        +str specialty
+        +int capacity_remaining
+    }
+
+
+    Tool <|.. ReadTicket : Triager
+    Tool <|.. WriteRoster : Dispatcher ONLY
+    Tool <|.. KnowledgeBaseLookup : Triager
+    Tool <|.. ReadRoster : Reviewer
+
+    Agent --> LLMClient : uses
+    Agent --> Tool : holds many
+    Orchestrator --> Agent : coordinates 3
+    Orchestrator --> Message : owns transcript
+    Roster --> Engineer
+    ReadRoster --> Roster : reads
+    WriteRoster --> Roster : writes
+```
+
+```{=latex}
+\end{landscape}
+\restoregeometry
+```
+
+```{=latex}
+\newgeometry{margin=0.5in}
+\begin{landscape}
+```
+
+# Deliverable B
+```{mermaid}
+%%| fig-width: 10
+%%| fig-height: 7
+%%| out-width: 90%
+sequenceDiagram
+    autonumber
+    participant O as Orchestrator
+    participant T as Triager
+    participant R as Reviewer
+    participant D as Dispatcher
+    participant L as LLMClient
+    participant Tool as Tool
+    participant Ro as Roster
+
+    O->>T: run(ticket_id)
+
+    T->>L: complete(system_prompt + ticket_id)
+    L-->>T: "TOOL: ReadTicket"
+    T->>Tool: execute ReadTicket(ticket_id)
+    Tool-->>T: ticket summary
+
+    T->>L: complete(system_prompt + ticket summary)
+    L-->>T: "TOOL: KnowledgeBaseLookup"
+    T->>Tool: execute KnowledgeBaseLookup(query)
+    Tool-->>T: knowledge summary
+
+    T->>L: generate proposal
+    L-->>T: category, severity, suggested_engineer
+    T-->>O: proposal
+
+    loop Until reviewer approves or max rounds reached
+        O->>R: review proposal
+
+        R->>L: complete(review_prompt + proposal)
+        L-->>R: "TOOL: ReadRoster"
+        R->>Tool: execute ReadRoster()
+        Tool-->>R: roster state
+
+        R->>L: complete(review_prompt + roster state)
+        L-->>R: approve or critique
+        R-->>O: reviewer result
+
+        alt Reviewer rejects
+            O->>T: critique + previous proposal
+            T->>L: revise proposal
+            L-->>T: revised proposal
+            T-->>O: revised proposal
+        else Reviewer approves
+            O->>D: final approved proposal
+        end
+    end
+
+    D->>L: complete(dispatch_prompt + final proposal)
+    L-->>D: "TOOL: WriteRoster"
+    D->>Tool: execute WriteRoster(ticket_id, engineer_id)
+    Tool->>Ro: update assignment and capacity
+    Ro-->>Tool: success
+    Tool-->>D: dispatch result
+    D-->>O: final assignment
+```
+
+```{=latex}
+\end{landscape}
+\restoregeometry
+```
+
+```{=latex}
+\newgeometry{margin=0.5in}
+\begin{landscape}
+```
+
+# Deliverable C
+```{mermaid}
+%%| fig-width: 10
+%%| fig-height: 6.7
+%%| out-width: 90%
+
+sequenceDiagram
+    autonumber
+
+    participant O as Orchestrator
+    participant T as Triager
+    participant R as Reviewer
+    participant D as Dispatcher
+    participant L as LLMClient
+    participant Tool as Tool
+    participant Ro as Roster
+
+    Note over O,R: PARALLEL REGION — runs concurrently for each Ticket N
+
+    par Ticket N
+        O->>T: run(Ticket N)
+
+        T->>L: analyze Ticket N
+        L-->>T: TOOL: ReadTicket
+        T->>Tool: ReadTicket(Ticket N)
+        Tool-->>T: ticket data
+
+        T->>L: analyze ticket + context
+        L-->>T: TOOL: KnowledgeBaseLookup
+        T->>Tool: KnowledgeBaseLookup(query)
+        Tool-->>T: KB results
+
+        T->>L: generate proposal
+        L-->>T: category, severity, suggested_engineer
+        T-->>O: Proposal N
+
+        O->>R: Review Proposal N
+
+        R->>L: inspect proposal
+        L-->>R: TOOL: ReadRoster
+        R->>Tool: ReadRoster()
+        Tool->>Ro: read roster
+        Ro-->>Tool: specialties + capacities
+        Tool-->>R: roster data
+
+        R->>L: critique proposal
+        L-->>R: approve / reject
+        R-->>O: review result
+
+        loop Until approved or max rounds reached
+            alt Reviewer rejects
+                O->>T: critique + previous proposal
+                T->>L: revise proposal
+                L-->>T: revised proposal
+                T-->>O: revised Proposal N
+
+                O->>R: review revised proposal
+                R-->>O: approve / reject
+            else Reviewer approves
+                Note over O,R: Proposal N ready for dispatch
+            end
+        end
+    end
+
+    Note over O,Ro: SERIAL JOIN — dispatch one ticket at a time
+
+    loop For each approved Ticket N
+        O->>D: Dispatch Proposal N
+
+        D->>L: commit assignment
+        L-->>D: TOOL: WriteRoster
+        D->>Tool: WriteRoster(ticket_id, engineer_id)
+
+        Tool->>Ro: check capacity + assign + decrement
+        Ro-->>Tool: success / failure
+        Tool-->>D: AssignmentResult
+
+        D-->>O: dispatch result
+    end
+```
+
+```{=latex}
+\end{landscape}
+\restoregeometry
+```
+
+# Deliverable D
+## Question 1
+I would allow the Triager to execute proposals in parallel as tickets are independent of each other. Additionally, the Reviewer can then independently check for the proposal's severity, duplicaticity, specialty fit, and availability. These steps can be done in parallel because they are read only operations. For the serial join, I'd reconcile the Triager and Reviewer's outputs and have the Dispatcher update the Roster. This must be done sequentially because of the race condition that exists if capacity remaining is being decremented.
+
+## Question 2
+The shared mutable state is the Roster, or more specifically, the Engineer's capacity remaining. The arbiter is the Dispatcher, which is the only agent allowed to mutate the roster. Without the arbiter, two tickets could be assigned to a specific engineer with one slot left, essentially making the capacity remaining negative and over assigning that specific engineer. My design prevents this by only approving tickets through the Dispatcher serially.
+
+## Question 3
+The Traiger's single duty is proposing the ticket's category, severity, and suggested_engineer with tools ReadTicket and KnowledgeBaseLookup. The Reviewer's single duty is to critique the Triager's proposal and verify that the proposed engineer has the right specialty and available capacity with tool ReadRoster.  The Dispatcher's single duty is to commit the approved assignment to shared state with the tool WriteRoster. 
+
+If you let the Triager also use the Dispatcher's functionality, it could automatically commit its proposal without letting the Reviewer check first.
+
+## Question 4
+Add an Escalator agent with a prompt stating that "If severity == 1 and no qualified engineer has capacity, page a human responder, otherwise do nothing". Give it the ReadRoster tool and a PageHuman tool. Have the agent take the Reviewer's output and if there is a qualified engineer, go as planned, and if not, page human. I wouldn't modify the current Roster class as it has everything you need.
+
+## Final Question
+Something that I took away from this lab is that multi-agent design is indeed much more complex than a single agent. What I found impactful about multi-agent systems is the ability to divvy up your work amongst different agents and how it affects verification of work, safer tool calls, scaling, debugging, etc.

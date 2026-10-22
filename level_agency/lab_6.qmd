@@ -1,0 +1,98 @@
+---
+title: "Lab 6 - What Level of Agency?"
+subtitle: "ADS 5984 - Agentic AI in Practice"
+author: "Ryan Webster"
+date: today
+date-format: "MMMM D, YYYY"
+
+format:
+  pdf:
+    include-in-header:
+      text: |
+        \usepackage{pdflscape}
+---
+
+```{=latex}
+\newpage
+\begin{landscape}
+```
+
+# Deliverable A
+
+| Case | Q1 | Q2 | Q3 | Q4 | Q5 | Q6 | Q7 | Q8 | Level | Why not higher? |
+|------|----|----|----|----|----|----|----|----|-------|-----------------|
+| 1. Tempo detection and quantization | Y | N | N | N | N | N | Medium | Very low | No LLM | This case only requires a deterministic solution which takes a drummer's BPM and snap the hits to the nearest sixteenth-note grid. This can be done using code. Anything more complex will introduce the possibility of hallucinations and latency, which the case explicitly states that latency needs to be low as it will run in real time inside the audio engine. Also, LLMs cannot 'hear' per se. | 
+| 2. Month-end ledger reconciliation | Y | N | N | N | N | N | Low | High | No LLM | This case only requires a deterministic solution which joins bank statements to a transaction and any ones that can't are flagged, something that can be done by code. Anything more complex will introduce the possibility of hallucinations and unnecessary latency, although latency is most likely not an issue in this case. The auditor also must be able to reproduce every match exactly which cannot be done when using an LLM. |
+| 3. Post-match social caption | N | Y | N | N | N | N | Medium | Low | Single-call LLM | This case now requires output that is language generated. So, using an LLM with the box score and other relevant features, we can have an LLM provide the one sentence response. No tool is required because the data is already fed into the prompt. There is also no multi-step workflow or agency required. | 
+| 4. Support-inbox triage and reply | N | Y | Y | N | N | N | Medium | Low | Tool-augmented LLM | This case requires an LLM to triage emails based on its intent (language of email) and use customer order status from internal API call, this makes it a tool-augmented LLM. The solution is a single-pass, so no agentic solution. No workflow needed. Anything extra will increase latency and we have no need for agentic loops. |
+| 5. Quiz generator with citebacks | N | Y | Y | Y | N | N | Low | Medium | Deterministic workflow | This case is a deterministic workflow as the developer is the one creating the multi-step RAG design. There is no need for an agent as the pipeline is the same every time and doesn't require loops or unpredictable next steps. | 
+| 6. "A content-marketing team" | N | Y | Y | N | Y | N | Low | Medium | Single agent | This is a common case of a company thinking they need an agent for each different personality in their software. However, this design can be achieved with a single agent. There are no parallel blocks in this design or context overflow issues that would warrant the need for multiple agents. Anything more than one will four times the cost/latency. |
+| 7. Exploratory analysis of a new dataset | N | Y | Y | N | Y | N | High | Low | Single agent | This case requires agency because of the unpredictable nature of the problem this system is trying to solve. It doesn't know what to complete next until it knows the previous result. It is sequential, so making it multi-agent would see no benefit at extra cost and latency. |
+| 8. Disaster-relief dispatch | N | Y | Y | N | Y | Y | Very Low | Very low | Multi-agent | Because of the independent nature of the depots, a multi-agent system allows communication between the depots to observe inventory and the road conditions. It's also useful as decisions are made concurrently. With only having a single agent, the data ingestion may be too much and context will fill quickly. An agency will accept the higher usage bill if it means more lives are saved. | 
+| 9. Systematic-review abstract triage | Y | N | N | N | N | N | Medium | Medium | No LLM | This case could solved using No LLM OR a single-call LLM depending on if the source material is labeled or not. If so, which I am assuming, an NLP model can be trained to classify the other documents. If no label, then an LLM would be a sufficient solution to this problem. There is no tool calling, workflow, or need for an agent, so a single LLM call will do. |
+| 10. "Radio-ready" mastering assistant | Y | N | N | N | N | N | Medium | Medium | No LLM | The solution for this case can be answered depending on what "radio-ready" means. I'm assuming there are various metrics the music must meet with hard numbers, so this could just be a simple DSP problem. LLMs could be used if there are verbal descriptions that must be met. Anything more than a single agent is probably too much, as a single agent can loop until it deems the music "radio-ready". |
+| 11. Plagiarism similarity check | N | Y | Y | N | N | N | Low | Medium | Workflow | The solution could utilize RAG where the prompt is the paper being checked and use ANN to find which chunks from the corpus of papers are similar to the ones written by the student. It would be a workflow with tool calls and the auditor can check with what the RAG responds with to determine if it's actual plagiarism (not quotes, names, etc.). An agentic solution would be excessive as any sort of loop would be unnecessary and would add latency, variance in answers, and context bloat. |
+| 12. Catalog alt-text generation | N | Y | N | N | N | N | Medium | Low | Single-call LLM | The solution only needs a single LLM call as no tools are needed, along with no workflows or agents - all of which would increase latency which is a real constraint for this case. 
+| 13. Make the failing test pass | N | Y | Y | N | Y | N | Low | Medium | Single agent | This case contains instances where each edit's results determines the next edit - meaning we need an agent to loop and reason until the tests have all passed. Multi-agent isn't needed as the process is all sequential and nothing can be done in parallel. | 
+| 14. Live win-probability graphic | Y | N | N | N | N | N | Medium | Very low | No LLM | This case can be solved using a ML model trained on historical data. LLMs will make the results non-reproducible and without statistical grounding. Latency is also an issue where everything must be calculated live. | 
+| 15. Help-center translation at scale | Y | N | N | N | N | N | Low | Low | No LLM | Instead of using an LLM, tools such as DeepL or Google translate exist which could translate the documents with little latency or cost, depending on the software. Anything more would be overkill and susceptible to hallucinations. Also, having 4,000 x 12 articles that need translating would probably run up the bill for a project that has cost at mind. |
+| 16. Emergency-department triage | N | Y | Y | Y | N | N | Very low | Low | Deterministic workflow | This process is a deterministic workflow which can use an LLM to help take language from a patient and let already existing triaging methods determine the risk. This is important for auditing cases and prevents an LLM from making a wrong decision which could kill. There is a fixed number of steps and anything more will increase latency and consume life-changing time. |
+| 17. Meeting notes to action items | N | Y | Y | N | N | N | Medium | Medium | Tool-augmented LLM | This case requires LLMs to translate meeting transcript to actionable items and also need tools to write items to Calendar where necessary. It requires a single pass with no looping/branching - meaning no agents or workflows. |
+| 18. Red-team / blue-team hardening | N | Y | Y | N | Y | Y | Low | Medium | Multi-agent | This case requires Multi-agent as it requires a back-and-forth, reacting to each other's moves and needs to be context independent from each other. A single agent wouldn't grant this independence and anything less than a single agent wouldn't allow the continuous back-and-forth. |
+| 19. Adaptive next-exercise selection | Y | N | N | N | N | N | Low | Medium | No LLM | This approach doesn't even need an LLM because of the Item Response Theory mastery model that already exists. Feed results into model and have it output the necessary exercise. Although the case brings up a loop, the result of the loop is identical for every student, meaning no agent is needed as its predetermined. Anything more could result in hallucinations and cause the student to learn the wrong thing or something too easy or hard. | 
+| 20. Clean up a messy CSV | Y | N | N | N | N | N | Low | Low | No LLM | If we assume that the data isn't too messy that the only cleaning that needs to be done are converting types, regexs, pivoting, etc., than a no LLM approach is adequate as all of these things can be done with code. The only reason why you might go up a level in complexity is if your cleaning rules are vague and the data is so messy that it would take a few loops to get it done. |
+: Decision Matrix {#tbl-agency tbl-colwidths="[16,3,3,3,3,3,3,7,9,10,40]"}
+
+```{=latex}
+\end{landscape}
+\newpage
+\begin{landscape}
+```
+# Deliverable B
+
+| Case | Level Before | Level After | Discriminating Question |
+|------|--------------|-------------|-------------------------|
+| 1. Tempo detection and quantization | No LLM | No LLM | N/A |
+| 2. Month-end ledger reconciliation | No LLM | No LLM | N/A |
+| 3. Post-match social caption | Single-call LLM | Single-call LLM | N/A |
+| 4. Support-inbox triage and reply | Tool augmented LLM | Tool-augmented LLM | N/A |
+| 5. Quiz generator with citebacks | Deterministic workflow | Deterministic workflow | N/A |
+| 6. "A content-marketing team" | Multi-agent | Single agent | "Are there genuinely parallel sub-problems, or does one context overflow?"|
+| 7. Exploratory analysis of a new dataset | Single Agent | Single agent | N/A |
+| 8. Disaster-relief dispatch | Multi-agent | Multi-agent | N/A |
+| 9. Systematic-review abstract triage | Single agent | No LLM | "Does a deterministic / closed-form solution already exist?"|
+| 10. "Radio-ready" mastering assistant | No LLM | No LLM | N/A |
+| 11. Plagiarism similarity check | No LLM | Workflow | "Does a deterministic / closed-form solution already exist?"|
+| 12. Catalog alt-text generation | Single-call LLM | Single-call LLM | N/A |
+| 13. Make the failing test pass | Single agent | Single agent | N/A |
+| 14. Live win-probability graphic | No LLM | No LLM | N/A |
+| 15. Help-center translation at scale | No LLM | No LLM | N/A |
+| 16. Emergency-department triage | Single agent | Deterministic workflow | "Is the sequence of steps known and fixed in advance?" |
+| 17. Meeting notes to action items | Tool-augmented LLM | Tool-augmented LLM | N/A |
+| 18. Red-team / blue-team hardening | Multi-agent | Multi-agent | N/A |
+| 19. Adaptive next-exercise selection | No LLM | No LLM | N/A |
+| 20. Clean up a messy CSV | No LLM | No LLM | N/A |
+
+: Agency Level Comparison {#tbl-agency-comparison tbl-colwidths="[30,15,15,40]"}
+
+```{=latex}
+\end{landscape}
+\newpage
+```
+
+# Deliverable C
+## Case 9
+For this case, I am assuming that the research team already owns thousands of **labeled** documents. With this assumption, I concluded that the best architecture to solve this problem is a No LLM approach. Using the labeled data, one could train an NLP model and use it on the new documents that still need to be screened. My proposed level would change to a single-call LLM if my assumption was flipped - there wouldn't be any labeled documents to build a model off of, so we resort to an LLM.
+
+## Case 10
+For this case, I am assuming that the definition of "radio-ready" follows some sort of fixed numeric target as opposed to verbal descriptions, or needing the system to listen, judge, and loop. I concluded that the best architecture to solve this problem is a No LLM approach where deterministic code can determine whether the music meets the requirements. If the assumptions were changed like the need for verbal descriptions, then something like a single-call LLM would be needed. Or, if we need to listen to the outputs and judge based on the goal, then use a single agent.
+
+## Case 20
+For this case, I am assuming that the CSVs provided aren't too messy and that the rules are given up front such that there is no need for interpretation on column meanings, etc. I concluded that the best architecture to solve this problem with the assumption is a No LLM approach where deterministic code can read in the .csv, format it in pandas, and return the cleaned .csv. If the assumption that the data was less clean and no given rules, we could use a tool-augmented LLM where it can make interpretations on what needs to be done to make the dataframe clean without any given rules. 
+
+```{=latex}
+\newpage
+```
+
+# Deliverable D
+In case 6, my first instinct was to use a multi-agent architecture for this problem, mostly due to the multiple number of personalities/roles that the solution required. However, there is no work that can be done in parallel - answering the question of "are there genuinely parallel sub-problems, or does one context overflow?". The overbuild would have skyrocketed the bill by 4x and would've have much larger latency without much change in reliability. 

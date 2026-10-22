@@ -1,0 +1,300 @@
+---
+title: "Mid-term Project Requirements, Questions and Answers"
+format:
+  pdf:
+    include-in-header:
+      text: |
+        \usepackage{pdflscape}
+        \usepackage{geometry} 
+---
+
+## Mid-term Project Definition 
+
+The project you are designing here is the **[Mid-Term Project Specifications](../projects/grant_teams_midterm_project/specifications.qmd)** — the grants.gov solicitation harvester and VT College of Science team builder. Read it end to end (requirements, use cases, deliverables, rubric, and the *Questions for Consideration*) before you start this exercise.
+
+## Assignment Overview 
+
+Anyone can build an agentic system with Claude Code or Open Code.  _Can you build one that is reliable, safe, cost effective and meets all the requirements every time it's run?_  It's time to put on your AI architect hat and address LLM/RAG shortcomings with a good agentic AI design.
+
+## Rubric
+
+This is a 500 point exercise.  It's an assessment of how much you have learned up to this point.  Please take it seriously.  It's as important as the project output.  You should complete this Quarto markdown file (.qmd) and turn it in along (as .qmd) with a quarto rendered PDF version (.pdf).  Add `format: pdf` to the yaml header of this file and then run `quarto render yourfilename.qmd` to build the PDF.
+
+## Important Note
+
+This work must be done 100% without assistance from any AI.  I need to know that *YOU* have learned the material. I know that Claude knows it.  **Any use of AI will be easily detected and will be treated as an Honor Code violation.  Please take this seriously.**
+
+## Requirements 
+
+Refer back to the course material in the `Projects` section and complete this list of requirements.  List as many as you can (20 is not meaningful here). This is a critical step!  Any person or LLM should be able to fully understand **all** requirements for the application from this list.
+
+Complete this list:
+
+1. The solution should provide a user-friendly user interface in Python streamlit.
+2. The solution should harvest **open** solicitations from grants.gov via the REST API and store them in a local JSON database.
+3. The solution should take the **closed** solicitations from the grants.gov REST API and archive them in said local JSON database.
+4. The solution should allow the user to filter and sort the **open** solicitations by relevant fields (type, date, amount, etc.).
+5. The solution should truncate the **open** solicitations by a set number displayed per page as to not have one long list, along with a description of how many **open** solicitations and time of last update. 
+6. The solution should allow the user to click a button that builds the team **after** selecting a solicitation.
+7. The solution should allow the user to refresh the list of solicitations, calling the grants.gov REST API and properly archiving the closed solicitations and displaying the open ones, all while storing them in the local JSON database.
+8. The solution should implement a Retrieval-Augmented Generation (RAG) architecture that retrieves chunked data from **raw_data/authors.csv**. These data contains a list of College of Science faculty with their respective descriptions and important metrics, such as the H-index.
+9. The solution should also utilize **raw_data/publications.csv** in its RAG, which contains all the research publications for each College of Science faculty member, including abstracts. The initial prototype will utilize **raw_data/publications.csv**, but the final product should utilize the API sourced from Elsevier.
+10. The solution should then transfer the user to a chatbot interface that automatically constructs the team based on the optimized user-defined prompt template and RAG content.
+11. The solution should use the hosted VT ARC LLMs.
+12. The solution should allow the user to follow up on the initial generation of the team.
+13. The solution should take any follow-ups, such as swapping team members and scope and retrieve a revised team.
+14. The solution should provide well-structured code with descriptive comments and run instructions.
+15. The solution should take a holistic approach to building the team.  Contributor metrics, along with publications (including recency and journal prestige) at a minimum should be inputs into the team construction and role definitions.
+16. The solution should optimize the original prompt using LLM prompt optimization (to help achieve the other requirements in this list).
+17. The solution should verify all facts presented through direct grounding in the source materials.  The user should be able to trace back any factual claims to the original source material text.
+18. The solution should highly reliable.  Running the same prompt over again should generate relatively consistent results.  If the results are wildly different, the solution is a complete failure and will never be accepted. 
+
+## LLM / RAG Issues
+
+Referring back to the lectures on LLM and RAG, what are the specific issues that you must overcome with good agentic AI design/architecture/patterns **to meet the requirements**?  **Make sure you point back to a specific requirement**.  Don't solve the issue yet. Just identify it.  You should have a fair number of these (between 5 and 20).
+
+1. For requirements 8 and 9, using a suboptimal chunking strategy of these data can provide questionable results due to chunks containing the correct keyword or the answer splitting across two chunks.
+2. For requirement 10, documents retrieved in context that are in the middle often times can be overlooked.
+3. For requirement 13, any additional follow ups that are contradictory to the initial prompt can confuse the LLM/RAG on what should be retrieved. Additionally, more prompts means more context used, which can lead to more hallucinated results.
+4. For requirement 17, the issue that needs to be addressed is verification. More specifically, what's the best framework we can use to minimize hallucinations?
+5. For requirement 18, RAG can produce different outputs even with the same prompt, k_in, k_out, what's the best way to work around this?
+
+
+## Basic Architecture 
+
+Write up a couple of paragraphs (in prose) on how you plan to design the solution.  What will be the general approach.  Don't solve the issues yet... just general approach.  What are the major pieces, how do they connect, etc.?
+
+The solution will be architected as a RAG system using ChromaDB to store the embedded chunks from **authors.csv** and **publications.csv** with an LLM re-ranker along with Python's streamlit for the user interface. The initial prototype will utilize **publications.csv** as opposed to an API connected to Elsevier's endpoint, but the final product will use Elsevier. With **authors.csv** and **publications.csv**, an embedding model, qwen3-embedding:8b, hosted on the ADS server, will be used to embed the raw data on a row-by-row basis to prevent data leakage from one professor's data to another. The chunks will be stored in a ChromaDB vector store along with its respective metadata. This is a one time process unless new professor data comes in, in which, the pipeline can be ran again. For retrieval, the query will be embedded with the same model used to embed the authors and publications data and use an ANN search which will then return a top-k number of chunks. A re-ranker will then be used to rank the returned chunks.
+
+For retrieving data from grants.gov, an API will be used to retrieve listings and their respective descriptions that are both open and closed and store into local JSON database, but only display the open opportunities. Now, the streamlit UI will be built with all the necessary filter and display options, along with the 'Build' button after selecting a single opportunity. Implement the LLM to optimize the user-prompt and initiate the RAG process. After the output is given, allow the user to give clarifications or drop a specific team member. 
+
+
+**25 Bonus points for including a UML sequence diagram using a mermaid diagram.  **For this syntax (and only this syntax), I will allow LLM usage** but you need to prompt the LLM with the sequence diagram flow, actors and steps.  Include your prompt here.**
+
+Prompt:
+
+Create a UML sequence diagram in Mermaid for a RAG system that builds a team of professors based off a selected grant that shows the diagram flow, actors, and steps. Separate the workflows into three diagrams: research-data ingestion, grant data ingestion, team generation + refinement.
+
+## Actors 
+
+Include: User, Streamlit UI, Local JSON database, prompt optimization LLM, LLM re-ranker, ChromaDB, Grants.gov API, Elsevier API, embedding model (qwen3-embedding:8b), team-generation LLM, authors.csv and publications.csv source.
+
+## Research data ingestion
+
+1. Retrieve data from authors.csv and publications.csv for the prototype. Use an alt block to show use of Elsevier API for final prototype instead of publications.csv.
+2. Send data to embedding model to chunk.
+3. Store results into ChromaDB
+
+## Grant data ingestion
+
+1. Call Grants.gov API for grant data.
+2. Store opportunities into local JSON database for display, archive closed ones.
+
+## Team generation and refinement
+
+1. The user clicks the build button to initiate call
+2. Streamlit retrieves grant from local JSON DB.
+3. The prompt optimizer takes grant and user query to create the optimal response.
+4. Embed the retrieval query through the same embedding model as before
+5. Query ChromaDB through ANN to retrieve K_in
+6. Send queried chunks to reranker.
+7. The Team Generation LLM takes relevant chunks and proposes a team.
+8. Send response back to user.
+9. Include for loop for user refinement.
+10. Display revised team
+
+vt-arc-llm
+
+
+
+```{=latex}
+\clearpage
+\newgeometry{left=0.5in,right=0.5in,top=0.5in,bottom=0.5in}
+\thispagestyle{empty}
+```
+
+```{mermaid}
+%%| fig-height: 6.5
+%%| fig-width: 7
+%%| fig-align: center
+sequenceDiagram
+    autonumber
+    actor User
+    participant UI as Streamlit UI
+    participant SRC as authors.csv / publications.csv
+    participant ELSEVIER as Elsevier API
+    participant EMB as qwen3-embedding-8b
+    participant DB as ChromaDB
+
+    User->>UI: Trigger research-data ingestion
+    UI->>SRC: Request author & publication records
+    SRC-->>UI: Return raw records (authors.csv, publications.csv)
+
+    alt Prototype mode (default)
+        Note over UI,SRC: Consume local CSV source files as-is
+    else Final prototype (Elsevier enabled)
+        Note over UI,SRC: authors.csv still supplies author records
+        UI->>ELSEVIER: Query author/publication metadata
+        activate ELSEVIER
+        ELSEVIER-->>UI: Return publication records<br/>(replaces publications.csv)
+        deactivate ELSEVIER
+    end
+
+    UI->>EMB: Send raw records for chunking + embedding
+    activate EMB
+    EMB->>EMB: Chunk documents (per author / per publication)
+    EMB->>EMB: Generate vector embeddings
+    EMB-->>UI: Return chunks + embedding vectors
+    deactivate EMB
+
+    UI->>DB: Store chunks, vectors & metadata
+    activate DB
+    DB->>DB: Upsert into collection (persist to disk)
+    DB-->>UI: Confirm write (ids, count)
+    deactivate DB
+
+    UI-->>User: Ingestion complete — records embedded & indexed
+```
+
+```{=latex}
+\clearpage
+\restoregeometry
+```
+
+```{=latex}
+\clearpage
+\newgeometry{left=0.5in,right=0.5in,top=0.5in,bottom=0.5in}
+\thispagestyle{empty}
+```
+
+```{mermaid}
+%%| fig-height: 6.5
+%%| fig-width: 7
+%%| fig-align: center
+sequenceDiagram
+    autonumber
+    actor User
+    participant UI as Streamlit UI
+    participant GG as Grants.gov API
+    participant JDB as Local JSON Database
+
+    User->>UI: Open / refresh grant opportunities
+    UI->>GG: Call Grants.gov API (fetch opportunities)
+    activate GG
+    GG-->>UI: Return opportunity payloads (JSON)
+    deactivate GG
+
+    UI->>JDB: Store opportunities for display
+    activate JDB
+    JDB->>JDB: Upsert open opportunities
+    JDB->>JDB: Archive closed opportunities (status = archived)
+    JDB-->>UI: Confirm stored + archived counts
+    deactivate JDB
+
+    UI->>JDB: Read current opportunities
+    JDB-->>UI: Return active + archived grant lists
+    UI-->>User: Display grants
+```
+
+```{=latex}
+\clearpage
+\restoregeometry
+```
+
+```{=latex}
+\clearpage
+\newgeometry{left=0.5in,right=0.5in,top=0.5in,bottom=0.5in}
+\thispagestyle{empty}
+```
+
+```{mermaid}
+%%| fig-height: 6.5
+%%| fig-width: 7
+%%| fig-align: center
+sequenceDiagram
+    autonumber
+    actor User
+    participant UI as Streamlit UI
+    participant JDB as Local JSON DB
+    participant Optimizer as Prompt Optimization LLM
+    participant EMB as qwen3-embedding-8b
+    participant DB as ChromaDB
+    participant RR as LLM Re-ranker
+    participant GEN as Team-Generation LLM
+
+    User->>UI: Select grant, enter query, click Build Team
+    UI->>JDB: Retrieve grant record by ID
+    JDB-->>UI: Return grant title, agency, and scope
+
+    UI->>Optimizer: Send grant text and user query
+    activate Optimizer
+    Optimizer->>Optimizer: Optimize retrieval query
+    Optimizer-->>UI: Return optimized retrieval query
+    deactivate Optimizer
+
+    UI->>EMB: Embed retrieval query
+    activate EMB
+    EMB-->>UI: Return query vector
+    deactivate EMB
+
+    UI->>DB: ANN query for top K_in candidates
+    activate DB
+    DB-->>UI: Return K_in chunks and metadata
+    deactivate DB
+
+    UI->>RR: Send candidate chunks and retrieval query
+    activate RR
+    RR->>RR: Score and rank candidates
+    RR-->>UI: Return top K_out relevant chunks
+    deactivate RR
+
+    UI->>GEN: Send grant, user query, and relevant chunks
+    activate GEN
+    GEN->>GEN: Match professor expertise to grant needs
+    GEN-->>UI: Return proposed members, roles, and rationale
+    deactivate GEN
+
+    UI->>JDB: Persist team draft
+    UI-->>User: Display proposed team
+
+    loop User refinement until accepted or iteration limit reached
+        User->>UI: Submit refinement feedback
+        UI->>GEN: Send prior team, feedback, and retrieved context
+        activate GEN
+        GEN->>GEN: Revise team composition
+        GEN-->>UI: Return revised team
+        deactivate GEN
+        UI->>JDB: Persist revised draft
+        UI-->>User: Display revised team
+    end
+
+    User->>UI: Accept final team
+    UI->>JDB: Persist final team
+    UI-->>User: Confirm team saved
+```
+
+```{=latex}
+\clearpage
+\restoregeometry
+```
+
+You should end your `Basic Architecture` with the level of agency you think is **earned** by this solution architecture.  Go back to the beginning of the course for the various levels.  **Make sure you give a quick summary of why it is earned.**
+
+The level of agency earned by this solution architecture is a **deterministic workflow**. This is due to the predefined steps taken when executing the research-data ingestion and team building. For example, the team building follows a deterministic path of prompt ingestion/optimization, retrieval of necessary chunks from ChromaDB, re-ranking, and providing user with the proposed team with its rationale. The solution allows the user to follow-up, but overall the system follows a step-by-step process to come up with a solution. This architecture gives the developer control over the execution sequence and termination, making step count predictable, along with creating estimates/bounds for cost and token consumption. One drawback of this design is that it might be **too rigid**, i.e., an edge case that the predefined steps doesn't know how to handle.
+
+
+## Solution Mitigation
+
+Now for each of the LLM/RAG issues, you should give specific design patterns that we learned in class to address them.  I need a short explanation of why your solution is the right one.  **Make sure you refer back to the numbered issue from the previous section.**
+
+1. For issue 1, the design pattern that addresses this issue is utilizing **document-aware** chunking. This strategy preserves the structural integrity of the .csvs by insuring that no row is split across chunks. Also, it would maintain the meaning of the headers. In doing so, it would prevent data about a publication or professor leaking into one another.
+2. For issue 2, the design pattern that addresses this issue is using a LLM re-ranker such that the most critical and relevant information comes first or last, and to keep top_k smaller. This is the optimal approach as it allows the LLM to overcome the lost-in-the-middle problem and to cut down on irrelevant information.
+3. For issue 3, the design pattern that addresses this issue is using a **rolling summary** of the context. This will keep a summary of what is asked from the user, along with any other conflicting clarifications that may arise. This is the optimal solution as truncating may remove necessary information from previous prompts and leaving it be may cause hallucinations. 
+4. For issue 4, the design pattern that addresses this issue is to utilize the Chain-of-Verification framework to verify the response. Essentially, give a context-free LLM a list of questions about the original claim and execute the retrieval again. This approach is optimal because it targets where hallucinations live, like a citation. Additionally, the independence of the original response is not in context, so it makes it more difficult to agree with itself. 
+5. For issue 5, using many different strategies such as keeping a low temperature, maintaining consistent k_in and k_out, using the same embedding model, re-ranker, and version of the corpus and vector index, would help support consistent answers. This approach is optimal it reduces how much is changed from run-to-run at each stage.
+
+## Final Thoughts 
+
+Hopefully, you can see that this exercise is something you do before invoking an agentic harness.  This is where you add value and earn your place in the future AI ecosystem.  Next steps we will review this architecture with a frontier level model and refine it.  Then we work with an agentic harness to build it!
+
+
