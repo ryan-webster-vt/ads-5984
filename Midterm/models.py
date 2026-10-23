@@ -320,13 +320,17 @@ class RunMetadata(BaseModel):
     team_size: int
     prompt_versions: dict[str, str] = Field(default_factory=dict)
     cache_hits: int = 0
+    cache_enabled: bool = False
     llm_calls: int = 0
     rerank_calls: int = 0
     generator_calls: int = 0
     verifier_calls: int = 0
     repair_attempts: int = 0
     token_usage: dict[str, int] = Field(default_factory=dict)
+    llm_budget: dict[str, Any] = Field(default_factory=dict)
     latency_ms: int = 0
+    runtime_budget_ms: int = 0
+    errors: list[str] = Field(default_factory=list)
     validation_issues: list[str] = Field(default_factory=list)
     fallback_used: bool = False
     weights: dict[str, float] = Field(default_factory=dict)

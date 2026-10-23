@@ -1,10 +1,11 @@
 # VT College of Science Grant Team Builder
 
-Phase 4 implementation of the ADS 5984 midterm project. The app refreshes live
+Phase 5 implementation of the ADS 5984 midterm project. The app refreshes live
 Grants.gov opportunities into a local JSON store, filters/sorts/paginates them,
 builds a grounded, cited Virginia Tech College of Science team for a selected
 opportunity using the full faculty/publication index in ChromaDB, and refines the
-team through follow-up constraint changes.
+team through follow-up constraint changes. LLM stages run under explicit call,
+token, wall-clock, retry, and circuit-breaker limits.
 
 The full architecture, requirements, phases, and decisions are in `PLAN.md`.
 
@@ -31,7 +32,7 @@ The deterministic baseline and validator are the reproducibility backstop: if th
 LLM output is unavailable or unsupported, the app shows the baseline team and
 records the failure rather than presenting an ungrounded recommendation.
 
-## What works in Phase 4
+## What works in Phase 5
 
 - Live Grants.gov `search2` pagination (`rows=1000`) until `hitCount` is covered.
 - Revision-recorded detail cache, concurrent `fetchOpportunity` calls, retries,
@@ -71,12 +72,28 @@ records the failure rather than presenting an ungrounded recommendation.
 - Full `raw_data/authors.csv` roster loading with exact Scopus ID matching,
   duplicate-ID conflict detection, EID/DOI/title deduplication, and the full
   attributed-publication index (19,986 canonical works, 32,892 vectors).
+- Bounded LLM execution: per-request timeouts, exponential backoff with jitter,
+  `Retry-After` support, non-retryable 4xx handling, a failure-count circuit
+  breaker, and per-run call/token/wall-clock budgets. Budget exhaustion falls
+  back to the deterministic baseline instead of hanging.
+- A redacting logger and error path for API keys, bearer tokens, and URL
+  credentials; run metadata and the UI never echo raw exception text.
+- Version-keyed retrieval caching with explicit `--no-cache` evaluation. Cache
+  keys include index version, corpus hash, embedding model, prompt version,
+  `K_in`/`K_out`, union cap, and rerank settings; transient reranker failures are
+  never cached.
+- Persisted run metadata for every build (including follow-up turns) with LLM
+  call count, token usage, budget state, cache status, latency, validation
+  issues, and redacted errors.
+- `scripts/eval_repeatability.py` reports member/PI/evidence stability, validator
+  pass rate, p50/p95 latency, call/token use, and whether the runtime budget was
+  met. Five uncached offline runs on the fixed fixture produced 1.0 member
+  Jaccard, 1.0 PI agreement, and a 100% validator pass rate.
 - Elsevier/Scopus adapter interface and response parsers, tested against synthetic
   fixtures only. Live Elsevier access is not claimed.
 
-Phase 4 intentionally does **not** include live Elsevier ingestion or the final
-submission package. Those remain Phase 6. Phase 5 hardens timeouts, retries,
-rate limits, budgets, and failure-injection coverage.
+Phase 5 intentionally does **not** include live Elsevier ingestion or the final
+submission package. Those remain Phase 6.
 
 ### Live refresh measurements (2026-10-22)
 
@@ -90,6 +107,22 @@ rate limits, budgets, and failure-injection coverage.
 
 These numbers are observations from one live run, not guarantees about future
 Grants.gov contents or response times.
+
+### Live team-build budget measurements (2026-10-22)
+
+- Five uncached offline runs against the fixed fixture (full-v1 index and real
+  embedding endpoint): member Jaccard 1.0, PI agreement 1.0, evidence Jaccard
+  1.0, validator pass rate 1.0, p95 latency 294–334 ms, 0 LLM calls.
+- One live VT ARC run with the 85 s per-run wall budget: 63.0 s, 2 LLM calls,
+  0 validator issues, deterministic baseline fallback after an LLM timeout, and
+  within the 90 s p95 reporting target.
+- A slower live run before tightening the budget took 259 s and 5 LLM calls.
+  The current per-run wall budget and per-request timeout cap that behavior; the
+  app reports the fallback instead of waiting indefinitely.
+
+The live LLM endpoint can be slow or unavailable. The deterministic baseline is
+the reliability backstop; bounded budgets trade some semantic generation quality
+for predictable latency and a complete, cited team.
 
 ## Environment
 
@@ -237,9 +270,13 @@ fallback, batched reranking and diversity caps, configurable scoring and missing
 metrics, constraint merging and member resolution, scripted follow-ups, team
 validation, verifier/repair fallback, prompt injection, five-run deterministic
 repeatability, the VT ARC stray-brace parser fallback, and Elsevier fixture
-parsing. Fixtures prove parsing and offline behavior only; they do not prove that
-live Grants.gov, Elsevier, VT ARC, or embedding integrations work. Grants.gov and
-the live VT ARC optimizer/reranker were also smoke-tested as described above.
+parsing. Phase 5 adds failure injection for 429/500/timeout/401/refusal/malformed
+JSON/invalid schema, LLM and embedding failures, call/token/wall budgets, the
+circuit breaker, secret redaction, retrieval-cache keys/TTL/no-cache behavior,
+pipeline metadata persistence, and evaluation metrics. Fixtures prove parsing and
+offline behavior only; they do not prove that live Grants.gov, Elsevier, VT ARC,
+or embedding integrations work. Grants.gov and the live VT ARC optimizer/reranker
+were also smoke-tested as described above.
 
 ## Data notes
 
@@ -260,8 +297,12 @@ the live VT ARC optimizer/reranker were also smoke-tested as described above.
   the hidden count.
 - Live multi-member VT ARC generation can be slow or return a structured payload
   that fails validation. The app reports the failure and shows the deterministic
-  baseline; Phase 5 will add tighter timeouts, retry budgets, and runtime
-  reporting.
+  baseline. Per-run call/token/wall budgets, per-request timeouts, retries, and a
+  circuit breaker bound the wait; run metadata and the repeatability report record
+  the actual latency and call count.
+- `data/retrieval_cache/` is generated and ignored by git. Entries expire after
+  24 hours and are invalidated automatically when the index version, corpus hash,
+  embedding model, prompt version, query, or retrieval settings change.
 
 ## Key commands
 
@@ -270,8 +311,15 @@ python3 scripts/build_index.py --rebuild
 python3 scripts/build_index.py --incremental
 python3 scripts/refresh_opportunities.py
 python3 -m streamlit run app.py
+python3 scripts/eval_repeatability.py --runs 5 --offline --no-persist
+python3 scripts/eval_repeatability.py --runs 5 --no-persist
 python3 -m pytest -q
 python3 -m ruff check .
 ```
+
+`eval_repeatability.py` runs uncached by default. Add `--use-cache` to exercise
+the retrieval cache or `--clear-cache` to invalidate it first. The script exits
+nonzero when member Jaccard, PI agreement, validator pass rate, or the runtime
+budget misses its target.
 
 See `AGENTS.md` for durable project rules and `PLAN.md` for the full design.

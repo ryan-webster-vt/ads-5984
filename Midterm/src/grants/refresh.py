@@ -24,6 +24,7 @@ from src.grants.store import (
     save_database,
 )
 from src.io_utils import read_json, write_json_atomic
+from src.redaction import safe_exception_message
 
 ProgressCallback = Callable[[str, int, int], None]
 
@@ -165,7 +166,7 @@ def _enrich_details(
                         record, previous_by_id.get(record.opportunity_id)
                     )
                     record.detail_status = "failed"
-                    record.detail_error = f"{type(exc).__name__}: {exc}"[:500]
+                    record.detail_error = safe_exception_message(exc)
                     if len(errors) < 20:
                         errors.append(
                             f"Detail fetch failed for {record.opportunity_id}: "

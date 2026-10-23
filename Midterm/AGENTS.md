@@ -53,8 +53,12 @@ python3 scripts/refresh_opportunities.py
 # live full feed: 1,468 records / 1,468 details in 28.3 s cold
 # warm cache: 0.67 s, 1,468 cached details; 1,262 active after hiding 206 expired
 
+python3 scripts/eval_repeatability.py --runs 5 --offline --no-persist
+# 1.0 member Jaccard, 1.0 PI agreement, 1.0 evidence Jaccard, 100% validator pass
+# p95 294–334 ms, 0 LLM calls, within budget
+
 python3 -m pytest -q
-# 90 passed
+# 127 passed
 
 python3 -m ruff check .
 # All checks passed
@@ -81,11 +85,14 @@ python3 -m pytest -q
 python3 -m ruff check .
 ```
 
-The live repeatability CLI (`scripts/eval_repeatability.py`) and failure-injection
-hardening belong to Phase 5. Phase 4 includes an offline five-run deterministic
-repeatability test. The Elsevier adapter is fixture-tested only; live Elsevier
-ingestion is deferred to Phase 6. Phase 3 live Grants.gov refresh and Phase 4
-optimization/reranking/generation/fallback are implemented and verified.
+Phase 5 is complete: bounded LLM retries/timeouts, per-run call/token/wall
+budgets, a circuit breaker, secret redaction, a version-keyed retrieval cache with
+`--no-cache` evaluation, persisted run metadata, and the repeatability/runtime
+CLI (`scripts/eval_repeatability.py`). The Elsevier adapter remains
+fixture-tested only; live Elsevier ingestion is deferred to Phase 6. Phase 3 live
+Grants.gov refresh and Phase 4 optimization/reranking/generation/fallback are
+implemented and verified. Live VT ARC can still time out on a slow connection;
+the deterministic baseline is the reliability backstop.
 
 ## Key paths
 
@@ -95,19 +102,25 @@ optimization/reranking/generation/fallback are implemented and verified.
 - `data/opportunities.json.bak` — previous good opportunity snapshot.
 - `data/grants_detail_cache/` — revision-recorded Grants.gov detail cache;
   generated, never commit.
+- `data/retrieval_cache/` — version-keyed exact-evidence cache; generated, never
+  commit.
 - `data/index_manifest.json` — corpus/index/embedding version metadata.
-- `data/runs/` — per-run metadata, evidence, and validation results.
+- `data/runs/` — per-run metadata, evidence, validation results, budgets.
 - `data/chroma/` — generated persistent ChromaDB index; never commit.
 - `prompts/` — versioned prompt templates loaded by `src/prompting.py`.
 - `tests/`, `fixtures/` — offline tests and API fixtures (Grants.gov recorded;
   Elsevier synthetic).
 - `src/grants/`, `src/research/`, `src/retrieval/`, `src/team/`, `src/ui/` —
   application modules. Phase 4 adds `retrieval/optimize.py`, `retrieval/rerank.py`,
-  `team/constraints.py`, `team/scoring.py`, and `team/followup.py`.
+  `team/constraints.py`, `team/scoring.py`, and `team/followup.py`. Phase 5 adds
+  `redaction.py`, `evaluation.py`, `retrieval/cache.py`, and `team/pipeline.py`.
 
 ## Durable engineering rules
 
-- Never expose, print, log, or commit `.env` or any API key.
+- Never expose, print, log, or commit `.env` or any API key. Use
+  `src/redaction.py` for exception text that reaches logs, metadata, or the UI.
+- Keep every LLM stage inside the per-run `LLMCallBudget`; evaluation runs are
+  uncached by default and must report latency, call count, and token use.
 - Never send the entire publication dataset to an LLM; retrieve evidence first.
 - Keep identity joins, dedupe, eligibility, team constraints, tie-breaking, and
   validation in deterministic code.

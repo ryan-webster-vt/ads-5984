@@ -2,226 +2,28 @@
 
 from __future__ import annotations
 
-import time
-import uuid
-from datetime import UTC, datetime
-
 import streamlit as st
 
 import config
 from models import (
     Faculty,
-    FacultyCandidate,
     IndexManifest,
     Opportunity,
-    ResearchQuery,
-    RetrievedEvidence,
-    RunMetadata,
-    TeamProposal,
     UserConstraints,
 )
 from src.io_utils import write_json_atomic
-from src.prompting import prompt_versions
+from src.llm import ensure_budgeted
+from src.redaction import redact_secrets
 from src.retrieval.optimize import optimize_query
-from src.retrieval.retrieve import retrieve_for_research_query
-from src.team.constraints import filter_candidates, state_summary
+from src.team.constraints import state_summary
 from src.team.followup import apply_followup, augment_research_query
-from src.team.generate import generate_team_proposal
-from src.team.scoring import ScoringWeights, score_faculty_candidates
+from src.team.pipeline import build_team_run, new_run_id
 
 
 def _candidate_by_id(payload: dict) -> dict[str, dict]:
     return {
         candidate["scopus_id"]: candidate for candidate in payload.get("candidates", [])
     }
-
-
-def _run_payload(
-    *,
-    run_id: str,
-    opportunity: Opportunity,
-    focus: str,
-    research_query: ResearchQuery,
-    constraints: UserConstraints,
-    query: str,
-    team_size: int,
-    k_in: int,
-    k_out: int,
-    manifest: IndexManifest,
-    proposal: TeamProposal,
-    evidence: list[RetrievedEvidence],
-    candidates: list[FacultyCandidate],
-    faculty_by_id: dict[str, Faculty],
-    elapsed_ms: int,
-    llm_client,
-    rerank_calls: int,
-    rerank_fallback: bool,
-    turns: list[dict],
-    conversation: list[dict],
-) -> dict:
-    weights = ScoringWeights.from_override(constraints.weights_override)
-    metadata = RunMetadata(
-        run_id=run_id,
-        timestamp=datetime.now(UTC).isoformat(),
-        opportunity_id=opportunity.opportunity_id,
-        index_version=manifest.index_version,
-        corpus_hash=manifest.corpus_sha256,
-        embedding_model=manifest.embedding_model,
-        chat_model=getattr(llm_client, "model", "unavailable"),
-        query=query,
-        search_queries=research_query.search_queries,
-        research_query=research_query.model_dump(mode="json"),
-        k_in=k_in,
-        k_out=k_out,
-        team_size=team_size,
-        prompt_versions=prompt_versions(*config.PROMPT_NAMES),
-        llm_calls=getattr(llm_client, "calls", 0),
-        rerank_calls=rerank_calls,
-        generator_calls=1 if proposal.used_llm else 0,
-        verifier_calls=proposal.verifier_calls,
-        repair_attempts=proposal.repair_attempts,
-        latency_ms=elapsed_ms,
-        validation_issues=proposal.validation_issues,
-        fallback_used=not proposal.used_llm,
-        weights=weights.as_dict(),
-        constraints=constraints.model_dump(mode="json"),
-        ranked_evidence_ids=[item.evidence_id for item in evidence],
-        baseline_team=proposal.baseline_team_ids,
-        final_team=[member.scopus_id for member in proposal.members],
-        coverage=proposal.coverage,
-    )
-    candidate_payloads: list[dict] = []
-    for candidate in candidates:
-        item = candidate.model_dump(mode="json")
-        member = faculty_by_id.get(candidate.scopus_id)
-        if member is not None:
-            item["roster"] = {
-                "department": member.department,
-                "rank": member.rank,
-                "tenure": member.tenure,
-                "appointment_type": member.appointment_type,
-                "h_index": member.h_index,
-                "h5_index": member.h5_index,
-                "citation_count": member.citation_count,
-                "top_journal_quartile_pct": member.top_journal_quartile_pct,
-            }
-        candidate_payloads.append(item)
-    return {
-        "metadata": metadata.model_dump(mode="json"),
-        "proposal": proposal.model_dump(mode="json"),
-        "evidence": [item.model_dump(mode="json") for item in evidence],
-        "candidates": candidate_payloads,
-        "research_query": research_query.model_dump(mode="json"),
-        "constraints": constraints.model_dump(mode="json"),
-        "focus": focus,
-        "rerank": {"calls": rerank_calls, "fallback_used": rerank_fallback},
-        "turns": turns,
-        "conversation": conversation,
-    }
-
-
-def _new_run_id() -> str:
-    return uuid.uuid4().hex[:12]
-
-
-def _retrieve_and_score(
-    *,
-    collection,
-    research_query: ResearchQuery,
-    constraints: UserConstraints,
-    faculty_by_id: dict[str, Faculty],
-    llm_client,
-) -> tuple[list[RetrievedEvidence], list[FacultyCandidate], int, bool]:
-    evidence, outcome = retrieve_for_research_query(
-        collection,
-        research_query,
-        llm_client=llm_client,
-        k_in=config.DEFAULT_K_IN,
-        k_out=config.DEFAULT_K_OUT,
-    )
-    weights = ScoringWeights.from_override(constraints.weights_override)
-    candidates = score_faculty_candidates(
-        evidence,
-        faculty_by_id,
-        research_query=research_query,
-        weights=weights,
-        recency_preference=constraints.recency_preference,
-    )
-    candidates = filter_candidates(candidates, faculty_by_id, constraints)
-    return evidence, candidates, outcome.calls, outcome.fallback_used
-
-
-def _build(
-    *,
-    run_id: str,
-    opportunity: Opportunity,
-    focus: str,
-    research_query: ResearchQuery,
-    constraints: UserConstraints,
-    faculty_by_id: dict[str, Faculty],
-    collection,
-    manifest: IndexManifest,
-    llm_client,
-    evidence: list[RetrievedEvidence] | None = None,
-    candidates: list[FacultyCandidate] | None = None,
-    rerank_calls: int = 0,
-    rerank_fallback: bool = False,
-    turns: list[dict] | None = None,
-    conversation: list[dict] | None = None,
-) -> tuple[dict, list[RetrievedEvidence], list[FacultyCandidate], ResearchQuery]:
-    started = time.perf_counter()
-    if evidence is None or candidates is None:
-        evidence, candidates, rerank_calls, rerank_fallback = _retrieve_and_score(
-            collection=collection,
-            research_query=research_query,
-            constraints=constraints,
-            faculty_by_id=faculty_by_id,
-            llm_client=llm_client,
-        )
-    else:
-        candidates = filter_candidates(candidates, faculty_by_id, constraints)
-    if not candidates:
-        raise RuntimeError(
-            "No faculty candidates matched the retrieval and explicit constraints."
-        )
-    proposal = generate_team_proposal(
-        run_id=run_id,
-        opportunity=opportunity,
-        focus=focus,
-        candidates=candidates,
-        evidence=evidence,
-        faculty_by_id=faculty_by_id,
-        team_size=constraints.team_size,
-        llm_client=llm_client,
-        research_query=research_query,
-        constraints=constraints,
-    )
-    elapsed_ms = int((time.perf_counter() - started) * 1000)
-    payload = _run_payload(
-        run_id=run_id,
-        opportunity=opportunity,
-        focus=focus,
-        research_query=research_query,
-        constraints=constraints,
-        query=research_query.problem_statement,
-        team_size=constraints.team_size,
-        k_in=config.DEFAULT_K_IN,
-        k_out=config.DEFAULT_K_OUT,
-        manifest=manifest,
-        proposal=proposal,
-        evidence=evidence,
-        candidates=candidates,
-        faculty_by_id=faculty_by_id,
-        elapsed_ms=elapsed_ms,
-        llm_client=llm_client,
-        rerank_calls=rerank_calls,
-        rerank_fallback=rerank_fallback,
-        turns=turns or [],
-        conversation=conversation or [],
-    )
-    config.ensure_directories()
-    write_json_atomic(config.RUNS_DIR / f"{run_id}.json", payload)
-    return payload, evidence, candidates, research_query
 
 
 def _render_evidence(
@@ -283,6 +85,8 @@ def _render_run(payload: dict) -> None:
     st.caption(
         f"Run `{metadata['run_id']}` | validator: **{proposal['validator_status']}** | "
         f"LLM used: **{proposal['used_llm']}** | "
+        f"LLM calls: {metadata.get('llm_calls', 0)} | "
+        f"cached evidence: {metadata.get('cache_hits', 0)} | "
         f"repair attempts: {proposal.get('repair_attempts', 0)} | "
         f"latency: {metadata['latency_ms'] / 1000:.1f}s"
     )
@@ -380,11 +184,12 @@ def _run_followup(
         state["conversation"].append({"role": "assistant", "content": reply})
         st.rerun()
 
+    budgeted_client = ensure_budgeted(llm_client)
     result = apply_followup(
         message,
         state["constraints"],
         faculty_by_id,
-        llm_client=llm_client,
+        llm_client=budgeted_client,
     )
     if result.clarification_needed or not result.applied:
         reply = result.assistant_message or "Please clarify the requested change."
@@ -416,11 +221,12 @@ def _run_followup(
     candidates = None if redo else state["candidates"]
     rerank_calls = 0 if redo else state.get("rerank_calls", 0)
     rerank_fallback = False if redo else state.get("rerank_fallback", False)
+    rerank_cache_hit = False if redo else state.get("rerank_cache_hit", False)
 
     turn_index = len(state["turns"]) + 1
     run_id = f"{state['run_id']}-t{turn_index}"
     try:
-        payload, evidence, candidates, research_query = _build(
+        build = build_team_run(
             run_id=run_id,
             opportunity=opportunity,
             focus=state["focus"],
@@ -429,16 +235,21 @@ def _run_followup(
             faculty_by_id=faculty_by_id,
             collection=collection,
             manifest=manifest,
-            llm_client=llm_client,
+            llm_client=budgeted_client,
             evidence=evidence,
             candidates=candidates,
             rerank_calls=rerank_calls,
             rerank_fallback=rerank_fallback,
+            rerank_cache_hit=rerank_cache_hit,
             turns=state["turns"],
             conversation=state["conversation"],
         )
+        payload = build.payload
+        evidence = build.evidence
+        candidates = build.candidates
+        research_query = build.research_query
     except Exception as exc:
-        reply = f"I could not rebuild the team: {exc}"
+        reply = f"I could not rebuild the team: {redact_secrets(exc)}"
         state["conversation"].append({"role": "assistant", "content": reply})
         state["turns"].append(
             {
@@ -481,6 +292,7 @@ def _run_followup(
             "candidates": candidates,
             "rerank_calls": payload["metadata"]["rerank_calls"],
             "rerank_fallback": payload["rerank"]["fallback_used"],
+            "rerank_cache_hit": payload["rerank"].get("cache_hit", False),
             "turns": turns,
             "conversation": conversation,
         }
@@ -531,8 +343,8 @@ def render_team_builder(
 ) -> None:
     st.header("Build a team")
     st.caption(
-        "Phase 4: optimized retrieval, batched reranking, deterministic scoring, "
-        "grounded generation, validation/repair, and conversational constraints."
+        "Phase 5: bounded retrieval/generation budgets, cached or uncached "
+        "evidence, grounded validation, and conversational constraints."
     )
     with st.container(border=True):
         st.subheader(opportunity.title)
@@ -579,16 +391,17 @@ def render_team_builder(
         st.session_state.pop("team_run", None)
 
     if st.button("Build Team", type="primary"):
-        run_id = _new_run_id()
+        run_id = new_run_id()
         constraints = UserConstraints(team_size=team_size)
         with st.spinner("Optimizing the query, retrieving evidence, and building a team..."):
+            budgeted_client = ensure_budgeted(llm_client)
             try:
                 research_query = optimize_query(
                     opportunity,
                     focus,
-                    llm_client=llm_client,
+                    llm_client=budgeted_client,
                 )
-                payload, evidence, candidates, research_query = _build(
+                build = build_team_run(
                     run_id=run_id,
                     opportunity=opportunity,
                     focus=focus,
@@ -597,10 +410,16 @@ def render_team_builder(
                     faculty_by_id=faculty_by_id,
                     collection=collection,
                     manifest=manifest,
-                    llm_client=llm_client,
+                    llm_client=budgeted_client,
                 )
+                payload = build.payload
+                evidence = build.evidence
+                candidates = build.candidates
+                research_query = build.research_query
             except Exception as exc:
-                st.error(f"Team build failed: {type(exc).__name__}: {exc}")
+                st.error(
+                    f"Team build failed: {type(exc).__name__}: {redact_secrets(exc)}"
+                )
                 return
         conversation = [
             {
@@ -627,6 +446,7 @@ def render_team_builder(
             "conversation": conversation,
             "rerank_calls": payload["metadata"]["rerank_calls"],
             "rerank_fallback": payload["rerank"]["fallback_used"],
+            "rerank_cache_hit": payload["rerank"].get("cache_hit", False),
         }
         st.rerun()
 

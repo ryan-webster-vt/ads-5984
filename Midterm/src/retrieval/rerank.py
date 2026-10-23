@@ -25,6 +25,7 @@ class RerankOutcome:
     fallback_used: bool = False
     model_scored: int = 0
     concepts: list[str] = field(default_factory=list)
+    cache_hit: bool = False
 
 
 def _faculty_ids(item: RetrievedEvidence) -> list[str]:

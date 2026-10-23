@@ -18,9 +18,10 @@ OPPORTUNITIES_PATH = DATA_DIR / "opportunities.json"
 OPPORTUNITIES_BACKUP_PATH = DATA_DIR / "opportunities.json.bak"
 OPPORTUNITIES_LOCK_PATH = DATA_DIR / ".opportunities.lock"
 DETAIL_CACHE_DIR = DATA_DIR / "grants_detail_cache"
+RETRIEVAL_CACHE_DIR = DATA_DIR / "retrieval_cache"
 RUNS_DIR = DATA_DIR / "runs"
 
-APP_VERSION = "0.4.0"
+APP_VERSION = "0.5.0"
 INDEX_VERSION = "full-v1"
 CHUNKER_VERSION = "1"
 SCHEMA_VERSION = "2"
@@ -84,6 +85,27 @@ LLM_TIMEOUT_SECONDS = 90
 EMBED_TIMEOUT_SECONDS = 90
 LLM_MAX_RETRIES = 3
 LLM_MAX_TOKENS = 4096
+LLM_RETRY_BASE_SECONDS = 1.0
+LLM_RETRY_MAX_SECONDS = 20.0
+LLM_RETRY_JITTER_SECONDS = 0.5
+LLM_CIRCUIT_FAILURE_THRESHOLD = 3
+LLM_CIRCUIT_COOLDOWN_SECONDS = 60.0
+LLM_MAX_CALLS_PER_RUN = 10
+LLM_MAX_TOKENS_PER_RUN = 200_000
+LLM_MAX_WALL_SECONDS = 85.0
+
+RETRIEVAL_CACHE_ENABLED = True
+RETRIEVAL_CACHE_TTL_HOURS = 24.0
+RETRIEVAL_CACHE_VERSION = "1"
+
+# Suggested operational targets from PLAN.md. Actual observations are recorded
+# by scripts/eval_repeatability.py; these are reporting thresholds, not promises.
+RUNTIME_BUDGETS = {
+    "cached_refresh_seconds": 30.0,
+    "cold_refresh_seconds": 600.0,
+    "team_build_p95_ms": 90_000,
+    "max_llm_calls": 8,
+}
 
 load_dotenv(BASE_DIR / ".env")
 
@@ -103,5 +125,11 @@ def optional_env(name: str, default: str | None = None) -> str | None:
 
 
 def ensure_directories() -> None:
-    for path in (DATA_DIR, CHROMA_DIR, DETAIL_CACHE_DIR, RUNS_DIR):
+    for path in (
+        DATA_DIR,
+        CHROMA_DIR,
+        DETAIL_CACHE_DIR,
+        RETRIEVAL_CACHE_DIR,
+        RUNS_DIR,
+    ):
         path.mkdir(parents=True, exist_ok=True)

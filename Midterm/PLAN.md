@@ -1,6 +1,6 @@
 # ADS 5984 Midterm — Implementation Plan
 
-**Status:** Phase 4 complete (team generation and conversational refinement); Phase 5 not started.
+**Status:** Phase 5 complete (reliability, operations, and security hardening); Phase 6 not started.
 **Last updated:** 2026-10-22  
 **Project root:** `/home/ryanw07/ads_5984/Midterm`  
 **Deliverable:** Streamlit Grants.gov harvester + VT College of Science RAG team builder.
@@ -18,17 +18,20 @@
 - [x] Phase 2 — Complete research ingestion and persistent index.
 - [x] Phase 3 — Live opportunity browsing and archiving.
 - [x] Phase 4 — Full team generation and conversational refinement.
-- [ ] Phase 5 — Reliability, operations, and security hardening.
+- [x] Phase 5 — Reliability, operations, and security hardening.
 - [ ] Phase 6 — Elsevier integration and final delivery.
 
 ### Resume here
 
-Start **Phase 5**. Phases 1–4 are implemented and verified offline. Phase 5
-should harden reliability and operations: bounded LLM timeouts/retries and
-rate-limit handling, failure-injection tests, prompt-injection coverage,
-`--no-cache` evaluation, `scripts/eval_repeatability.py`, secret redaction, and
-runtime/call budget reporting. Keep CSV as the default source; the Elsevier
-adapter remains fixture-tested only until Phase 6 credentials are available.
+Start **Phase 6**. Phases 1–5 are implemented and verified offline. Phase 6
+should complete live Elsevier ingestion when credentials are available, finish
+the README deliverables (already partially developed), build and validate
+`scripts/make_submission_zip.sh`, and prepare the video walkthrough checklist.
+Keep CSV as the default source and clearly label Elsevier live access as
+unverified until a key (and institutional token if required) is provided. The
+Phase 5 reliability harness is `scripts/eval_repeatability.py`; use
+`--offline` for deterministic evaluation and `--use-cache` only when cache
+behavior is under test.
 
 ### Decisions locked
 
@@ -74,6 +77,8 @@ adapter remains fixture-tested only until Phase 6 credentials are available.
 | 2026-10-22 | Verified live archiving with a synthetic previously-open record: a complete live feed archived it with reason `absent_from_complete_open_feed`; page failure tests confirm partial refreshes preserve the last good snapshot. |
 | 2026-10-22 | Phase 4 completed: structured query optimization with deterministic fallback, multi-query retrieval union with configurable `K_in`/union cap, batched LLM reranking (max 4 calls) with deterministic diversity caps (3 chunks/faculty, 1/publication), configurable component scoring with missing-metric redistribution, explicit constraint state, deterministic shortlist/baseline/PI, LLM generation with one repair and one evidence-only verifier, baseline fallback, follow-up patches, and the conversation/evidence-inspector UI. Added versioned prompt templates and 29 new offline tests (90 total). |
 | 2026-10-22 | Phase 4 live verification: live VT ARC optimizer returned structured research needs and 1–3 queries; live batched reranking scored 32 candidates across 4 calls before the configured call cap; full live retrieval/scoring/generation against the `full-v1` index produced either a validated proposal or a deterministic baseline fallback. Multi-member live generation can be slow or return an invalid structured payload; Phase 5 will harden timeouts/retries and document the runtime budget. |
+| 2026-10-22 | Phase 5 completed: bounded LLM attempts with exponential backoff/jitter and `Retry-After`, non-retryable 4xx handling, per-run call/token/wall budgets, per-request timeout capping, circuit breaker, redacted logs/errors, version-keyed retrieval cache with 24 h TTL and `--no-cache` evaluation, centralized persisted run metadata, repeatability/runtime metrics, and 37 new offline failure/security/cache/evaluation tests (127 total). |
+| 2026-10-22 | Phase 5 live verification: five uncached offline runs produced 1.0 member Jaccard, 1.0 PI agreement, 1.0 evidence Jaccard, 100% validator pass, p95 294–334 ms, 0 LLM calls. One live VT ARC run under the 85 s wall budget completed in 63.0 s with 2 LLM calls, 0 validator issues, deterministic fallback after an LLM timeout, and within the 90 s p95 reporting target. A slower pre-tightening run took 259 s/5 calls and motivated the per-request remaining-budget timeout. |
 
 ---
 
@@ -1021,6 +1026,8 @@ Use Pydantic v2 models in `models.py`; persist JSON with `schema_version`.
 
 ### Phase 5 — Reliability, operations, and security hardening
 
+**Status:** Complete on 2026-10-22.
+
 **Files/modules**
 
 - `src/llm.py` retry/limit logic
@@ -1056,6 +1063,51 @@ Use Pydantic v2 models in `models.py`; persist JSON with `schema_version`.
 - Failure-injection tests pass.
 - No unhandled exception in normal failure modes.
 - Runtime and call budgets documented and within agreed targets.
+
+**Phase 5 completion record**
+
+- `src/llm.py` now owns bounded attempts with exponential backoff plus jitter,
+  `Retry-After` support, fast failure on non-retryable 4xx responses, explicit
+  model-refusal handling, a per-run `LLMCallBudget` (calls, prompt/completion
+  tokens, wall clock), per-request timeout capped by the remaining wall budget,
+  and a failure-count circuit breaker with cooldown.
+- `BudgetedLLMClient` wraps one budget per team build and follow-up turn. Budget
+  or breaker exhaustion raises a typed error; optimizer/reranker/generator paths
+  catch it and fall back to deterministic behavior rather than hanging.
+- `src/redaction.py` replaces configured key values, `sk-` tokens, bearer
+  headers, API-key assignments, and URL credentials. LLM/Grants logs, detail
+  errors, UI failures, and run metadata use redacted text.
+- `src/retrieval/cache.py` adds a 24 h exact-evidence cache keyed by cache
+  version, index version/collection/corpus hash, embedding model, chunker/schema,
+  query content, prompt versions, `K_in`/`K_out`, union cap, and rerank settings.
+  Transient reranker failures are not cached. `use_cache=False` bypasses reads
+  and writes; `--clear-cache` invalidates entries.
+- `src/team/pipeline.py` centralizes retrieval/scoring/generation and persists
+  `RunMetadata` for every build, including LLM calls, token usage, budget
+  snapshot, cache status, latency, validation issues, redacted errors, and the
+  runtime-budget target. The Streamlit UI now calls this shared pipeline.
+- `src/evaluation.py` and `scripts/eval_repeatability.py` report member Jaccard
+  (mean/min), PI agreement, evidence Jaccard, validator pass rate, fallback/cache
+  counts, p50/p95 latency, max LLM calls, mean tokens, and pass/fail against the
+  configured targets. Evaluation defaults to uncached runs; `--offline` measures
+  the deterministic pipeline without VT ARC.
+- Failure-injection coverage added for 429 with `Retry-After`, 500 exhaustion,
+  timeouts, 401 fast-fail, refusal, malformed JSON, stray `{`, invalid schema,
+  call/token/wall budgets, circuit open/recovery, embedding failure, Grants
+  429/500/timeout, prompt injection in evidence/opportunity/follow-up, cache
+  key/TTL/no-cache behavior, redaction, pipeline metadata, and evaluation metrics.
+- Verification: `python3 -m pytest -q` → 127 passed; `python3 -m ruff check .` →
+  all checks passed. Five uncached offline evaluation runs: 1.0 member Jaccard,
+  1.0 PI agreement, 1.0 evidence Jaccard, 100% validator pass, p95 294–334 ms.
+- Live VT ARC verification: one run under the 85 s wall budget completed in
+  63.0 s with 2 LLM calls, 0 validator issues, deterministic fallback after an
+  LLM timeout, and within the 90 s p95 reporting target. An earlier run at a
+  240 s budget took 259 s/5 calls; the tightened wall and per-request timeouts
+  eliminated that overrun. Live model text and success remain environment-
+  dependent; the fallback is the reliability guarantee.
+- Known Phase 5 limitation: live LLM generation may still time out on a slow
+  VT ARC connection and therefore produce the deterministic baseline. This is
+  reported in run metadata and the UI, not hidden.
 
 ### Phase 6 — Elsevier integration and final delivery
 

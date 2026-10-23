@@ -79,9 +79,9 @@ def _run_refresh() -> None:
 def main() -> None:
     st.title("VT College of Science Grant Team Builder")
     st.caption(
-        "Phase 4: refresh and filter live Grants.gov opportunities, then build and "
-        "conversationally refine a grounded team from the full faculty/publication "
-        "corpus."
+        "Phase 5: refresh and filter live Grants.gov opportunities, then build and "
+        "conversationally refine a grounded team with bounded LLM budgets and "
+        "inspectable run metadata."
     )
 
     notice = st.session_state.pop("refresh_notice", None)
