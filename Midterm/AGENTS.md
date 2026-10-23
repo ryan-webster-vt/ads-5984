@@ -54,7 +54,7 @@ python3 scripts/refresh_opportunities.py
 # warm cache: 0.67 s, 1,468 cached details; 1,262 active after hiding 206 expired
 
 python3 -m pytest -q
-# 61 passed
+# 90 passed
 
 python3 -m ruff check .
 # All checks passed
@@ -81,10 +81,11 @@ python3 -m pytest -q
 python3 -m ruff check .
 ```
 
-Repeatability evaluation (`scripts/eval_repeatability.py`) belongs to later
-phases and is not implemented yet. The Elsevier adapter is fixture-tested only;
-live Elsevier ingestion is deferred to Phase 6. Phase 3 live Grants.gov
-refresh is implemented and verified.
+The live repeatability CLI (`scripts/eval_repeatability.py`) and failure-injection
+hardening belong to Phase 5. Phase 4 includes an offline five-run deterministic
+repeatability test. The Elsevier adapter is fixture-tested only; live Elsevier
+ingestion is deferred to Phase 6. Phase 3 live Grants.gov refresh and Phase 4
+optimization/reranking/generation/fallback are implemented and verified.
 
 ## Key paths
 
@@ -97,11 +98,12 @@ refresh is implemented and verified.
 - `data/index_manifest.json` — corpus/index/embedding version metadata.
 - `data/runs/` — per-run metadata, evidence, and validation results.
 - `data/chroma/` — generated persistent ChromaDB index; never commit.
-- `prompts/` — versioned prompt templates.
+- `prompts/` — versioned prompt templates loaded by `src/prompting.py`.
 - `tests/`, `fixtures/` — offline tests and API fixtures (Grants.gov recorded;
   Elsevier synthetic).
 - `src/grants/`, `src/research/`, `src/retrieval/`, `src/team/`, `src/ui/` —
-  application modules.
+  application modules. Phase 4 adds `retrieval/optimize.py`, `retrieval/rerank.py`,
+  `team/constraints.py`, `team/scoring.py`, and `team/followup.py`.
 
 ## Durable engineering rules
 

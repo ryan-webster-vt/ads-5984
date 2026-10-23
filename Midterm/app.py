@@ -79,8 +79,9 @@ def _run_refresh() -> None:
 def main() -> None:
     st.title("VT College of Science Grant Team Builder")
     st.caption(
-        "Phase 3: refresh and filter live Grants.gov opportunities, then build a "
-        "grounded team from the full faculty/publication corpus."
+        "Phase 4: refresh and filter live Grants.gov opportunities, then build and "
+        "conversationally refine a grounded team from the full faculty/publication "
+        "corpus."
     )
 
     notice = st.session_state.pop("refresh_notice", None)
@@ -189,6 +190,7 @@ def main() -> None:
         if chosen is not None:
             st.session_state["selected_opportunity_id"] = chosen.opportunity_id
             st.session_state.pop("team_run", None)
+            st.session_state.pop("team_state", None)
             st.rerun()
 
 

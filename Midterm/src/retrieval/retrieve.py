@@ -8,7 +8,14 @@ from datetime import UTC, datetime
 import chromadb
 
 import config
-from models import Faculty, FacultyCandidate, Opportunity, RetrievedEvidence
+from models import (
+    Faculty,
+    FacultyCandidate,
+    Opportunity,
+    ResearchQuery,
+    RetrievedEvidence,
+)
+from src.retrieval.rerank import RerankOutcome, rerank_evidence
 
 
 def build_query(opportunity: Opportunity, focus: str = "") -> str:
@@ -169,3 +176,51 @@ def aggregate_faculty_candidates(
         )
 
     return sorted(candidates, key=lambda candidate: (-candidate.score, candidate.scopus_id))
+
+
+def retrieve_evidence_multi(
+    collection: chromadb.Collection,
+    queries: list[str],
+    *,
+    k_in: int = config.DEFAULT_K_IN,
+    union_cap: int = config.RETRIEVAL_UNION_CAP,
+) -> list[RetrievedEvidence]:
+    """Query each optimized search string and merge by exact evidence ID."""
+    merged: dict[str, RetrievedEvidence] = {}
+    for query in queries:
+        if not query.strip():
+            continue
+        for item in retrieve_evidence(collection, query, k_in=k_in):
+            existing = merged.get(item.evidence_id)
+            if existing is None or item.similarity > existing.similarity:
+                merged[item.evidence_id] = item
+    ordered = sorted(
+        merged.values(),
+        key=lambda item: (-item.similarity, item.evidence_id),
+    )
+    return ordered[: max(1, union_cap)]
+
+
+def retrieve_for_research_query(
+    collection: chromadb.Collection,
+    research_query: ResearchQuery,
+    *,
+    llm_client: object | None = None,
+    k_in: int = config.DEFAULT_K_IN,
+    k_out: int = config.DEFAULT_K_OUT,
+    union_cap: int = config.RETRIEVAL_UNION_CAP,
+) -> tuple[list[RetrievedEvidence], RerankOutcome]:
+    """Retrieve a union across optimized queries, then rerank and diversify."""
+    union = retrieve_evidence_multi(
+        collection,
+        research_query.search_queries,
+        k_in=k_in,
+        union_cap=union_cap,
+    )
+    outcome = rerank_evidence(
+        union,
+        research_query,
+        llm_client=llm_client,
+        k_out=k_out,
+    )
+    return outcome.evidence, outcome

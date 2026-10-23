@@ -20,7 +20,7 @@ OPPORTUNITIES_LOCK_PATH = DATA_DIR / ".opportunities.lock"
 DETAIL_CACHE_DIR = DATA_DIR / "grants_detail_cache"
 RUNS_DIR = DATA_DIR / "runs"
 
-APP_VERSION = "0.3.0"
+APP_VERSION = "0.4.0"
 INDEX_VERSION = "full-v1"
 CHUNKER_VERSION = "1"
 SCHEMA_VERSION = "2"
@@ -42,10 +42,36 @@ GRANTS_MAX_PAGES = 50
 OPPORTUNITY_PAGE_SIZE = 25
 OPPORTUNITY_PAGE_SIZE_OPTIONS = (10, 25, 50, 100)
 
-DEFAULT_TEAM_SIZE = 3
+DEFAULT_TEAM_SIZE = 4
+MIN_TEAM_SIZE = 3
+MAX_TEAM_SIZE = 5
 DEFAULT_K_IN = 30
 DEFAULT_K_OUT = 12
+RETRIEVAL_UNION_CAP = 60
+RERANK_BATCH_SIZE = 8
+MAX_RERANK_CALLS = 4
+MAX_SHORTLIST = 8
 MAX_LLM_MEMBERS = 4
+MAX_CONVERSATION_TURNS = 8
+RECENCY_HALF_LIFE_YEARS = 5.0
+
+SCORING_WEIGHTS = {
+    "relevance": 0.45,
+    "coverage": 0.20,
+    "metrics": 0.15,
+    "recency": 0.10,
+    "collaboration": 0.05,
+    "diversity": 0.05,
+}
+
+PROMPT_VERSION = "1"
+PROMPT_NAMES = (
+    "optimize_query",
+    "rerank",
+    "generate_team",
+    "verify_team",
+    "parse_followup",
+)
 
 CHUNK_MAX_CHARS = 1200
 CHUNK_OVERLAP_CHARS = 150

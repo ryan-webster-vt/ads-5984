@@ -1,9 +1,10 @@
 # VT College of Science Grant Team Builder
 
-Phase 3 implementation of the ADS 5984 midterm project. The app refreshes live
+Phase 4 implementation of the ADS 5984 midterm project. The app refreshes live
 Grants.gov opportunities into a local JSON store, filters/sorts/paginates them,
-and builds a grounded, cited Virginia Tech College of Science team for a selected
-opportunity using the full faculty/publication index in ChromaDB.
+builds a grounded, cited Virginia Tech College of Science team for a selected
+opportunity using the full faculty/publication index in ChromaDB, and refines the
+team through follow-up constraint changes.
 
 The full architecture, requirements, phases, and decisions are in `PLAN.md`.
 
@@ -14,9 +15,10 @@ enough to compute observed co-authorship deterministically from shared
 publication IDs, and team constraints are easier to audit in Python than in a
 graph database. Publication abstracts and metadata are embedded with the same
 configured model used for queries. The LLM is bounded to role/rationale
-generation and verification; later phases add query interpretation, reranking,
-and follow-ups. Identity joins, deduplication, eligibility, candidate scoring, PI
-policy, tie-breaking, and citation validation stay in code.
+generation, verification, and follow-up interpretation. Identity joins,
+deduplication, eligibility, candidate scoring, PI policy, tie-breaking, and
+citation validation stay in code. This keeps every hard constraint auditable even
+when the model is unavailable, slow, or returns malformed output.
 
 Opportunity data follows the same deterministic-first rule. The Grants.gov open
 feed is authoritative: records missing from a complete feed are archived, while
@@ -29,7 +31,7 @@ The deterministic baseline and validator are the reproducibility backstop: if th
 LLM output is unavailable or unsupported, the app shows the baseline team and
 records the failure rather than presenting an ungrounded recommendation.
 
-## What works in Phase 3
+## What works in Phase 4
 
 - Live Grants.gov `search2` pagination (`rows=1000`) until `hitCount` is covered.
 - Revision-recorded detail cache, concurrent `fetchOpportunity` calls, retries,
@@ -45,14 +47,36 @@ records the failure rather than presenting an ungrounded recommendation.
   and archived counts, expired-record counts, and last-update time.
 - Select an opportunity, then build a team from the full attributed publication
   corpus with cited evidence and saved run metadata.
+- Structured query optimization (`prompts/optimize_query.md`) with a deterministic
+  fallback when VT ARC is unavailable or returns invalid JSON.
+- Multi-query retrieval union (configurable `K_in=30`, union cap 60) and batched
+  LLM reranking (`prompts/rerank.md`, batches of 8, at most 4 calls).
+- Deterministic evidence diversity: one chunk per publication, at most three per
+  faculty, with concept-coverage preference.
+- Configurable scoring weights for relevance, expertise coverage, author-level
+  metrics, recency, observed co-authorship, and department diversity. Missing
+  metrics drop their weight instead of being imputed.
+- Explicit constraint state for team size, required/excluded members, expertise,
+  department preferences, PI preference, tenure-track local policy, and recency.
+- LLM generation (`prompts/generate_team.md`), one bounded repair, one
+  evidence-only verifier (`prompts/verify_team.md`), and deterministic fallback
+  to the baseline team if any grounding or constraint check fails.
+- Follow-up conversation (`prompts/parse_followup.md`) for requests such as
+  “replace a member with a chemist”, “add climate-change expertise and keep the
+  team at four”, “shrink to three”, and “only tenure-track faculty”. Include and
+  exclude of the same person asks for clarification instead of guessing.
+- Evidence inspector showing roster facts, exact publication excerpts,
+  provenance, matched concepts, rerank scores, inferred suitability, and run
+  metadata/prompt versions.
 - Full `raw_data/authors.csv` roster loading with exact Scopus ID matching,
   duplicate-ID conflict detection, EID/DOI/title deduplication, and the full
   attributed-publication index (19,986 canonical works, 32,892 vectors).
 - Elsevier/Scopus adapter interface and response parsers, tested against synthetic
   fixtures only. Live Elsevier access is not claimed.
 
-Phase 3 intentionally does **not** include follow-up conversation, LLM reranking,
-live Elsevier calls, or the final submission package. Those are Phases 4–6.
+Phase 4 intentionally does **not** include live Elsevier ingestion or the final
+submission package. Those remain Phase 6. Phase 5 hardens timeouts, retries,
+rate limits, budgets, and failure-injection coverage.
 
 ### Live refresh measurements (2026-10-22)
 
@@ -123,7 +147,7 @@ python3 scripts/build_index.py --incremental
 # Optional reduced-scope preview build (manifest records that it is not full)
 python3 scripts/build_index.py --limit 500
 
-# Elsevier option is present but fixture-tested only in Phase 3
+# Elsevier option is present but fixture-tested only until Phase 6
 python3 scripts/build_index.py --source elsevier
 ```
 
@@ -186,9 +210,12 @@ python3 -m streamlit run app.py
 ```
 
 Refresh opportunities, filter/sort/paginate the list, select one record, and click
-**Build team for selected opportunity**. The team builder retrieves evidence and
-offers **Build Team**. If VT ARC is unavailable, the deterministic baseline team
-is still shown and the limitation is reported.
+**Build team for selected opportunity**. The team builder optimizes the query,
+retrieves and reranks evidence, scores candidates, and offers **Build Team**.
+After a team appears, use the chat input to change size, members, expertise,
+department preferences, PI preference, or the tenure-track local policy. If VT ARC
+is unavailable, slow, or returns invalid structured output, the deterministic
+baseline team is still shown and the limitation is reported.
 
 If no live store exists yet, the app shows the saved real Grants.gov opportunity
 fixture (NSF Long Term Research in Environmental Biology, ID 330296) so the team
@@ -205,11 +232,14 @@ The tests are offline. They cover exact identity joins, the duplicate-ID
 conflict, full-corpus counts, deduplication, chunking (including long abstracts),
 manifest mismatch detection, fixture normalization, search pagination, partial
 page failures, detail caching, atomic store writes, complete-feed archiving,
-filter/sort/pagination oracles, retrieval aggregation, team validation, the VT ARC
-stray-brace parser fallback, and Elsevier fixture parsing. Fixtures prove parsing
-and offline behavior only; they do not prove that live Grants.gov, Elsevier, VT
-ARC, or embedding integrations work. Grants.gov itself was also smoke-tested live
-as described above.
+filter/sort/pagination oracles, retrieval aggregation, query optimization and
+fallback, batched reranking and diversity caps, configurable scoring and missing
+metrics, constraint merging and member resolution, scripted follow-ups, team
+validation, verifier/repair fallback, prompt injection, five-run deterministic
+repeatability, the VT ARC stray-brace parser fallback, and Elsevier fixture
+parsing. Fixtures prove parsing and offline behavior only; they do not prove that
+live Grants.gov, Elsevier, VT ARC, or embedding integrations work. Grants.gov and
+the live VT ARC optimizer/reranker were also smoke-tested as described above.
 
 ## Data notes
 
@@ -228,6 +258,10 @@ as described above.
 - Grants.gov occasionally lists records whose explicit close date is already
   past. They remain in the store but are hidden from the active list; the UI shows
   the hidden count.
+- Live multi-member VT ARC generation can be slow or return a structured payload
+  that fails validation. The app reports the failure and shows the deterministic
+  baseline; Phase 5 will add tighter timeouts, retry budgets, and runtime
+  reporting.
 
 ## Key commands
 

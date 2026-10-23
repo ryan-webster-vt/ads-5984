@@ -159,11 +159,101 @@ class FacultyCandidate(BaseModel):
     relevance: float
     metrics: float | None = None
     recency: float = 0.0
+    coverage: float | None = None
+    collaboration: float = 0.0
+    diversity: float = 0.0
     evidence_ids: list[str] = Field(default_factory=list)
     evidence_titles: list[str] = Field(default_factory=list)
+    matched_concepts: list[str] = Field(default_factory=list)
     metric_missing: list[str] = Field(default_factory=list)
+    score_components: dict[str, float] = Field(default_factory=dict)
     tenure: str = ""
     rank: str = ""
+
+
+class LLMResearchQuery(BaseModel):
+    problem_statement: str
+    required_expertise: list[str] = Field(default_factory=list)
+    methods: list[str] = Field(default_factory=list)
+    disciplines: list[str] = Field(default_factory=list)
+    search_queries: list[str] = Field(default_factory=list)
+    exclusions: list[str] = Field(default_factory=list)
+
+
+class ResearchQuery(BaseModel):
+    problem_statement: str
+    required_expertise: list[str] = Field(default_factory=list)
+    methods: list[str] = Field(default_factory=list)
+    disciplines: list[str] = Field(default_factory=list)
+    search_queries: list[str] = Field(default_factory=list)
+    exclusions: list[str] = Field(default_factory=list)
+    prompt_version: str = ""
+    fallback_used: bool = False
+    optimization_error: str | None = None
+
+
+class UserConstraints(BaseModel):
+    team_size: int = 4
+    required_members: list[str] = Field(default_factory=list)
+    excluded_members: list[str] = Field(default_factory=list)
+    add_expertise: list[str] = Field(default_factory=list)
+    remove_expertise: list[str] = Field(default_factory=list)
+    department_preferences: list[str] = Field(default_factory=list)
+    pi_preference: str | None = None
+    recency_preference: str = "balanced"
+    tenure_track_only: bool = False
+    weights_override: dict[str, float] | None = None
+    notes: str = ""
+    version: int = 1
+    conflicts: list[str] = Field(default_factory=list)
+
+
+class ConstraintPatch(BaseModel):
+    team_size: int | None = None
+    add_required_members: list[str] = Field(default_factory=list)
+    add_excluded_members: list[str] = Field(default_factory=list)
+    remove_required_members: list[str] = Field(default_factory=list)
+    remove_excluded_members: list[str] = Field(default_factory=list)
+    add_expertise: list[str] = Field(default_factory=list)
+    remove_expertise: list[str] = Field(default_factory=list)
+    department_preferences: list[str] = Field(default_factory=list)
+    pi_preference: str | None = None
+    tenure_track_only: bool | None = None
+    recency_preference: str | None = None
+    notes: str | None = None
+    clarification_needed: str | None = None
+
+
+class FollowupResult(BaseModel):
+    patch: ConstraintPatch
+    state: UserConstraints
+    conflicts: list[str] = Field(default_factory=list)
+    clarification_needed: str | None = None
+    applied: bool = False
+    redo_retrieval: bool = False
+    assistant_message: str = ""
+
+
+class LLMRerankItem(BaseModel):
+    evidence_id: str
+    score: int = 0
+    matched_concepts: list[str] = Field(default_factory=list)
+    rationale: str = ""
+
+
+class LLMRerankBatch(BaseModel):
+    items: list[LLMRerankItem] = Field(default_factory=list)
+
+
+class VerificationIssue(BaseModel):
+    issue: str
+    member_id: str | None = None
+    evidence_id: str | None = None
+
+
+class LLMVerification(BaseModel):
+    approved: bool = True
+    issues: list[VerificationIssue] = Field(default_factory=list)
 
 
 class LLMTeamMember(BaseModel):
@@ -188,7 +278,10 @@ class TeamMember(BaseModel):
     rationale: str
     evidence_ids: list[str]
     evidence_titles: list[str] = Field(default_factory=list)
+    factual_claims: list[dict[str, Any]] = Field(default_factory=list)
     score: float = 0.0
+    score_components: dict[str, float] = Field(default_factory=dict)
+    metric_missing: list[str] = Field(default_factory=list)
     inferred_suitability: bool = True
 
 
@@ -199,12 +292,16 @@ class TeamProposal(BaseModel):
     proposed_pi_id: str
     team_rationale: str = ""
     limitations: list[str] = Field(default_factory=list)
+    coverage: dict[str, list[str]] = Field(default_factory=dict)
     constraints_satisfied: bool = True
     validator_status: str = "not_run"
     validation_issues: list[str] = Field(default_factory=list)
     baseline_team_ids: list[str] = Field(default_factory=list)
     llm_team_ids: list[str] = Field(default_factory=list)
     used_llm: bool = False
+    llm_call_count: int = 0
+    repair_attempts: int = 0
+    verifier_calls: int = 0
 
 
 class RunMetadata(BaseModel):
@@ -212,18 +309,51 @@ class RunMetadata(BaseModel):
     timestamp: str
     opportunity_id: str
     index_version: str
+    corpus_hash: str = ""
     embedding_model: str
     chat_model: str
     query: str
+    search_queries: list[str] = Field(default_factory=list)
+    research_query: dict[str, Any] = Field(default_factory=dict)
     k_in: int
     k_out: int
     team_size: int
+    prompt_versions: dict[str, str] = Field(default_factory=dict)
     cache_hits: int = 0
     llm_calls: int = 0
+    rerank_calls: int = 0
+    generator_calls: int = 0
+    verifier_calls: int = 0
+    repair_attempts: int = 0
+    token_usage: dict[str, int] = Field(default_factory=dict)
     latency_ms: int = 0
     validation_issues: list[str] = Field(default_factory=list)
     fallback_used: bool = False
     weights: dict[str, float] = Field(default_factory=dict)
+    constraints: dict[str, Any] = Field(default_factory=dict)
+    ranked_evidence_ids: list[str] = Field(default_factory=list)
+    baseline_team: list[str] = Field(default_factory=list)
+    final_team: list[str] = Field(default_factory=list)
+    coverage: dict[str, list[str]] = Field(default_factory=dict)
+
+
+class ConversationTurn(BaseModel):
+    turn_index: int
+    user_message: str = ""
+    assistant_message: str = ""
+    constraint_state: UserConstraints | None = None
+    run_id: str | None = None
+    clarification_needed: str | None = None
+
+
+class TeamRun(BaseModel):
+    run_id: str
+    opportunity_id: str
+    conversation_turns: list[ConversationTurn] = Field(default_factory=list)
+    constraint_state_history: list[UserConstraints] = Field(default_factory=list)
+    draft_proposals: list[TeamProposal] = Field(default_factory=list)
+    final_proposal: TeamProposal | None = None
+    evidence_packet_snapshot: list[RetrievedEvidence] = Field(default_factory=list)
 
 
 class IndexManifest(BaseModel):

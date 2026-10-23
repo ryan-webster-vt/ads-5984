@@ -164,7 +164,7 @@ def _load_research_data(
 ]:
     if source != "csv":
         raise RuntimeError(
-            "Elsevier live ingestion is not enabled in Phase 2. The adapter is "
+            "Elsevier live ingestion is not enabled until Phase 6. The adapter is "
             "fixture-tested only; run with --source csv."
         )
     faculty = load_faculty()

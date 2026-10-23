@@ -1,6 +1,6 @@
 # ADS 5984 Midterm — Implementation Plan
 
-**Status:** Phase 3 complete (live opportunity browsing and archiving); Phase 4 not started.  
+**Status:** Phase 4 complete (team generation and conversational refinement); Phase 5 not started.
 **Last updated:** 2026-10-22  
 **Project root:** `/home/ryanw07/ads_5984/Midterm`  
 **Deliverable:** Streamlit Grants.gov harvester + VT College of Science RAG team builder.
@@ -17,16 +17,17 @@
 - [x] Phase 1 — End-to-end vertical slice with real data and one opportunity.
 - [x] Phase 2 — Complete research ingestion and persistent index.
 - [x] Phase 3 — Live opportunity browsing and archiving.
-- [ ] Phase 4 — Full team generation and conversational refinement.
+- [x] Phase 4 — Full team generation and conversational refinement.
 - [ ] Phase 5 — Reliability, operations, and security hardening.
 - [ ] Phase 6 — Elsevier integration and final delivery.
 
 ### Resume here
 
-Start **Phase 4**. Phases 1–3 are implemented and verified. Add query
-optimization, batched LLM reranking, evidence diversity, configurable scoring,
-structured team generation, verifier/repair, follow-up constraint patches, and
-the chatbot/evidence-inspector UI. Keep CSV as the default source; the Elsevier
+Start **Phase 5**. Phases 1–4 are implemented and verified offline. Phase 5
+should harden reliability and operations: bounded LLM timeouts/retries and
+rate-limit handling, failure-injection tests, prompt-injection coverage,
+`--no-cache` evaluation, `scripts/eval_repeatability.py`, secret redaction, and
+runtime/call budget reporting. Keep CSV as the default source; the Elsevier
 adapter remains fixture-tested only until Phase 6 credentials are available.
 
 ### Decisions locked
@@ -71,6 +72,8 @@ adapter remains fixture-tested only until Phase 6 credentials are available.
 | 2026-10-22 | Phase 3 completed: live `search2` pagination, revision-recorded detail cache, concurrent detail fetch, normalized dates/amounts, atomic opportunity store with backup/lock, complete-feed archiving, partial-failure protection, and the filter/sort/pagination browser. Live run: 1,468 feed records, 1,468 details in 28.3 s cold and 0.67 s warm-cache; 1,262 active after hiding 206 explicit past close dates; 61 offline tests and Ruff clean. |
 | 2026-10-22 | Adopted explicit-feed-vs-active count: `open_count` matches the Grants.gov open feed, while `active_open_count`/UI hide records whose explicit close date has passed. Archived records remain in JSON and are never displayed. |
 | 2026-10-22 | Verified live archiving with a synthetic previously-open record: a complete live feed archived it with reason `absent_from_complete_open_feed`; page failure tests confirm partial refreshes preserve the last good snapshot. |
+| 2026-10-22 | Phase 4 completed: structured query optimization with deterministic fallback, multi-query retrieval union with configurable `K_in`/union cap, batched LLM reranking (max 4 calls) with deterministic diversity caps (3 chunks/faculty, 1/publication), configurable component scoring with missing-metric redistribution, explicit constraint state, deterministic shortlist/baseline/PI, LLM generation with one repair and one evidence-only verifier, baseline fallback, follow-up patches, and the conversation/evidence-inspector UI. Added versioned prompt templates and 29 new offline tests (90 total). |
+| 2026-10-22 | Phase 4 live verification: live VT ARC optimizer returned structured research needs and 1–3 queries; live batched reranking scored 32 candidates across 4 calls before the configured call cap; full live retrieval/scoring/generation against the `full-v1` index produced either a validated proposal or a deterministic baseline fallback. Multi-member live generation can be slow or return an invalid structured payload; Phase 5 will harden timeouts/retries and document the runtime budget. |
 
 ---
 
@@ -977,6 +980,44 @@ Use Pydantic v2 models in `models.py`; persist JSON with `schema_version`.
 - Follow-ups reliably update state and constraints.
 - Validator pass rate is 100% on the golden fixture.
 - Repeatability targets are met or documented with remediation.
+
+**Phase 4 completion record**
+
+- Added `ResearchQuery`/`UserConstraints`/`ConstraintPatch`/`FollowupResult`,
+  rerank and verification schemas, and Phase 4 metadata fields.
+- Query optimization uses `prompts/optimize_query.md`, validates 1–3 search
+  queries, and falls back deterministically when the LLM is unavailable or
+  malformed. Opportunity text is delimited as untrusted data.
+- Retrieval unions up to 60 exact evidence IDs across optimized queries.
+  Batched reranking uses `prompts/rerank.md`, batches of 8, at most 4 calls, and
+  records model scores, matched concepts, and source; deterministic diversity
+  caps evidence at one chunk per publication and three per faculty.
+- Scoring exposes configurable weights (relevance 0.45, coverage 0.20, metrics
+  0.15, recency 0.10, collaboration 0.05, diversity 0.05), computes observed
+  co-authorship only, uses a 5-year recency half-life, and drops/redistributes
+  missing-metric weights rather than imputing values.
+- Constraint state supports size, required/excluded members, expertise and
+  department preferences, PI preference, tenure-track local policy, recency
+  preference, notes, conflicts, and versioning. Exact Scopus IDs or unambiguous
+  names resolve deterministically; ambiguous names request clarification.
+- Generation uses `prompts/generate_team.md`, deterministic shortlist and
+  baseline/PI, one repair attempt, and one evidence-only verifier using
+  `prompts/verify_team.md`; deterministic validation covers membership, size,
+  required/excluded, PI role, citations, roster numbers, forbidden claims, and
+  author-level quartile misuse. Failures fall back to the baseline.
+- Follow-ups use `prompts/parse_followup.md` with a deterministic parser
+  fallback. Tests cover replacement with a chemist, add expertise + fixed size,
+  shrink to three, include/exclude conflict clarification, tenure-track policy,
+  required-member resolution, and bounded re-retrieval.
+- The Streamlit team builder now renders conversation turns, optimization
+  details, candidate score components, coverage, roster facts versus publication
+  evidence versus inferred suitability, exact evidence excerpts/provenance, and
+  full run metadata. A prompt-injection fixture cannot add a non-candidate member.
+- Offline verification: 90 tests pass and Ruff is clean. A five-run deterministic
+  build is identical with 100% validator pass. Live optimizer, reranker, and a
+  simple structured generation call were verified against VT ARC; full
+  multi-member live generation is slow/inconsistent and safely falls back to the
+  deterministic baseline pending Phase 5 reliability work.
 
 ### Phase 5 — Reliability, operations, and security hardening
 
