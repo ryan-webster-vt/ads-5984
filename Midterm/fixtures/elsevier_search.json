@@ -1,0 +1,49 @@
+{
+  "search-results": {
+    "opensearch:totalResults": "2",
+    "opensearch:startIndex": "0",
+    "opensearch:itemsPerPage": "25",
+    "entry": [
+      {
+        "eid": "2-s2.0-85190000001",
+        "dc:identifier": "SCOPUS_ID:85190000001",
+        "dc:title": "Long-term ecological synthesis of lake carbon dynamics",
+        "prism:doi": "10.1000/elsevier.fixture.2024.001",
+        "prism:publicationName": "Ecological Monographs",
+        "prism:coverDate": "2024-03-01",
+        "prism:url": "https://www.scopus.com/record/display.uri?eid=2-s2.0-85190000001",
+        "citedby-count": "42",
+        "openaccess": "1",
+        "subtypeDescription": "Article",
+        "author": [
+          {
+            "@auid": "7403498714",
+            "ce:indexed-name": "Barrett J.E."
+          },
+          {
+            "@auid": "24553952400",
+            "ce:indexed-name": "Carey C.C."
+          }
+        ]
+      },
+      {
+        "eid": "2-s2.0-85190000002",
+        "dc:identifier": "SCOPUS_ID:85190000002",
+        "dc:title": "Unattributed methods note on sensor calibration",
+        "prism:doi": "10.1000/elsevier.fixture.2024.002",
+        "prism:publicationName": "Limnology and Oceanography: Methods",
+        "prism:coverDate": "2023-11-15",
+        "prism:url": "https://www.scopus.com/record/display.uri?eid=2-s2.0-85190000002",
+        "citedby-count": "3",
+        "openaccess": "0",
+        "subtypeDescription": "Article",
+        "author": [
+          {
+            "@auid": "99999999999",
+            "ce:indexed-name": "External A."
+          }
+        ]
+      }
+    ]
+  }
+}

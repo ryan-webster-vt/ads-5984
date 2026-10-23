@@ -1,0 +1,26 @@
+{
+  "baseline_member_names": [
+    "Carey, Cayelan C.",
+    "Barrett, John E.",
+    "Monarrez, Pedro M."
+  ],
+  "baseline_pi_id": "24553952400",
+  "baseline_team_ids": [
+    "24553952400",
+    "7403498714",
+    "36169369100"
+  ],
+  "focus": "prioritize ecology and evolutionary biology",
+  "index_version": "full-v1",
+  "notes": "Deterministic baseline for the full-v1 index. Live LLM proposals may vary; validate before display.",
+  "opportunity_id": "330296",
+  "opportunity_title": "Long Term Research in Environmental Biology",
+  "team_size": 3,
+  "top_candidate_ids": [
+    "24553952400",
+    "7403498714",
+    "57200378270",
+    "36857145600",
+    "36169369100"
+  ]
+}

@@ -1,0 +1,16 @@
+.env
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.pyc
+*.zip
+
+data/chroma/
+data/runs/
+data/opportunities.json
+data/opportunities.json.bak
+data/grants_detail_cache/
+data/.opportunities.lock
+data/.opportunities.json.lock
+data/index_manifest.json
