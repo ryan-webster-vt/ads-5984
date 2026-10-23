@@ -6,6 +6,7 @@ import re
 
 from models import ResearchQuery
 
+# Keep matching deterministic and dependency-free; no stemming or fuzzy matching.
 TOKEN_RE = re.compile(r"[a-z0-9]+")
 
 STOPWORDS = {
@@ -38,14 +39,18 @@ STOPWORDS = {
 
 
 def normalize_concept(value: str) -> str:
+    # Normalize only for comparison/deduplication; callers display the original
+    # concept text.
     return " ".join(TOKEN_RE.findall(value.lower()))
 
 
 def tokens(value: str) -> set[str]:
+    # Stopword removal keeps generic grant language from creating false matches.
     return {token for token in TOKEN_RE.findall(value.lower()) if token not in STOPWORDS}
 
 
 def concept_list(research_query: ResearchQuery | None) -> list[str]:
+    # Preserve first-seen order so coverage output is stable across runs.
     if research_query is None:
         return []
     seen: set[str] = set()
@@ -63,6 +68,8 @@ def concept_list(research_query: ResearchQuery | None) -> list[str]:
 
 
 def text_matches_concept(text: str, concept: str) -> bool:
+    # Require every concept token to appear; partial keyword overlap is not enough
+    # to claim coverage.
     concept_tokens = tokens(concept)
     if not concept_tokens:
         return False
@@ -75,6 +82,8 @@ def matched_concepts(text: str, concepts: list[str]) -> list[str]:
 
 
 def coverage_ratio(matched: list[str], concepts: list[str]) -> float | None:
+    # None means "no concepts to cover", not zero coverage; scoring treats those
+    # cases differently.
     if not concepts:
         return None
     return len(set(matched) & set(concepts)) / len(concepts)

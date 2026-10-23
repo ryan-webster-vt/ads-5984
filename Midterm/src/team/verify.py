@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 
+import config
 from models import (
     Faculty,
     LLMVerification,
@@ -14,6 +15,7 @@ from models import (
 from src.prompting import load_prompt
 from src.team.constraints import is_tenure_track
 
+# These phrases assert facts the source data cannot support.
 FORBIDDEN_CLAIMS = (
     "available to",
     "availability",
@@ -25,11 +27,14 @@ FORBIDDEN_CLAIMS = (
     "guaranteed",
 )
 
+# Negated statements such as "does not establish leadership experience" are
+# acceptable; only positive claims are rejected.
 NEGATION_MARKERS = re.compile(
     r"\b(no|not|without|cannot|can't|doesn't|does not|isn't|is not|unknown|unverified)\b",
     re.IGNORECASE,
 )
 
+# Quartile is an author-level metric; any per-publication claim is invalid.
 QUARTILE_CLAIM = re.compile(r"\btop\s+(?:journal\s+)?quartile\b", re.IGNORECASE)
 H_INDEX_CLAIM = re.compile(r"\bh[- ]?index\s*(?:of|is|=|:)?\s*(\d+)", re.IGNORECASE)
 H5_CLAIM = re.compile(r"\bh5[- ]?index\s*(?:of|is|=|:)?\s*(\d+)", re.IGNORECASE)
@@ -40,6 +45,7 @@ CITATION_CLAIM = re.compile(
 
 
 def _positive_claim(text: str, phrase: str) -> bool:
+    # Sentence-level negation detection avoids false positives on honest caveats.
     for sentence in re.split(r"(?<=[.!?])\s+", text):
         if phrase in sentence.lower() and not NEGATION_MARKERS.search(sentence):
             return True
@@ -47,10 +53,12 @@ def _positive_claim(text: str, phrase: str) -> bool:
 
 
 def _is_pi_role(role: str) -> bool:
+    # Accept the common spellings the generator may emit, but normalize casing.
     return role.strip().lower() in {"proposed pi", "pi", "principal investigator"}
 
 
 def _evidence_faculty_ids(evidence: RetrievedEvidence) -> set[str]:
+    # Evidence metadata stores faculty IDs as a CSV scalar.
     return {
         token.strip()
         for token in str(evidence.metadata.get("faculty_ids_csv") or "").split(",")
@@ -69,6 +77,7 @@ def validate_proposal(
     excluded_ids: set[str] | None = None,
     constraints: UserConstraints | None = None,
 ) -> list[str]:
+    # Explicit constraints override the legacy ID sets.
     if constraints is not None:
         required_ids = set(constraints.required_members)
         excluded_ids = set(constraints.excluded_members)
@@ -77,6 +86,7 @@ def validate_proposal(
     issues: list[str] = []
     member_ids = [member.scopus_id for member in proposal.members]
 
+    # Validate membership, size, exclusions, and PI labeling before citations.
     if len(member_ids) != expected_size:
         issues.append(
             f"team size is {len(member_ids)}; expected {expected_size}"
@@ -110,6 +120,7 @@ def validate_proposal(
                     f"{member.scopus_id}"
                 )
 
+    # Every member and citation must resolve to the retrieved packet and roster.
     for member in proposal.members:
         if member.scopus_id not in candidates:
             issues.append(f"member not in retrieved candidates: {member.scopus_id}")
@@ -135,6 +146,8 @@ def validate_proposal(
                 issues.append(
                     f"unsupported claim in rationale for {member.scopus_id}: {claim}"
                 )
+        # Even a correct-looking quartile sentence is rejected because the source
+        # metric does not apply to a specific publication.
         if QUARTILE_CLAIM.search(member.rationale):
             issues.append(
                 f"unsupported journal-quartile claim for {member.scopus_id}"
@@ -179,9 +192,11 @@ def verify_with_llm(
     excerpt_chars: int = 700,
 ) -> list[str]:
     """One evidence-only verifier call; deterministic checks already ran."""
+    # Offline mode relies on deterministic validation and skips the LLM verifier.
     if llm_client is None:
         return []
     system = load_prompt("verify_team")
+    # Only cited evidence is sent; the verifier does not see hidden model reasoning.
     evidence_blocks: list[str] = []
     for evidence_id in sorted(
         {evidence_id for member in proposal.members for evidence_id in member.evidence_ids}
@@ -207,8 +222,11 @@ def verify_with_llm(
             system=system,
             user=user,
             schema=LLMVerification,
+            model=config.stage_model("verify"),
         )
     except Exception:
+        # A verifier outage is non-fatal: deterministic checks already ran, and the
+        # pipeline reports that the verifier was skipped.
         return []
     issues = [issue.issue.strip() for issue in output.issues if issue.issue.strip()]
     if not output.approved and not issues:

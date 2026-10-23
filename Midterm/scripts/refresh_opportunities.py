@@ -7,6 +7,7 @@ import argparse
 import sys
 from pathlib import Path
 
+# Make project modules importable when this script is launched from any cwd.
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -16,6 +17,7 @@ from src.grants.refresh import refresh_open_opportunities  # noqa: E402
 
 
 def _progress(stage: str, done: int, total: int) -> None:
+    # Progress is line-oriented so cron/terminal logs remain readable.
     if stage == "search" and done:
         print(f"search: {done}/{total} opportunities", flush=True)
     elif stage == "details" and done:
@@ -31,6 +33,7 @@ def main() -> int:
         default=None,
         help="Explicit demo limit; an incomplete feed is marked partial and never archives.",
     )
+    # Detail fetching can be disabled for a fast search-only preview.
     parser.add_argument("--workers", type=int, default=config.GRANTS_MAX_WORKERS)
     parser.add_argument("--no-details", action="store_true")
     parser.add_argument("--force-details", action="store_true")
@@ -44,6 +47,8 @@ def main() -> int:
     args = parser.parse_args()
 
     config.ensure_directories()
+    # The refresh service owns safety policy; this CLI only parses options and
+    # reports the returned summary.
     result = refresh_open_opportunities(
         store_path=args.store,
         cache_dir=args.cache_dir,
@@ -66,6 +71,8 @@ def main() -> int:
     )
     for error in summary.errors:
         print(f"warning: {error}")
+    # Partial refreshes are still useful (the store was safely updated); only a
+    # failed search/write should make automation fail.
     return 0 if summary.status in {"success", "partial"} else 1
 
 

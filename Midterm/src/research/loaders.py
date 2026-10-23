@@ -16,6 +16,8 @@ from src.research.identity import (
 
 
 def sha256_file(path: Path) -> str:
+    # Streaming avoids loading the 49 MB publication CSV into memory just to hash
+    # it for manifest compatibility checks.
     digest = hashlib.sha256()
     with path.open("rb") as handle:
         for block in iter(lambda: handle.read(1024 * 1024), b""):
@@ -24,6 +26,8 @@ def sha256_file(path: Path) -> str:
 
 
 def _to_int(value: str | None) -> int | None:
+    # CSV fields are strings; malformed or blank metrics become null so scoring
+    # can redistribute the missing weight.
     text = (value or "").strip()
     if not text:
         return None
@@ -34,6 +38,7 @@ def _to_int(value: str | None) -> int | None:
 
 
 def _to_float(value: str | None) -> float | None:
+    # Preserve nulls for percentages instead of coercing them to zero.
     text = (value or "").strip()
     if not text:
         return None
@@ -44,12 +49,16 @@ def _to_float(value: str | None) -> float | None:
 
 
 def load_faculty(path: Path | None = None) -> list[Faculty]:
+    """Load the roster and flag duplicate Scopus IDs as identity conflicts."""
     path = path or (config.RAW_DATA_DIR / "authors.csv")
+    # utf-8-sig strips the BOM present in the supplied CSV without altering data.
     with path.open(newline="", encoding="utf-8-sig", errors="replace") as handle:
         rows = list(csv.DictReader(handle))
     if not rows:
         raise RuntimeError(f"No faculty rows found in {path}")
 
+    # Resolve conflicts before building records so both people sharing an ID are
+    # excluded from automatic selection.
     conflict_ids = find_conflict_ids([row["Scopus ID"].strip() for row in rows])
     faculty: list[Faculty] = []
     for row in rows:
@@ -72,6 +81,7 @@ def load_faculty(path: Path | None = None) -> list[Faculty]:
                 row.get("Top Journal Quartile %")
             ),
         }
+        # Record missing metrics explicitly; downstream scoring must not impute.
         for name, value in metric_fields.items():
             if value is None:
                 flags.append(f"missing_{name}")
@@ -112,6 +122,7 @@ def load_publications(
     eligible_faculty: dict[str, Faculty],
     path: Path | None = None,
 ) -> list[Publication]:
+    """Load raw publication rows and attach exact roster attribution."""
     path = path or (config.RAW_DATA_DIR / "publications.csv")
     with path.open(newline="", encoding="utf-8-sig", errors="replace") as handle:
         rows = list(csv.DictReader(handle))
@@ -120,6 +131,7 @@ def load_publications(
 
     publications: list[Publication] = []
     for row in rows:
+        # Rows without an EID or title cannot be cited or deduplicated reliably.
         eid = (row.get("EID") or "").strip()
         title = (row.get("Title") or "").strip()
         if not eid or not title:
@@ -127,6 +139,7 @@ def load_publications(
         author_ids = parse_author_ids(row.get("Author(s) ID"))
         faculty_ids = attribute_faculty_ids(author_ids, eligible_faculty)
         abstract = (row.get("Abstract") or "").strip() or None
+        # Flags travel with the record into the index manifest and evidence UI.
         flags: list[str] = []
         if abstract is None:
             flags.append("no_abstract")

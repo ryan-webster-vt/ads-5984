@@ -1,3 +1,4 @@
+# Offline test module: Full CSV corpus counts, attribution, and manifest expectations.
 from __future__ import annotations
 
 import pytest
@@ -20,6 +21,7 @@ def corpus():
     return faculty, eligible, raw, canonical, attributed
 
 
+# Verifies: full corpus counts.
 def test_full_corpus_counts(corpus):
     faculty, eligible, raw, canonical, attributed = corpus
     assert len(faculty) == 501
@@ -36,6 +38,7 @@ def test_full_corpus_counts(corpus):
     )
 
 
+# Verifies: full index selection covers every attributed work.
 def test_full_index_selection_covers_every_attributed_work(corpus):
     _, _, _, _, attributed = corpus
     selected = select_index_publications(attributed)
@@ -43,6 +46,7 @@ def test_full_index_selection_covers_every_attributed_work(corpus):
     assert len({publication.eid for publication in selected}) == len(selected)
 
 
+# Verifies: every selected publication chunks with stable ids.
 def test_every_selected_publication_chunks_with_stable_ids(corpus):
     _, eligible, _, _, attributed = corpus
     faculty_names = {
@@ -63,6 +67,7 @@ def test_every_selected_publication_chunks_with_stable_ids(corpus):
     assert total_chunks == 32393
 
 
+# Verifies: long abstract is split without crossing documents.
 def test_long_abstract_is_split_without_crossing_documents(corpus):
     _, eligible, _, _, attributed = corpus
     faculty_names = {
@@ -81,6 +86,7 @@ def test_long_abstract_is_split_without_crossing_documents(corpus):
     assert len({chunk.content_hash for chunk in chunks}) == len(chunks)
 
 
+# Verifies: profile chunks cover every eligible faculty.
 def test_profile_chunks_cover_every_eligible_faculty(corpus):
     _, eligible, _, _, _ = corpus
     chunks = [chunk_faculty_profile(member) for member in eligible.values()]

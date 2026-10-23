@@ -1,3 +1,4 @@
+# Offline test module: Batched LLM reranking, deterministic fallback, and diversity caps.
 from __future__ import annotations
 
 from models import (
@@ -54,6 +55,7 @@ class FakeReranker:
         return LLMRerankBatch(items=items)
 
 
+# Verifies: deterministic rerank limits one chunk per publication.
 def test_deterministic_rerank_limits_one_chunk_per_publication():
     evidence = [
         _evidence("e1", "111", 0.9, eid="PUB1", text="ecology climate change"),
@@ -69,6 +71,7 @@ def test_deterministic_rerank_limits_one_chunk_per_publication():
     assert outcome.fallback_used is True
 
 
+# Verifies: rerank enforces per faculty cap.
 def test_rerank_enforces_per_faculty_cap():
     evidence = [
         _evidence(f"e{index}", "111", 0.9 - index * 0.01, eid=f"PUB{index}")
@@ -79,6 +82,7 @@ def test_rerank_enforces_per_faculty_cap():
     assert all(item.metadata["faculty_ids_csv"] == "111" for item in outcome.evidence)
 
 
+# Verifies: LLM rerank scores are batched and bounded.
 def test_llm_rerank_scores_are_batched_and_bounded():
     evidence = [
         _evidence(f"e{index}", str(100 + index), 0.5, eid=f"PUB{index}")
@@ -98,6 +102,7 @@ def test_llm_rerank_scores_are_batched_and_bounded():
     assert any(item.metadata["rerank_source"] == "llm" for item in outcome.evidence)
 
 
+# Verifies: LLM rerank error falls back deterministically.
 def test_llm_rerank_error_falls_back_deterministically():
     evidence = [_evidence("e1", "111", 0.8)]
     client = FakeReranker(error=RuntimeError("bad json"))

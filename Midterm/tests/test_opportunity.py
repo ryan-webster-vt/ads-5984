@@ -1,9 +1,11 @@
+# Offline test module: Opportunity normalization and date/amount parsing.
 from __future__ import annotations
 
 from src.grants.client import load_opportunity_fixture
 from src.grants.normalize import parse_amount, strip_html
 
 
+# Verifies: real grants fixture normalizes.
 def test_real_grants_fixture_normalizes():
     opportunity = load_opportunity_fixture()
     assert opportunity.opportunity_id == "330296"
@@ -16,6 +18,7 @@ def test_real_grants_fixture_normalizes():
     assert "evolutionary biology" in opportunity.description.lower()
 
 
+# Verifies: amount and HTML helpers.
 def test_amount_and_html_helpers():
     assert parse_amount("none") is None
     assert parse_amount("1,250,000") == 1250000.0

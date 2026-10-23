@@ -1,3 +1,4 @@
+# Offline test module: Document-aware chunking, stable IDs, hashes, and long-abstract splitting.
 from __future__ import annotations
 
 from models import Faculty, Publication
@@ -36,6 +37,7 @@ def _publication(abstract: str | None):
     )
 
 
+# Verifies: sentence aware split is bounded and stable.
 def test_sentence_aware_split_is_bounded_and_stable():
     text = " ".join(f"Sentence number {index} has useful evidence." for index in range(200))
     chunks = split_text_sentence_aware(text, max_chars=300, overlap_chars=40, max_chunks=5)
@@ -46,6 +48,7 @@ def test_sentence_aware_split_is_bounded_and_stable():
     )
 
 
+# Verifies: publication chunks have stable ids and no cross document text.
 def test_publication_chunks_have_stable_ids_and_no_cross_document_text():
     publication = _publication("A" * 3000)
     chunks = chunk_publication(publication, {"12345678901": "Example, Ada"})
@@ -57,6 +60,7 @@ def test_publication_chunks_have_stable_ids_and_no_cross_document_text():
     assert all(chunk.faculty_ids == ["12345678901"] for chunk in chunks)
 
 
+# Verifies: missing abstract still creates metadata chunk.
 def test_missing_abstract_still_creates_metadata_chunk():
     chunks = chunk_publication(_publication(None), {"12345678901": "Example, Ada"})
     assert len(chunks) == 1
@@ -64,6 +68,7 @@ def test_missing_abstract_still_creates_metadata_chunk():
     assert "No abstract" in chunks[0].text
 
 
+# Verifies: faculty profile contains roster facts not invented bio.
 def test_faculty_profile_contains_roster_facts_not_invented_bio():
     chunk = chunk_faculty_profile(_faculty())
     assert chunk.chunk_type == "faculty_profile"

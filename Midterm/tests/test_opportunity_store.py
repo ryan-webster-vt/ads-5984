@@ -1,3 +1,4 @@
+# Offline test module: Atomic opportunity storage, backups, locking, and archives.
 from __future__ import annotations
 
 import json
@@ -25,6 +26,7 @@ def _record(identifier: str, *, status: str = "posted", close_date=None) -> Oppo
     )
 
 
+# Verifies: atomic write interruption preserves original.
 def test_atomic_write_interruption_preserves_original(tmp_path, monkeypatch):
     path = tmp_path / "opportunities.json"
     path.write_text(json.dumps({"value": "original"}), encoding="utf-8")
@@ -39,6 +41,7 @@ def test_atomic_write_interruption_preserves_original(tmp_path, monkeypatch):
     assert list(tmp_path.glob("*.tmp")) == []
 
 
+# Verifies: store roundtrip and backup.
 def test_store_roundtrip_and_backup(tmp_path):
     path = tmp_path / "opportunities.json"
     backup = tmp_path / "opportunities.json.bak"
@@ -58,6 +61,7 @@ def test_store_roundtrip_and_backup(tmp_path):
     ]
 
 
+# Verifies: complete feed archives absent records and preserves first seen.
 def test_complete_feed_archives_absent_records_and_preserves_first_seen():
     existing = [
         _record("1"),
@@ -82,6 +86,7 @@ def test_complete_feed_archives_absent_records_and_preserves_first_seen():
     assert by_id["9"].status == "archived"
 
 
+# Verifies: partial feed never archives.
 def test_partial_feed_never_archives():
     existing = [_record("1"), _record("2")]
     merged, archived_count = merge_open_feed(
@@ -95,6 +100,7 @@ def test_partial_feed_never_archives():
     assert by_id["2"].status == "posted"
 
 
+# Verifies: complete feed converts closed to archived.
 def test_complete_feed_converts_closed_to_archived():
     merged, archived_count = merge_open_feed(
         [_record("1", status="closed")],
@@ -107,6 +113,7 @@ def test_complete_feed_converts_closed_to_archived():
     assert merged[0].archive_reason == "reported_closed"
 
 
+# Verifies: archived record reopens when it returns.
 def test_archived_record_reopens_when_it_returns():
     existing = [_record("1", status="archived")]
     existing[0].archive_reason = "old"
@@ -122,6 +129,7 @@ def test_archived_record_reopens_when_it_returns():
     assert merged[0].archived_at is None
 
 
+# Verifies: fresh non open status is archived.
 def test_fresh_non_open_status_is_archived():
     merged, _ = merge_open_feed(
         [],
@@ -133,6 +141,7 @@ def test_fresh_non_open_status_is_archived():
     assert merged[0].archive_reason == "reported_closed"
 
 
+# Verifies: visible open hides expired and archived.
 def test_visible_open_hides_expired_and_archived():
     expired = _record("1", close_date="2026-10-01")
     open_ended = _record("2", close_date=None)

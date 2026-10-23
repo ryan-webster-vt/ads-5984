@@ -8,6 +8,7 @@ import json
 import sys
 from pathlib import Path
 
+# Allow execution from any working directory, matching the other project scripts.
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -31,6 +32,8 @@ from src.team.verify import validate_proposal  # noqa: E402
 
 
 def _opportunity(opportunity_id: str | None):
+    # Prefer an explicitly selected live record; otherwise use the recorded fixture
+    # so evaluation is reproducible offline.
     if opportunity_id and config.OPPORTUNITIES_PATH.exists():
         database = load_database()
         for record in database.opportunities:
@@ -41,6 +44,7 @@ def _opportunity(opportunity_id: str | None):
 
 
 def _build_client(offline: bool):
+    # Offline mode intentionally exercises the deterministic fallback path.
     if offline:
         return None
     try:
@@ -93,6 +97,7 @@ def main() -> int:
         action="store_true",
         help="Do not write per-run metadata under data/runs/.",
     )
+    # Thresholds mirror the documented repeatability acceptance targets.
     parser.add_argument("--min-jaccard", type=float, default=0.8)
     parser.add_argument("--min-pi-agreement", type=float, default=0.8)
     parser.add_argument("--json-out", type=Path, default=None)
@@ -101,6 +106,7 @@ def main() -> int:
     if args.runs < 1:
         parser.error("--runs must be at least 1")
 
+    # Preflight the index before spending time on repeated builds.
     manifest = load_manifest()
     if manifest is None:
         raise SystemExit("research index is missing; run scripts/build_index.py --rebuild")
@@ -115,6 +121,8 @@ def main() -> int:
     raw_client = _build_client(args.offline)
     observations: list[RunObservation] = []
     for index in range(1, args.runs + 1):
+        # Each run gets a fresh budgeted wrapper even when the same raw client is
+        # reused, so per-run call/token limits are independent.
         run_id = f"eval-{new_run_id()}"
         budgeted = (
             BudgetedLLMClient(raw_client) if raw_client is not None else None
@@ -139,6 +147,8 @@ def main() -> int:
             cache_context=cache_context,
             persist=not args.no_persist,
         )
+        # Re-validate independently of the pipeline so the report cannot be fooled
+        # by a pipeline bug that returns an invalid proposal.
         issues = validate_proposal(
             result.proposal,
             candidates={
@@ -151,6 +161,7 @@ def main() -> int:
             expected_size=args.team_size,
             constraints=UserConstraints.model_validate(result.metadata.constraints),
         )
+        # Flatten member evidence for evidence-Jaccard comparison.
         observation = RunObservation(
             run_id=run_id,
             member_ids=[member.scopus_id for member in result.proposal.members],
@@ -178,6 +189,7 @@ def main() -> int:
             f"validation_issues={len(observation.validation_issues)}"
         )
 
+    # The exit code is automation-friendly: nonzero means a target was missed.
     summary = evaluate_observations(
         observations,
         min_jaccard=args.min_jaccard,

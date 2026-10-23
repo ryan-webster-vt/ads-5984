@@ -18,6 +18,7 @@ except ImportError:  # pragma: no cover - non-POSIX fallback
 
 
 def _fsync_directory(path: Path) -> None:
+    # Fsyncing the directory makes the rename durable across a crash on POSIX.
     try:
         descriptor = os.open(path, os.O_RDONLY)
     except OSError:
@@ -37,6 +38,8 @@ def write_json_atomic(
     backup_path: Path | None = None,
 ) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    # Write to a sibling temp file first so readers never observe half a JSON
+    # document, then atomically replace the destination.
     fd, tmp_name = tempfile.mkstemp(
         dir=path.parent, prefix=f".{path.name}.", suffix=".tmp"
     )
@@ -46,6 +49,8 @@ def write_json_atomic(
             handle.flush()
             os.fsync(handle.fileno())
         if backup_path is not None and path.exists():
+            # The backup is a best-effort copy of the previous good value; it is
+            # replaced atomically too so recovery never sees a partial backup.
             backup_fd, backup_tmp = tempfile.mkstemp(
                 dir=backup_path.parent,
                 prefix=f".{backup_path.name}.",
@@ -68,6 +73,7 @@ def write_json_atomic(
 
 
 def read_json(path: Path) -> Any:
+    """Read UTF-8 JSON; callers decide how to handle parse errors."""
     return json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -76,6 +82,8 @@ def exclusive_file_lock(path: Path) -> Iterator[None]:
     """Serialize store writers across processes; no-op where fcntl is absent."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "a+", encoding="utf-8") as handle:
+        # POSIX advisory locking protects readers/writers across processes; on
+        # platforms without fcntl the atomic replace still prevents corruption.
         if fcntl is not None:
             fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
         try:

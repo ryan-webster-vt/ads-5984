@@ -10,6 +10,8 @@ import config
 from models import Faculty, FacultyCandidate, ResearchQuery, RetrievedEvidence
 from src.retrieval.concepts import concept_list, matched_concepts
 
+# All persisted score components are listed here so overrides cannot introduce
+# unknown keys.
 COMPONENT_NAMES = (
     "relevance",
     "coverage",
@@ -31,12 +33,14 @@ class ScoringWeights:
 
     @classmethod
     def from_config(cls) -> ScoringWeights:
+        # Config remains the single source of default weights.
         return cls(**config.SCORING_WEIGHTS)
 
     @classmethod
     def from_override(cls, override: dict[str, float] | None) -> ScoringWeights:
         if not override:
             return cls.from_config()
+        # Merge overrides onto defaults instead of requiring every component.
         base = cls.from_config().as_dict()
         for key, value in override.items():
             if key in base and value is not None:
@@ -48,6 +52,7 @@ class ScoringWeights:
 
 
 def _percentile_map(values: dict[str, float | None]) -> dict[str, float | None]:
+    # Percentiles are roster-relative; missing values remain null, never zero.
     present = sorted(value for value in values.values() if value is not None)
     if not present:
         return {key: None for key in values}
@@ -79,6 +84,7 @@ def _metric_percentiles(faculty: list[Faculty]) -> dict[str, dict[str, float | N
 
 
 def _faculty_ids(item: RetrievedEvidence) -> list[str]:
+    # Metadata uses a CSV scalar because Chroma does not store lists directly.
     return [
         token.strip()
         for token in str(item.metadata.get("faculty_ids_csv") or "").split(",")
@@ -87,6 +93,8 @@ def _faculty_ids(item: RetrievedEvidence) -> list[str]:
 
 
 def _evidence_concepts(item: RetrievedEvidence, concepts: list[str]) -> list[str]:
+    # Combine reranker-recorded concepts with deterministic text matching so the
+    # score remains stable even if the reranker was unavailable.
     recorded = [str(value) for value in item.metadata.get("matched_concepts") or []]
     text = " ".join(
         [
@@ -107,6 +115,7 @@ def _evidence_concepts(item: RetrievedEvidence, concepts: list[str]) -> list[str
 
 
 def _recency_decay(year: int, current_year: int, preference: str) -> float:
+    # Five-year half-life by default; "any" is a flat prior rather than no signal.
     if year <= 0:
         return 0.0
     age = max(0, current_year - year)
@@ -122,6 +131,8 @@ def _observed_collaboration(
     by_faculty: dict[str, list[RetrievedEvidence]],
     candidate_ids: list[str],
 ) -> dict[str, float]:
+    # Collaboration uses observed co-authorship only; author-level percentage
+    # fields are never treated as team evidence.
     shared_counts: dict[str, int] = {candidate_id: 0 for candidate_id in candidate_ids}
     seen_publications: set[str] = set()
     for items in by_faculty.values():
@@ -134,6 +145,7 @@ def _observed_collaboration(
             if key in seen_publications:
                 continue
             seen_publications.add(key)
+            # Count only roster candidates in the current shortlist pool.
             publication_faculty = [
                 faculty_id
                 for faculty_id in _faculty_ids(item)
@@ -169,11 +181,14 @@ def score_faculty_candidates(
     """
     weights = weights or ScoringWeights.from_config()
     current_year = current_year or datetime.now(UTC).year
+    # Concepts are the deterministic vocabulary used to measure expertise coverage.
     concepts = concept_list(research_query)
     percentiles = _metric_percentiles(list(faculty_by_id.values()))
 
     by_faculty: dict[str, list[RetrievedEvidence]] = {}
     for item in evidence:
+        # Profile chunks are excluded here: they help recall but are not proof of a
+        # specific research contribution.
         if item.metadata.get("chunk_type") != "publication":
             continue
         for faculty_id in _faculty_ids(item):
@@ -181,6 +196,7 @@ def score_faculty_candidates(
                 by_faculty.setdefault(faculty_id, []).append(item)
 
     candidate_ids = sorted(by_faculty)
+    # Compute collaboration and department diversity over the same candidate pool.
     collaboration = _observed_collaboration(by_faculty, candidate_ids)
     department_counts: dict[str, int] = {}
     for faculty_id in candidate_ids:
@@ -198,6 +214,8 @@ def score_faculty_candidates(
                 item.evidence_id,
             ),
         )
+        # Use the best evidence plus the top three for coverage/recency; raw
+        # publication counts intentionally never enter the score.
         top = ranked[:3]
         relevance = float(
             top[0].metadata.get("final_score") or top[0].similarity
@@ -225,6 +243,7 @@ def score_faculty_candidates(
             _recency_decay(int(item.metadata.get("year") or 0), current_year, recency_preference)
             for item in top
         )
+        # Department diversity rewards candidates from less-represented departments.
         diversity = 1.0 - (
             (department_counts.get(member.department, 1) - 1) / max(1, candidate_total - 1)
         )
@@ -237,6 +256,8 @@ def score_faculty_candidates(
             "collaboration": collaboration.get(faculty_id, 0.0),
             "diversity": diversity,
         }
+        # Missing components drop their weight; the remaining weights are
+        # renormalized instead of imputing a value.
         available = {
             name: value for name, value in components.items() if value is not None
         }
@@ -247,6 +268,7 @@ def score_faculty_candidates(
             if weight_total > 0
             else 0.0
         )
+        # Preserve the order of the original concept list for display consistency.
         matched = sorted(
             evidence_concepts,
             key=lambda concept: concepts.index(concept) if concept in concepts else 999,

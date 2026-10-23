@@ -1,9 +1,11 @@
+# Offline test module: Opportunity filter, sort, pagination, and display oracles.
 from __future__ import annotations
 
 from datetime import date
 
 from models import Opportunity
 from src.ui.opportunities import (
+    _display_frame,
     filter_opportunities,
     paginate,
     records_to_frame,
@@ -101,6 +103,7 @@ def _frame():
     )
 
 
+# Verifies: default filter hides archived and expired.
 def test_default_filter_hides_archived_and_expired():
     result = filter_opportunities(_frame(), today=TODAY)
     assert set(result["id"]) == {"1", "2", "5"}
@@ -108,6 +111,7 @@ def test_default_filter_hides_archived_and_expired():
     assert set(expanded["id"]) == {"1", "2", "3", "5"}
 
 
+# Verifies: filters match pandas oracle.
 def test_filters_match_pandas_oracle():
     frame = _frame()
     assert set(filter_opportunities(frame, agencies=["NSF"], today=TODAY)["id"]) == {
@@ -137,6 +141,7 @@ def test_filters_match_pandas_oracle():
     assert set(capped["id"]) == {"1"}
 
 
+# Verifies: sort amount places nulls last.
 def test_sort_amount_places_nulls_last():
     result = filter_opportunities(_frame(), include_expired=True, today=TODAY)
     ordered = sort_opportunities(result, column="Award amount", ascending=True)
@@ -144,6 +149,7 @@ def test_sort_amount_places_nulls_last():
     assert ordered["amount"].iloc[-1] != ordered["amount"].iloc[-1]
 
 
+# Verifies: sort title and stable tiebreak.
 def test_sort_title_and_stable_tiebreak():
     ordered = sort_opportunities(
         filter_opportunities(_frame(), today=TODAY),
@@ -153,6 +159,15 @@ def test_sort_title_and_stable_tiebreak():
     assert ordered["title"].tolist() == ["Alpha Ecology", "Beta Climate", "Epsilon Biology"]
 
 
+# Verifies: the displayed award column stays numeric so header sorts by value.
+def test_display_frame_keeps_award_numeric():
+    display = _display_frame(_frame())
+    assert display["Award"].dtype.kind == "f"
+    assert display["Award"].iloc[0] == 500000
+    assert display["Award"].iloc[1] != display["Award"].iloc[1]
+
+
+# Verifies: pagination page counts and clamping.
 def test_pagination_page_counts_and_clamping():
     result = filter_opportunities(_frame(), include_expired=True, today=TODAY)
     first, pages = paginate(result, page=1, page_size=2)

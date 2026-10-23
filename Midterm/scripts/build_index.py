@@ -6,6 +6,7 @@ import argparse
 import sys
 from pathlib import Path
 
+# Allow the CLI to import project modules when executed from any directory.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import config
@@ -13,6 +14,8 @@ from src.research.index import IndexMismatchError, build_index
 
 
 def main() -> None:
+    # The CLI mirrors build_index's options so both CSV and Elsevier builds are
+    # reproducible from the shell.
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--rebuild",
@@ -23,16 +26,19 @@ def main() -> None:
         "--incremental",
         action="store_true",
         help=(
-            "Reuse a compatible index; rebuild automatically when only the CSV "
-            "corpus changed. Model, chunker, and schema changes still require "
-            "--rebuild."
+            "Reuse a compatible index; rebuild automatically when only the "
+            "source corpus changed. Model, chunker, and schema changes still "
+            "require --rebuild."
         ),
     )
     parser.add_argument(
         "--source",
-        choices=("csv", "elsevier"),
-        default=config.DEFAULT_INDEX_SOURCE,
-        help="Publication source. Elsevier is fixture-tested only in Phase 2.",
+        choices=config.PUBLICATION_SOURCES,
+        default=config.configured_publication_source(),
+        help=(
+            "Publication source. CSV is the reproducible default; Elsevier is "
+            "key-gated and only verified against fixtures without a live key."
+        ),
     )
     parser.add_argument(
         "--limit",
@@ -45,20 +51,49 @@ def main() -> None:
             "build. The manifest records the reduced scope."
         ),
     )
+    # These options bound Scopus quota; defaults live in config for consistency.
+    parser.add_argument(
+        "--elsevier-max-results-per-faculty",
+        type=int,
+        default=config.ELSEVIER_MAX_RESULTS_PER_FACULTY,
+        help="Optional per-author Scopus result cap to bound quota use.",
+    )
+    parser.add_argument(
+        "--elsevier-page-size",
+        type=int,
+        default=config.ELSEVIER_SEARCH_PAGE_SIZE,
+        help="Scopus Search page size (default 25).",
+    )
+    parser.add_argument(
+        "--no-elsevier-abstracts",
+        action="store_true",
+        help=(
+            "Use Scopus Search metadata only. Abstracts are required for full "
+            "evidence, so this is a quota-saving preview mode."
+        ),
+    )
     args = parser.parse_args()
 
     try:
+        # Progress is printed as plain lines so long builds are observable in a
+        # terminal or CI log.
         manifest = build_index(
             rebuild=args.rebuild,
             incremental=args.incremental,
             source=args.source,
             max_publications=args.limit,
+            elsevier_page_size=args.elsevier_page_size,
+            elsevier_max_results_per_faculty=(
+                args.elsevier_max_results_per_faculty
+            ),
+            elsevier_fetch_abstracts=not args.no_elsevier_abstracts,
             progress=print,
         )
     except IndexMismatchError as exc:
         print(f"Index mismatch: {exc}", file=sys.stderr)
         raise SystemExit(1) from exc
     except RuntimeError as exc:
+        # Includes ElsevierNotConfigured/API errors; messages are already safe.
         print(f"Index build failed: {exc}", file=sys.stderr)
         raise SystemExit(1) from exc
 

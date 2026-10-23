@@ -1,3 +1,4 @@
+# Offline test module: Configurable weights, missing metrics, recency, and collaboration scoring.
 from __future__ import annotations
 
 from models import Faculty, ResearchQuery, RetrievedEvidence
@@ -34,6 +35,7 @@ def _evidence(evidence_id, faculty_id, score, year=2024, text="ecology"):
     )
 
 
+# Verifies: missing metrics are not imputed and weight is redistributed.
 def test_missing_metrics_are_not_imputed_and_weight_is_redistributed():
     faculty = {
         "1": _faculty("1", "Biological Sciences", metrics=True),
@@ -68,6 +70,7 @@ def test_missing_metrics_are_not_imputed_and_weight_is_redistributed():
     }
 
 
+# Verifies: weights are configurable and recency preference changes score.
 def test_weights_are_configurable_and_recency_preference_changes_score():
     faculty = {
         "1": _faculty("1", "Biological Sciences", metrics=True),

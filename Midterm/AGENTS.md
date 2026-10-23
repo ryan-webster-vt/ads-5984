@@ -58,7 +58,7 @@ python3 scripts/eval_repeatability.py --runs 5 --offline --no-persist
 # p95 294–334 ms, 0 LLM calls, within budget
 
 python3 -m pytest -q
-# 127 passed
+# 138 passed
 
 python3 -m ruff check .
 # All checks passed
@@ -85,14 +85,16 @@ python3 -m pytest -q
 python3 -m ruff check .
 ```
 
-Phase 5 is complete: bounded LLM retries/timeouts, per-run call/token/wall
-budgets, a circuit breaker, secret redaction, a version-keyed retrieval cache with
-`--no-cache` evaluation, persisted run metadata, and the repeatability/runtime
-CLI (`scripts/eval_repeatability.py`). The Elsevier adapter remains
-fixture-tested only; live Elsevier ingestion is deferred to Phase 6. Phase 3 live
-Grants.gov refresh and Phase 4 optimization/reranking/generation/fallback are
-implemented and verified. Live VT ARC can still time out on a slow connection;
-the deterministic baseline is the reliability backstop.
+Phase 6 is complete: Elsevier/Scopus ingestion is key-gated via
+`PUBLICATION_SOURCE=csv|elsevier`, with bounded 401/429 handling, abstract
+caching, and source-aware index validation. CSV remains the verified default and
+the full submission path. Live Elsevier is unverified because no key/entitlement
+was available. Final delivery includes README modes/limitations, the submission
+and a video walkthrough checklist. Phases 3–5 (live
+Grants.gov, team generation/follow-ups, reliability budgets, redaction, retrieval
+cache, repeatability CLI, run metadata) are implemented and verified. Live VT ARC
+can still time out on a slow connection; the deterministic baseline is the
+reliability backstop.
 
 ## Key paths
 
@@ -104,6 +106,8 @@ the deterministic baseline is the reliability backstop.
   generated, never commit.
 - `data/retrieval_cache/` — version-keyed exact-evidence cache; generated, never
   commit.
+- `data/elsevier_cache/` — EID-keyed Abstract Retrieval payload cache; generated,
+  never commit.
 - `data/index_manifest.json` — corpus/index/embedding version metadata.
 - `data/runs/` — per-run metadata, evidence, validation results, budgets.
 - `data/chroma/` — generated persistent ChromaDB index; never commit.
@@ -114,6 +118,7 @@ the deterministic baseline is the reliability backstop.
   application modules. Phase 4 adds `retrieval/optimize.py`, `retrieval/rerank.py`,
   `team/constraints.py`, `team/scoring.py`, and `team/followup.py`. Phase 5 adds
   `redaction.py`, `evaluation.py`, `retrieval/cache.py`, and `team/pipeline.py`.
+  Phase 6 completes `research/elsevier.py`.
 
 ## Durable engineering rules
 
@@ -144,5 +149,8 @@ the deterministic baseline is the reliability backstop.
 - Update `PLAN.md` when a phase completes, a decision changes, or a blocker is
   resolved. Add a dated entry to the change log.
 - Fixtures prove parsing only; do not present them as proof that live Grants.gov,
-  Elsevier, VT ARC, or embedding integrations work.
+  Elsevier, VT ARC, or embedding integrations work. Live Elsevier specifically
+  remains unverified until a key/entitlement is available.
+- Keep CSV as the default publication source. Never silently switch sources or
+  reuse a manifest built from a different source; require an explicit rebuild.
 - Do not commit generated caches, `data/chroma/`, `.venv/`, or `__pycache__/`.

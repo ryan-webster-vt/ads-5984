@@ -1,3 +1,4 @@
+# Offline test module: Refresh orchestration, detail caching, partial failures, and archiving.
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
@@ -86,6 +87,7 @@ def _detail_fn(details: dict[str, dict], calls: list | None = None, fail: set[st
     return fetch
 
 
+# Verifies: refresh fetches details and writes store.
 def test_refresh_fetches_details_and_writes_store(tmp_path):
     hits = [_hit("1"), _hit("2", "forecasted")]
     details = {"1": _detail("1"), "2": _detail("2", "forecasted")}
@@ -113,6 +115,7 @@ def test_refresh_fetches_details_and_writes_store(tmp_path):
     assert len(list((tmp_path / "cache").glob("*.json"))) == 2
 
 
+# Verifies: detail failure marks partial but still archives.
 def test_detail_failure_marks_partial_but_still_archives(tmp_path):
     store = tmp_path / "opportunities.json"
     save_database(
@@ -142,6 +145,7 @@ def test_detail_failure_marks_partial_but_still_archives(tmp_path):
     assert by_id["3"].status == "archived"
 
 
+# Verifies: detail cache reuses fresh entries.
 def test_detail_cache_reuses_fresh_entries(tmp_path):
     hits = [_hit("1")]
     details = {"1": _detail("1")}
@@ -167,6 +171,7 @@ def test_detail_cache_reuses_fresh_entries(tmp_path):
     assert third.summary.detail_fetched == 1
 
 
+# Verifies: search failure preserves last good snapshot.
 def test_search_failure_preserves_last_good_snapshot(tmp_path):
     store = tmp_path / "opportunities.json"
     hits = [_hit("1")]
@@ -197,6 +202,7 @@ def test_search_failure_preserves_last_good_snapshot(tmp_path):
     assert store.read_bytes() == before
 
 
+# Verifies: incomplete feed does not archive but keeps upserts.
 def test_incomplete_feed_does_not_archive_but_keeps_upserts(tmp_path):
     store = tmp_path / "opportunities.json"
     save_database(
@@ -227,6 +233,7 @@ def test_incomplete_feed_does_not_archive_but_keeps_upserts(tmp_path):
     assert "1" in by_id
 
 
+# Verifies: no details mode keeps search fields.
 def test_no_details_mode_keeps_search_fields(tmp_path):
     hits = [_hit("1")]
     result = refresh_open_opportunities(
@@ -244,6 +251,7 @@ def test_no_details_mode_keeps_search_fields(tmp_path):
     assert stored.opportunities[0].award_ceiling is None
 
 
+# Verifies: summary separates feed open from active open.
 def test_summary_separates_feed_open_from_active_open(tmp_path):
     hits = [_hit("1"), _hit("2")]
     details = {

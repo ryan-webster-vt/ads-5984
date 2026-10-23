@@ -9,10 +9,14 @@ from models import Publication
 
 
 def normalize_title(title: str) -> str:
+    # Remove punctuation, spacing, and case so cosmetic differences do not create
+    # duplicate works.
     return re.sub(r"[^a-z0-9]+", "", title.lower())
 
 
 def dedupe_key(publication: Publication) -> str:
+    # DOI+title is preferred because the same DOI can be reused with different
+    # titles; title+year is the fallback when no DOI exists.
     doi = (publication.doi or "").strip().lower()
     if doi:
         return f"doi:{doi}|{normalize_title(publication.title)}"
@@ -20,6 +24,8 @@ def dedupe_key(publication: Publication) -> str:
 
 
 def _canonical_sort_key(publication: Publication) -> tuple[int, str]:
+    # Prefer the most-cited record, then the lexicographically smallest EID as a
+    # stable deterministic tie-break.
     return (-(publication.cited_by or 0), publication.eid)
 
 
@@ -29,6 +35,8 @@ def dedupe_publications(publications: list[Publication]) -> list[Publication]:
     Same-DOI records with different titles are intentionally kept separate and
     flagged, because they may represent distinct works or data errors.
     """
+    # Detect same-DOI records whose titles disagree; these are flagged but not
+    # silently collapsed into one work.
     doi_titles: dict[str, set[str]] = defaultdict(set)
     for publication in publications:
         if publication.doi:
@@ -52,6 +60,8 @@ def dedupe_publications(publications: list[Publication]) -> list[Publication]:
 
     canonical: list[Publication] = []
     for group in grouped.values():
+        # Merge faculty attribution across aliases so no co-author is lost when a
+        # duplicate record is collapsed.
         chosen = sorted(group, key=_canonical_sort_key)[0].model_copy(deep=True)
         alias_eids = sorted({member.eid for member in group})
         faculty_ids = sorted(

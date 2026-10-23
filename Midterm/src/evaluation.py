@@ -11,6 +11,7 @@ import config
 
 @dataclass
 class RunObservation:
+    # Minimal per-run facts needed to compare repeatability and runtime budgets.
     run_id: str
     member_ids: list[str]
     pi_id: str
@@ -25,6 +26,7 @@ class RunObservation:
 
 
 def jaccard(left: list[str], right: list[str]) -> float:
+    # Treat two empty sets as identical; otherwise the empty set has zero overlap.
     left_set = set(left)
     right_set = set(right)
     if not left_set and not right_set:
@@ -35,6 +37,7 @@ def jaccard(left: list[str], right: list[str]) -> float:
 
 
 def _pairwise(values: list[list[str]]) -> list[float]:
+    # Compare every unordered pair exactly once.
     scores: list[float] = []
     for index, left in enumerate(values):
         for right in values[index + 1 :]:
@@ -43,6 +46,7 @@ def _pairwise(values: list[list[str]]) -> list[float]:
 
 
 def _percentile(values: list[int | float], quantile: float) -> float:
+    # Nearest-rank percentile is sufficient for the small evaluation sample.
     if not values:
         return 0.0
     ordered = sorted(float(value) for value in values)
@@ -60,6 +64,7 @@ def evaluate_observations(
     if not observations:
         raise ValueError("at least one observation is required")
 
+    # Stability is measured both on membership and on the exact evidence set.
     member_scores = _pairwise([item.member_ids for item in observations])
     evidence_scores = _pairwise([item.evidence_ids for item in observations])
     mean_jaccard = (
@@ -69,6 +74,7 @@ def evaluate_observations(
         sum(evidence_scores) / len(evidence_scores) if evidence_scores else 1.0
     )
 
+    # Overall PI agreement is the share supporting the most common PI choice.
     pi_counts = Counter(item.pi_id for item in observations)
     modal_pi, modal_count = pi_counts.most_common(1)[0]
     pi_agreement = modal_count / len(observations)
@@ -82,11 +88,13 @@ def evaluate_observations(
     p50 = _percentile(latencies, 0.50)
     p95 = _percentile(latencies, 0.95)
     max_llm_calls = max(llm_calls) if llm_calls else 0
+    # Budget reporting is observational; it does not alter the generated team.
     within_budget = (
         p95 <= config.RUNTIME_BUDGETS["team_build_p95_ms"]
         and max_llm_calls <= config.RUNTIME_BUDGETS["max_llm_calls"]
     )
 
+    # Validator pass rate is intentionally strict: any issue fails the target.
     targets_met = (
         mean_jaccard >= min_jaccard
         and pi_agreement >= min_pi_agreement

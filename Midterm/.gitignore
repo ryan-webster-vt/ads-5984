@@ -12,6 +12,8 @@ data/opportunities.json
 data/opportunities.json.bak
 data/grants_detail_cache/
 data/retrieval_cache/
+data/elsevier_cache/
 data/.opportunities.lock
+dist/
 data/.opportunities.json.lock
 data/index_manifest.json

@@ -1,11 +1,13 @@
 # VT College of Science Grant Team Builder
 
-Phase 5 implementation of the ADS 5984 midterm project. The app refreshes live
+Phase 6 implementation of the ADS 5984 midterm project. The app refreshes live
 Grants.gov opportunities into a local JSON store, filters/sorts/paginates them,
 builds a grounded, cited Virginia Tech College of Science team for a selected
 opportunity using the full faculty/publication index in ChromaDB, and refines the
-team through follow-up constraint changes. LLM stages run under explicit call,
-token, wall-clock, retry, and circuit-breaker limits.
+team through follow-up constraint changes. CSV is the default, reproducible
+publication source; the Elsevier/Scopus adapter is optional and key-gated. LLM
+stages run under explicit call, token, wall-clock, retry, and circuit-breaker
+limits.
 
 The full architecture, requirements, phases, and decisions are in `PLAN.md`.
 
@@ -32,7 +34,7 @@ The deterministic baseline and validator are the reproducibility backstop: if th
 LLM output is unavailable or unsupported, the app shows the baseline team and
 records the failure rather than presenting an ungrounded recommendation.
 
-## What works in Phase 5
+## What works in Phase 6
 
 - Live Grants.gov `search2` pagination (`rows=1000`) until `hitCount` is covered.
 - Revision-recorded detail cache, concurrent `fetchOpportunity` calls, retries,
@@ -75,7 +77,10 @@ records the failure rather than presenting an ungrounded recommendation.
 - Bounded LLM execution: per-request timeouts, exponential backoff with jitter,
   `Retry-After` support, non-retryable 4xx handling, a failure-count circuit
   breaker, and per-run call/token/wall-clock budgets. Budget exhaustion falls
-  back to the deterministic baseline instead of hanging.
+  back to the deterministic baseline instead of hanging. Reasoning models that
+  exhaust the proxy's buffered (non-streaming) completion cap on hidden thinking
+  are retried through a schema-constrained streaming request, which the VT ARC
+  proxy permits for longer generations.
 - A redacting logger and error path for API keys, bearer tokens, and URL
   credentials; run metadata and the UI never echo raw exception text.
 - Version-keyed retrieval caching with explicit `--no-cache` evaluation. Cache
@@ -89,11 +94,13 @@ records the failure rather than presenting an ungrounded recommendation.
   pass rate, p50/p95 latency, call/token use, and whether the runtime budget was
   met. Five uncached offline runs on the fixed fixture produced 1.0 member
   Jaccard, 1.0 PI agreement, and a 100% validator pass rate.
-- Elsevier/Scopus adapter interface and response parsers, tested against synthetic
-  fixtures only. Live Elsevier access is not claimed.
-
-Phase 5 intentionally does **not** include live Elsevier ingestion or the final
-submission package. Those remain Phase 6.
+- Elsevier/Scopus mode that queries Scopus Search per eligible roster author,
+  retrieves abstracts through Abstract Retrieval, normalizes records into the
+  same `Publication` contract, deduplicates shared works, and caches abstracts
+  under `data/elsevier_cache/`. The adapter has bounded retries, `Retry-After`
+  handling, fast failure on 401/403, and quota-aware 429 handling. CSV remains
+  the default; live Elsevier success is **not claimed** because no live key or
+  institutional entitlement was available for verification.
 
 ### Live refresh measurements (2026-10-22)
 
@@ -122,7 +129,11 @@ Grants.gov contents or response times.
 
 The live LLM endpoint can be slow or unavailable. The deterministic baseline is
 the reliability backstop; bounded budgets trade some semantic generation quality
-for predictable latency and a complete, cited team.
+for predictable latency and a complete, cited team. The current configuration
+uses a 600 s per-request timeout and a 1,800 s per-run wall budget because a
+follow-up prompt generated immediately after an initial build can exceed the
+earlier 85 s and 300 s caps; the 63 s/85 s figures above are historical
+measurements.
 
 ## Environment
 
@@ -139,18 +150,34 @@ OLLAMA_ENDPOINT
 EMBED_MODEL
 ```
 
-Optional Elsevier keys (the adapter is fixture-tested now; live ingestion arrives
-in Phase 6):
+Optional publication source and Elsevier keys:
 
 ```text
+PUBLICATION_SOURCE=csv
 ELSEVIER_API_KEY
 ELSEVIER_INSTTOKEN
 ```
+
+`PUBLICATION_SOURCE` defaults to `csv`. Set it to `elsevier` only when a Scopus
+key (and institutional token if your entitlement requires one) is available.
+Live Elsevier access requires the same campus network/entitlement as the Scopus
+web interface; parsing and failure handling are fixture-tested, but live access
+was not verifiable in this environment.
 
 VT ARC requires eduroam or Cisco VPN. `OPEN_AI_MODEL` may be `vt-arc-llm`; that
 is a model name, not a Python package. Generation uses the `openai` SDK.
 Embeddings use the OpenAI-compatible endpoint at `OLLAMA_ENDPOINT` with
 `EMBED_MODEL`. Grants.gov search and detail endpoints need no key.
+
+Optional per-stage generation models (`OPEN_AI_OPTIMIZE_MODEL`,
+`OPEN_AI_RERANK_MODEL`, `OPEN_AI_GENERATE_MODEL`, `OPEN_AI_VERIFY_MODEL`,
+`OPEN_AI_FOLLOWUP_MODEL`) let each pipeline stage pin its own VT ARC model;
+unset stages fall back to `OPEN_AI_MODEL`. The current deployment splits them as
+`gpt-oss-120b` for query optimization and reranking (fast, high-frequency,
+low-temperature scoring) and `GLM-5.3` for team generation and verification
+(the high-stakes structured calls). The effective model per stage is recorded
+in each run's metadata under `stage_models`, and the rerank model is part of
+the retrieval-cache key so cached evidence is never reused across models.
 
 ## Install
 
@@ -174,21 +201,35 @@ writes `data/index_manifest.json`. The default source is `raw_data/publications.
 and the default scope is the full attributed corpus.
 
 ```bash
-# Reuse a compatible index; rebuild automatically if only the CSV content changed
+# Reuse a compatible index; rebuild automatically if only the source content changed
 python3 scripts/build_index.py --incremental
 
 # Optional reduced-scope preview build (manifest records that it is not full)
 python3 scripts/build_index.py --limit 500
 
-# Elsevier option is present but fixture-tested only until Phase 6
-python3 scripts/build_index.py --source elsevier
+# Optional Elsevier source (requires ELSEVIER_API_KEY and entitlement)
+python3 scripts/build_index.py --source elsevier --rebuild
+
+# Quota-bounded preview without abstracts; metadata only, not full evidence
+python3 scripts/build_index.py --source elsevier --rebuild \
+  --elsevier-max-results-per-faculty 50 --no-elsevier-abstracts
 ```
 
-The full build loads 21,485 raw rows, deduplicates them to 21,428 canonical works,
-and indexes the 19,986 works with at least one eligible roster author. The
+The CSV full build loads 21,485 raw rows, deduplicates them to 21,428 canonical
+works, and indexes the 19,986 works with at least one eligible roster author. The
 remaining 1,442 canonical works are excluded from faculty evidence and counted in
 the manifest. Long abstracts are split sentence-aware into at most five chunks;
 each publication remains a separate evidence document.
+
+Elsevier mode fetches publications for each eligible roster author with
+`AU-ID(...)` Scopus Search and then calls Abstract Retrieval per EID. Abstracts
+are cached for seven days by default so `--incremental` and repeated builds do
+not spend quota twice. The manifest records `source`, the fetched-corpus hash,
+the per-author result cap, and whether abstracts were fetched. Because live
+Elsevier records cannot be rehashed without spending quota, app-side validation
+checks the manifest source/model/versions and collection count instead of the CSV
+file hash. If the adapter returns a different corpus, `--incremental` rebuilds
+the index.
 
 The embedding model and dimension are recorded in the manifest. If the embedding
 model, chunker version, schema version, corpus hash, or index version changes, the
@@ -254,6 +295,25 @@ If no live store exists yet, the app shows the saved real Grants.gov opportunity
 fixture (NSF Long Term Research in Environmental Biology, ID 330296) so the team
 builder remains usable offline.
 
+## Video walkthrough checklist
+
+Record a 5–10 minute walkthrough without showing `.env` or credentials:
+
+1. Show the sidebar counts, index source (`csv`), index version, and last refresh.
+2. Click **Refresh opportunities**, then filter by status/agency/date/amount and
+   change the sort and page size.
+3. Select an opportunity and click **Build team for selected opportunity**.
+4. Show the optimized query, candidate score components, proposed PI, member
+   roles, coverage, and validator/fallback status.
+5. Open the evidence inspector for at least one member: show roster facts,
+   publication excerpt, provenance, and the roster-vs-evidence-vs-inferred labels.
+6. Ask a follow-up such as “shrink to three” or “replace a member with a
+   chemist”, then show the updated constraint state and team.
+7. If time permits, show a limitation path: an unavailable VT ARC call falls back
+   to the deterministic baseline, or a detail fetch failure displays `Unknown`.
+8. Close by noting that CSV is the verified source and live Elsevier is optional
+   and unverified without a key/entitlement.
+
 ## Tests
 
 ```bash
@@ -273,10 +333,13 @@ repeatability, the VT ARC stray-brace parser fallback, and Elsevier fixture
 parsing. Phase 5 adds failure injection for 429/500/timeout/401/refusal/malformed
 JSON/invalid schema, LLM and embedding failures, call/token/wall budgets, the
 circuit breaker, secret redaction, retrieval-cache keys/TTL/no-cache behavior,
-pipeline metadata persistence, and evaluation metrics. Fixtures prove parsing and
-offline behavior only; they do not prove that live Grants.gov, Elsevier, VT ARC,
-or embedding integrations work. Grants.gov and the live VT ARC optimizer/reranker
-were also smoke-tested as described above.
+pipeline metadata persistence, and evaluation metrics. Phase 6 adds Elsevier
+401 fast-fail, 429/`Retry-After` retry and exhaustion, abstract-cache reuse and
+expiry, cross-faculty deduplication, corpus hashing, and publication-source
+validation. Fixtures prove parsing and offline behavior only; they do not prove
+that live Grants.gov, Elsevier, VT ARC, or embedding integrations work.
+Grants.gov and the live VT ARC optimizer/reranker were also smoke-tested as
+described above.
 
 ## Data notes
 
@@ -303,6 +366,9 @@ were also smoke-tested as described above.
 - `data/retrieval_cache/` is generated and ignored by git. Entries expire after
   24 hours and are invalidated automatically when the index version, corpus hash,
   embedding model, prompt version, query, or retrieval settings change.
+- `data/elsevier_cache/` stores raw Abstract Retrieval payloads keyed by EID. It
+  is generated, ignored by git, and expires after seven days by default. It is
+  never included in the submission archive.
 
 ## Key commands
 

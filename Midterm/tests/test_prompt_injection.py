@@ -1,3 +1,4 @@
+# Offline test module: Untrusted evidence/opportunity text cannot alter constraints or members.
 from __future__ import annotations
 
 from models import (
@@ -114,6 +115,7 @@ def _build(client, evidence, constraints):
     )
 
 
+# Verifies: injected evidence cannot add members or change size.
 def test_injected_evidence_cannot_add_members_or_change_size():
     evidence = _evidence(INJECTION)
     injected = LLMTeamProposal(
@@ -145,6 +147,7 @@ def test_injected_evidence_cannot_add_members_or_change_size():
     assert proposal.validator_status.startswith("fallback")
 
 
+# Verifies: injection cannot override excluded member constraint.
 def test_injection_cannot_override_excluded_member_constraint():
     evidence = _evidence(INJECTION)
     injected = LLMTeamProposal(
@@ -180,6 +183,7 @@ def test_injection_cannot_override_excluded_member_constraint():
     assert "2" not in {member.scopus_id for member in proposal.members}
 
 
+# Verifies: injected followup cannot add unknown faculty.
 def test_injected_followup_cannot_add_unknown_faculty():
     faculty = _faculty()
     state = UserConstraints(team_size=3)
@@ -194,6 +198,7 @@ def test_injected_followup_cannot_add_unknown_faculty():
     assert result.conflicts
 
 
+# Verifies: opportunity optimization keeps constraints separate.
 def test_opportunity_optimization_keeps_constraints_separate():
     opportunity = Opportunity(
         opportunity_id="opp",
@@ -209,6 +214,7 @@ def test_opportunity_optimization_keeps_constraints_separate():
     assert state.required_members == []
 
 
+# Verifies: HTML is stripped to plain text and templates warn about untrusted data.
 def test_html_is_stripped_to_plain_text_and_templates_warn_about_untrusted_data():
     stripped = strip_html("<p>Safe</p><script>alert(1)</script>")
     assert " ".join(stripped.split()) == "Safe alert(1)"

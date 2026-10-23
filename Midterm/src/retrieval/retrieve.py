@@ -19,6 +19,8 @@ from src.retrieval.rerank import RerankOutcome, rerank_evidence
 
 
 def build_query(opportunity: Opportunity, focus: str = "") -> str:
+    # Opportunity text is untrusted input; it is delimited later by the optimizer,
+    # not interpreted as instructions here.
     parts = [
         f"Grant opportunity: {opportunity.title}",
         f"Agency: {opportunity.agency}",
@@ -34,6 +36,8 @@ def retrieve_evidence(
     query: str,
     k_in: int = config.DEFAULT_K_IN,
 ) -> list[RetrievedEvidence]:
+    # ``max(1, ...)`` keeps Chroma happy while allowing a caller to request zero
+    # results only through the higher-level selection logic.
     result = collection.query(query_texts=[query], n_results=max(1, k_in))
     ids = (result.get("ids") or [[]])[0]
     documents = (result.get("documents") or [[]])[0]
@@ -43,6 +47,8 @@ def retrieve_evidence(
     for index, evidence_id in enumerate(ids):
         metadata = dict(metadatas[index] or {})
         distance = float(distances[index]) if index < len(distances) else None
+        # Chroma cosine distance is in [0, 2]; clamp the display similarity to a
+        # stable [0, 1] range.
         similarity = 0.0 if distance is None else max(0.0, min(1.0, 1.0 - distance))
         evidence.append(
             RetrievedEvidence(
@@ -57,6 +63,8 @@ def retrieve_evidence(
 
 
 def _percentile_map(values: dict[str, float | None]) -> dict[str, float | None]:
+    # Percentiles are computed only across present roster values; missing metrics
+    # stay null and are redistributed by the scorer.
     present = sorted(value for value in values.values() if value is not None)
     if not present:
         return {key: None for key in values}
@@ -102,6 +110,9 @@ def aggregate_faculty_candidates(
     percentiles = _metric_percentiles(list(faculty_by_id.values()))
     by_faculty: dict[str, list[RetrievedEvidence]] = {}
 
+    # Only publication chunks attribute faculty; profile chunks are for recall and
+    # cannot serve as factual team evidence.
+
     for item in evidence:
         if item.metadata.get("chunk_type") != "publication":
             continue
@@ -121,16 +132,20 @@ def aggregate_faculty_candidates(
             items,
             key=lambda item: (-item.similarity, item.evidence_id),
         )
+        # Best evidence drives relevance; the top three items are retained for
+        # explainability and later shortlist scoring.
         relevance = ranked[0].similarity
         recency_years = [
             int(item.metadata.get("year") or 0) for item in ranked
         ]
         recent_year = max(recency_years) if recency_years else 0
+        # Five-year half-life matches the documented recency policy.
         recency = (
             0.5 ** (max(0, current_year - recent_year) / 5.0)
             if recent_year > 0
             else 0.0
         )
+        # Average only metrics that exist for this faculty member.
         metric_values = [
             percentiles[name].get(faculty_id)
             for name in percentiles
@@ -148,6 +163,7 @@ def aggregate_faculty_candidates(
         weight_total = sum(weight for _, _, weight in components)
         score = sum(value * weight for _, value, weight in components) / weight_total
 
+        # Surface missing metrics to the UI instead of hiding imputation.
         metric_missing = [
             name
             for name in percentiles
@@ -187,6 +203,8 @@ def retrieve_evidence_multi(
 ) -> list[RetrievedEvidence]:
     """Query each optimized search string and merge by exact evidence ID."""
     merged: dict[str, RetrievedEvidence] = {}
+    # Each optimized query contributes candidates; keep the strongest occurrence of
+    # the exact same evidence chunk.
     for query in queries:
         if not query.strip():
             continue
@@ -194,6 +212,7 @@ def retrieve_evidence_multi(
             existing = merged.get(item.evidence_id)
             if existing is None or item.similarity > existing.similarity:
                 merged[item.evidence_id] = item
+    # Stable ordering plus an explicit union cap bounds reranker cost.
     ordered = sorted(
         merged.values(),
         key=lambda item: (-item.similarity, item.evidence_id),

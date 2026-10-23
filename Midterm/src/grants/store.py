@@ -9,11 +9,14 @@ import config
 from models import Opportunity, OpportunityDatabase
 from src.io_utils import exclusive_file_lock, read_json, write_json_atomic
 
+# Sets are intentionally frozen: these status decisions must not be mutated by
+# callers while a refresh is in progress.
 OPEN_STATUSES = frozenset(config.OPPORTUNITY_OPEN_STATUSES)
 ARCHIVED_STATUSES = frozenset({"archived", "closed"})
 
 
 def load_database(path: Path | None = None) -> OpportunityDatabase:
+    """Load the typed opportunity store, returning an empty one if absent."""
     path = path or config.OPPORTUNITIES_PATH
     if not path.exists():
         return OpportunityDatabase(schema_version=config.OPPORTUNITY_SCHEMA_VERSION)
@@ -31,6 +34,8 @@ def save_database(
     path = path or config.OPPORTUNITIES_PATH
     backup_path = backup_path or config.OPPORTUNITIES_BACKUP_PATH
     lock_path = lock_path or config.OPPORTUNITIES_LOCK_PATH
+    # The lock serializes writers across processes; the atomic writer keeps the
+    # previous JSON intact if the process dies mid-save.
     with exclusive_file_lock(lock_path):
         write_json_atomic(
             path,
@@ -40,6 +45,7 @@ def save_database(
 
 
 def is_expired(record: Opportunity, *, today: date | None = None) -> bool:
+    """Hide records whose explicit close date is already in the past."""
     if not record.close_date:
         return False
     today = today or date.today()
@@ -51,15 +57,21 @@ def is_expired(record: Opportunity, *, today: date | None = None) -> bool:
 
 
 def is_visible_open(record: Opportunity, *, today: date | None = None) -> bool:
+    """Return whether a record belongs in the active browsing list."""
+    # Status alone is insufficient: Grants.gov sometimes leaves a past-due record
+    # marked as posted/forecasted.
     return record.status in OPEN_STATUSES and not is_expired(record, today=today)
 
 
 def _clear_archive_fields(record: Opportunity) -> None:
+    # A record that reappears in the open feed should not retain stale archive
+    # metadata from an earlier refresh.
     record.archive_reason = None
     record.archived_at = None
 
 
 def _archive(record: Opportunity, *, now: str, reason: str) -> None:
+    # Archive reasons are persisted so operators can audit why a record vanished.
     record.status = "archived"
     record.archive_reason = reason
     record.archived_at = now
@@ -78,6 +90,7 @@ def merge_open_feed(
     seen: set[str] = set()
     archived_count = 0
 
+    # First pass: upsert every fresh record and preserve first-seen provenance.
     for record in fresh:
         if not record.opportunity_id or record.opportunity_id in seen:
             continue
@@ -89,11 +102,14 @@ def merge_open_feed(
             record.first_seen = now
         record.last_seen = now
         if record.status not in OPEN_STATUSES:
+            # The API itself marked the record closed/archived; archive it even
+            # when the feed was partial.
             _archive(record, now=now, reason=f"reported_{record.status}")
         else:
             _clear_archive_fields(record)
         merged.append(record)
 
+    # Second pass: only a complete feed may archive previously open records.
     for old in existing:
         if old.opportunity_id in seen:
             continue

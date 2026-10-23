@@ -1,3 +1,4 @@
+# Offline test module: Team membership, size, PI, citation, and numeric-claim validation.
 from __future__ import annotations
 
 import pytest
@@ -61,6 +62,7 @@ def _proposal(rationale="Publication evidence supports this role.", evidence_ids
     )
 
 
+# Verifies: valid proposal passes.
 def test_valid_proposal_passes():
     issues = validate_proposal(
         _proposal(),
@@ -72,6 +74,7 @@ def test_valid_proposal_passes():
     assert issues == []
 
 
+# Verifies: unresolved evidence is rejected.
 def test_unresolved_evidence_is_rejected():
     issues = validate_proposal(
         _proposal(evidence_ids=["missing"]),
@@ -83,6 +86,7 @@ def test_unresolved_evidence_is_rejected():
     assert any("unresolved evidence" in issue for issue in issues)
 
 
+# Verifies: forbidden claims and quartile claims are rejected.
 def test_forbidden_claims_and_quartile_claims_are_rejected():
     forbidden = validate_proposal(
         _proposal(rationale="This faculty member is available to lead the project."),
@@ -114,6 +118,7 @@ def test_forbidden_claims_and_quartile_claims_are_rejected():
     assert negated == []
 
 
+# Verifies: wrong metric claim is rejected.
 def test_wrong_metric_claim_is_rejected():
     issues = validate_proposal(
         _proposal(rationale="The roster h-index is 99 and the evidence is strong."),
@@ -125,6 +130,7 @@ def test_wrong_metric_claim_is_rejected():
     assert any("h-index claim" in issue for issue in issues)
 
 
+# Verifies: baseline selection is deterministic and tenure preferred.
 def test_baseline_selection_is_deterministic_and_tenure_preferred():
     faculty = {
         "111": _faculty("111", "Academic Tenure", 10),
@@ -166,6 +172,7 @@ def test_baseline_selection_is_deterministic_and_tenure_preferred():
     assert roles.count("Proposed PI") == 1
 
 
+# Verifies: generation requires candidates.
 def test_generation_requires_candidates():
     opportunity = Opportunity(opportunity_id="opp", title="Test opportunity")
     with pytest.raises(RuntimeError):

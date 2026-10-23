@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import re
 
+import config
 from models import LLMResearchQuery, Opportunity, ResearchQuery
 from src.prompting import load_prompt, prompt_version
 
+# Bounds keep optimization predictable and prevent a model from flooding retrieval.
 MAX_SEARCH_QUERIES = 3
 MIN_SEARCH_QUERIES = 1
 
@@ -63,6 +65,8 @@ KEYWORD_STOPWORDS = {
 
 
 def _keywords(text: str, limit: int = 8) -> list[str]:
+    # Simple deterministic keyword extraction is the fallback when the optimizer
+    # is unavailable; it intentionally does not call an LLM.
     words = re.findall(r"[A-Za-z][A-Za-z0-9-]{2,}", text.lower())
     result: list[str] = []
     seen: set[str] = set()
@@ -77,6 +81,8 @@ def _keywords(text: str, limit: int = 8) -> list[str]:
 
 
 def _fallback_queries(opportunity: Opportunity, focus: str) -> list[str]:
+    # The raw opportunity text is always a valid search query, even when no model
+    # interpretation is available.
     base = " ".join(
         part
         for part in (
@@ -101,6 +107,8 @@ def deterministic_research_query(
     *,
     error: str | None = None,
 ) -> ResearchQuery:
+    # Split the fallback keywords into expertise/method buckets with fixed,
+    # deterministic boundaries so repeated runs are identical.
     keyword_text = " ".join([focus.strip(), opportunity.title])
     keywords = _keywords(keyword_text)
     return ResearchQuery(
@@ -120,6 +128,8 @@ def deterministic_research_query(
 
 
 def _clean_list(values: list[str], limit: int = 12) -> list[str]:
+    # Collapse whitespace and de-duplicate case-insensitively while preserving the
+    # model's original display casing.
     result: list[str] = []
     seen: set[str] = set()
     for value in values:
@@ -135,6 +145,8 @@ def _clean_list(values: list[str], limit: int = 12) -> list[str]:
 
 
 def _validate_llm_query(output: LLMResearchQuery) -> list[str]:
+    # Validate the model output deterministically before accepting it; malformed
+    # output falls back to the raw opportunity.
     issues: list[str] = []
     if len(output.search_queries) < MIN_SEARCH_QUERIES:
         issues.append("no search queries returned")
@@ -152,10 +164,12 @@ def optimize_query(
     llm_client: object | None = None,
 ) -> ResearchQuery:
     """Interpret the opportunity into research needs; fall back deterministically."""
+    # Offline/test mode intentionally skips the model call entirely.
     if llm_client is None:
         return deterministic_research_query(opportunity, focus)
 
     system = load_prompt("optimize_query")
+    # Opportunity text is untrusted data and is explicitly delimited for the model.
     user = (
         "<opportunity>\n"
         f"Title: {opportunity.title}\n"
@@ -166,10 +180,13 @@ def optimize_query(
         "Return the structured research-needs object."
     )
     try:
+        # Only structured output is accepted; the prompt tells the model that
+        # evidence is data, never instructions.
         output = llm_client.complete_structured(
             system=system,
             user=user,
             schema=LLMResearchQuery,
+            model=config.stage_model("optimize"),
         )
         issues = _validate_llm_query(output)
         if issues:
@@ -188,6 +205,7 @@ def optimize_query(
             fallback_used=False,
         )
     except Exception as exc:
+        # Preserve the failure class for run metadata without exposing raw errors.
         return deterministic_research_query(
             opportunity,
             focus,

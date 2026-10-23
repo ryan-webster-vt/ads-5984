@@ -1,3 +1,4 @@
+# Offline test module: Shared team pipeline output, persistence, and budget metadata.
 from __future__ import annotations
 
 import json
@@ -134,6 +135,7 @@ def _run(tmp_path, monkeypatch, llm_client):
     )
 
 
+# Verifies: build team run persists metadata for baseline.
 def test_build_team_run_persists_metadata_for_baseline(tmp_path, monkeypatch):
     result = _run(tmp_path, monkeypatch, None)
     path = tmp_path / "pipeline-test.json"
@@ -148,6 +150,7 @@ def test_build_team_run_persists_metadata_for_baseline(tmp_path, monkeypatch):
     ]
 
 
+# Verifies: build team run records budget calls and tokens.
 def test_build_team_run_records_budget_calls_and_tokens(tmp_path, monkeypatch):
     client = BudgetedLLMClient(ValidBudgetedFake())
     result = _run(tmp_path, monkeypatch, client)
@@ -167,6 +170,7 @@ def test_build_team_run_records_budget_calls_and_tokens(tmp_path, monkeypatch):
     )
 
 
+# Verifies: build team run records validation issues from fallback.
 def test_build_team_run_records_validation_issues_from_fallback(tmp_path, monkeypatch):
     class InvalidFake:
         model = "fake-model"

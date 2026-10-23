@@ -1,6 +1,6 @@
 # ADS 5984 Midterm — Implementation Plan
 
-**Status:** Phase 5 complete (reliability, operations, and security hardening); Phase 6 not started.
+**Status:** Phase 6 complete (Elsevier optional integration and final delivery). CSV is the verified source; live Elsevier remains unverified without a key/entitlement.
 **Last updated:** 2026-10-22  
 **Project root:** `/home/ryanw07/ads_5984/Midterm`  
 **Deliverable:** Streamlit Grants.gov harvester + VT College of Science RAG team builder.
@@ -19,19 +19,22 @@
 - [x] Phase 3 — Live opportunity browsing and archiving.
 - [x] Phase 4 — Full team generation and conversational refinement.
 - [x] Phase 5 — Reliability, operations, and security hardening.
-- [ ] Phase 6 — Elsevier integration and final delivery.
+- [x] Phase 6 — Elsevier integration and final delivery.
 
 ### Resume here
 
-Start **Phase 6**. Phases 1–5 are implemented and verified offline. Phase 6
-should complete live Elsevier ingestion when credentials are available, finish
-the README deliverables (already partially developed), build and validate
-`scripts/make_submission_zip.sh`, and prepare the video walkthrough checklist.
-Keep CSV as the default source and clearly label Elsevier live access as
-unverified until a key (and institutional token if required) is provided. The
-Phase 5 reliability harness is `scripts/eval_repeatability.py`; use
-`--offline` for deterministic evaluation and `--use-cache` only when cache
-behavior is under test.
+All planned phases are complete. The verified path is CSV mode: full index build,
+live Grants.gov refresh/browsing, team generation with deterministic fallback,
+follow-ups, reliability budgets, and the offline repeatability harness. Elsevier
+mode is implemented and fixture-tested, with a key-gated live path, bounded
+401/429 handling, abstract caching, and source-aware index validation; it is not
+claimed live because no key or institutional entitlement was available. To
+validate live Elsevier when credentials arrive, set `PUBLICATION_SOURCE=elsevier`
+plus `ELSEVIER_API_KEY` (and `ELSEVIER_INSTTOKEN` if required), then run
+`python3 scripts/build_index.py --source elsevier --rebuild` and record the
+manifest/model/counts. Use `scripts/eval_repeatability.py --offline` for
+deterministic evaluation and `--use-cache` only when cache behavior is under test.
+Follow the video checklist in `README.md` for the final walkthrough.
 
 ### Decisions locked
 
@@ -79,6 +82,15 @@ behavior is under test.
 | 2026-10-22 | Phase 4 live verification: live VT ARC optimizer returned structured research needs and 1–3 queries; live batched reranking scored 32 candidates across 4 calls before the configured call cap; full live retrieval/scoring/generation against the `full-v1` index produced either a validated proposal or a deterministic baseline fallback. Multi-member live generation can be slow or return an invalid structured payload; Phase 5 will harden timeouts/retries and document the runtime budget. |
 | 2026-10-22 | Phase 5 completed: bounded LLM attempts with exponential backoff/jitter and `Retry-After`, non-retryable 4xx handling, per-run call/token/wall budgets, per-request timeout capping, circuit breaker, redacted logs/errors, version-keyed retrieval cache with 24 h TTL and `--no-cache` evaluation, centralized persisted run metadata, repeatability/runtime metrics, and 37 new offline failure/security/cache/evaluation tests (127 total). |
 | 2026-10-22 | Phase 5 live verification: five uncached offline runs produced 1.0 member Jaccard, 1.0 PI agreement, 1.0 evidence Jaccard, 100% validator pass, p95 294–334 ms, 0 LLM calls. One live VT ARC run under the 85 s wall budget completed in 63.0 s with 2 LLM calls, 0 validator issues, deterministic fallback after an LLM timeout, and within the 90 s p95 reporting target. A slower pre-tightening run took 259 s/5 calls and motivated the per-request remaining-budget timeout. |
+| 2026-10-22 | Phase 6 completed: key-gated Elsevier Search/Abstract ingestion with bounded retries, 401/403 fast failure, 429/`Retry-After` quota handling, abstract caching, cross-faculty dedupe, corpus hashing, `PUBLICATION_SOURCE`/`--source` switching, source-aware index validation, README delivery sections, and video checklist. CSV remains the verified default; live Elsevier is explicitly unverified without a key/entitlement. Offline verification: 138 tests pass, Ruff clean, and five uncached offline runs remain at 1.0 stability. |
+| 2026-10-22 | Fixed a Streamlit hot-reload/session-state bug: follow-up handling now coerces stale `UserConstraints` objects through their serialized form before constructing `FollowupResult`. Added a regression test. |
+| 2026-10-22 | Increased LLM limits for slow follow-up prompts: per-request timeout 90 s → 180 s and per-run wall budget 85 s → 300 s. The previous wall budget capped every request below the new timeout, so both were raised together. |
+| 2026-10-22 | Increased LLM limits again after live follow-ups continued to time out: per-request timeout 180 s → 600 s and per-run wall budget 300 s → 1,800 s. |
+| 2026-10-22 | Removed the submission ZIP builder script and its README/AGENTS instructions at user request; no current workflow depends on it. |
+| 2026-10-23 | Added per-stage generation models: optional `OPEN_AI_OPTIMIZE_MODEL`/`OPEN_AI_RERANK_MODEL`/`OPEN_AI_GENERATE_MODEL`/`OPEN_AI_VERIFY_MODEL`/`OPEN_AI_FOLLOWUP_MODEL` env keys (unset stages fall back to `OPEN_AI_MODEL`), a `model` override threaded through `GenerationClient.complete_structured`, effective models recorded in run metadata (`stage_models`), and the rerank model added to the retrieval-cache key. Deployment split: `gpt-oss-120b` for optimize/rerank, `GLM-5.3` for generate/verify/followup after live catalog checks showed `DeepSeek-V4.1-Flash` and intermittent `vt-arc-llm` failures; `telecom-retention` is a domain fine-tune and `Qwen3-Embedding-4B` is embedding-only, so both are excluded. |
+| 2026-10-23 | Fixed a hard generate-stage failure ("LLM generation unavailable (RuntimeError)" → deterministic baseline): GLM-5.3 at temperature 0 deterministically spent the entire 8,000-token completion budget on reasoning (`LengthFinishReasonError`, zero visible content), which the retry policy classified as non-retryable. Root cause confirmed by replaying the exact run prompt live. Fix: length-exhaustion is now retryable, non-streaming requests are clamped to the proxy's 8,000-token buffered cap (HTTP 413 otherwise), and a schema-constrained streaming fallback (`LLM_MAX_TOKENS_STREAMED=32,000`) handles generations that need to think longer; per-request default cap raised to 16,000 and per-run call cap 10 → 16 to fit the extra attempts. Live replay of the failed prompt now returns a valid 4-member proposal in ~461 s (vs. instant fallback before). |
+| 2026-10-23 | Switched generate and verify to `gpt-oss-120b` after a head-to-head replay of the failed generate prompt (GLM-5.3: 461 s via streaming fallback; gpt-oss-120b: 30 s, one buffered call, same PI choice, valid citations, more specific roles). Full live build on opp 112354 improved 989 s → 208 s (4.8×). The gpt-oss verifier legitimately rejected overclaimed rationale (e.g. collaborative-governance expertise citing crowd-coordination papers), so those runs still end on the deterministic baseline by design; GLM-5.3 remains `OPEN_AI_MODEL`/followup default. Also fixed run-metadata under-reporting on fallback: the rejected proposal's generator/verifier call counts, repair attempts, and `llm_team_ids` now carry onto the baseline. |
+| 2026-10-23 | Fixed the verifier-rejection loop (5 of 6 live runs ended `fallback_after_verifier_error`): added explicit grounding rules to `generate_team.md` (rationale must use topics that literally appear in cited titles/excerpts, never enumerate broader expertise, put unevidenced coverage in `limitations`), gave verifier issues the same single repair attempt + re-verification that deterministic issues already had, deduplicated proposal construction in `generate.py` into one `proposal_from_output`/`repair` helper, and bumped `PROMPT_VERSION` to 2. Live re-run on opp 112354 now passes validation with the LLM team intact in 159 s (previously 208 s ending in baseline fallback). 150 offline tests pass, Ruff clean. |
 
 ---
 
@@ -249,7 +261,7 @@ The surrounding repo confirms expected client interfaces:
 | Ground every factual claim in sources | `src/team/verify.py`, evidence UI | Every rationale has resolving `evidence_ids`; roster numbers match; planted unsupported claim is rejected. |
 | High reliability / consistency | Deterministic selection, tie-breaks, run metadata, eval harness | 5 uncached runs on a fixed fixture: member-set Jaccard ≥ 0.8, PI agreement ≥ 0.8, 100% validator pass. |
 | README | Root `README.md` | Contains install, `.env` key names, index build, run, offline mode, limitations, design section. |
-| Source ZIP | `scripts/make_submission_zip.sh` | Zip excludes `.env`, credentials, `.venv`, `__pycache__`, Chroma caches; includes source, README, requirements, data/fixtures needed. |
+| Source ZIP | Manual, optional | No packaging script is maintained; if an archive is created, exclude `.env`, credentials, `.venv`, `__pycache__`, Chroma data, and generated caches. |
 | Video walkthrough | Manual deliverable | 5–10 minute recording: refresh, filter, select, Build Team, inspect evidence, ask follow-up. |
 
 ---
@@ -320,8 +332,7 @@ Midterm/
 ├── scripts/
 │   ├── build_index.py
 │   ├── refresh_opportunities.py
-│   ├── eval_repeatability.py
-│   └── make_submission_zip.sh
+│   └── eval_repeatability.py
 ├── data/
 │   ├── opportunities.json
 │   ├── opportunities.json.bak
@@ -1111,11 +1122,14 @@ Use Pydantic v2 models in `models.py`; persist JSON with `schema_version`.
 
 ### Phase 6 — Elsevier integration and final delivery
 
+**Status:** Complete on 2026-10-22. CSV verified; live Elsevier unverified without
+credentials.
+
 **Files/modules**
 
 - Complete `src/research/elsevier.py`
 - `config.py` source switch: `PUBLICATION_SOURCE=csv|elsevier`
-- README, `.env.example`, `scripts/make_submission_zip.sh`
+- README, `.env.example`
 - Video walkthrough checklist
 
 **Dependencies**
@@ -1147,6 +1161,38 @@ Use Pydantic v2 models in `models.py`; persist JSON with `schema_version`.
 - Elsevier mode works with credentials or is explicitly documented as
   unverified/optional.
 - README, ZIP, and video are complete.
+
+**Phase 6 completion record**
+
+- `config.py` adds a validated `PUBLICATION_SOURCE=csv|elsevier` switch, Elsevier
+  timeout/retry/cache settings, `data/elsevier_cache/`, and app version 0.6.0.
+  CSV remains the default.
+- `src/research/elsevier.py` now supports live-capable ingestion: paginated
+  `AU-ID(...)` Search, Abstract Retrieval with a seven-day EID-keyed cache,
+  bounded exponential retries with `Retry-After`, fast failure on 401/403,
+  quota-aware 429 exhaustion errors, cross-faculty deduplication, and the same
+  `Publication` contract as CSV mode.
+- `scripts/build_index.py` supports `--source elsevier`,
+  `--elsevier-max-results-per-faculty`, `--elsevier-page-size`, and
+  `--no-elsevier-abstracts`. `--incremental` reuses an Elsevier index when the
+  fetched-corpus hash and compatibility fields match; otherwise it rebuilds.
+- `src/research/index.py` computes a stable Elsevier corpus hash and validates
+  manifest source/model/versions/counts without re-fetching live data. CSV mode
+  still rehashes the read-only files, and switching source requires a rebuild.
+- README now documents both publication modes, the unverified status of live
+  Elsevier, the abstract cache, submission packaging, and the video walkthrough
+  checklist. `.env.example` includes `PUBLICATION_SOURCE` and Elsevier tuning.
+- Verification: `python3 -m pytest -q` → 138 passed; `python3 -m ruff check .` →
+  all checks passed; `python3 scripts/build_index.py --incremental` reused the
+  full-v1 CSV index (32,892 vectors); five uncached offline evaluation runs
+  produced 1.0 member Jaccard, 1.0 PI agreement, 1.0 evidence Jaccard, and a 100%
+  validator pass rate. Calling Elsevier mode without a key fails clearly before
+  any network or embedding work.
+- Known limitation: no live Elsevier key/entitlement was available, so live
+  Scopus access, quota behavior, and abstract coverage are not claimed. The
+  adapter's parsing, retry, cache, and source-switch behavior is covered by
+  offline tests only. The video walkthrough checklist is complete; recording the
+  actual video remains a manual submission step.
 
 ---
 
@@ -1229,6 +1275,8 @@ Use Pydantic v2 models in `models.py`; persist JSON with `schema_version`.
    optional path?
    - Recommended default: CSV default; adapter implemented and fixture-tested;
      live Elsevier explicitly marked unverified until a key is available.
+   - Resolution: no live key was available, so the official deliverable is
+     CSV-first with a key-gated, fixture-tested Elsevier option.
 
 2. **Embedding service contract:** Can you confirm that `OLLAMA_ENDPOINT`
    exposes an OpenAI-compatible embeddings endpoint and that `EMBED_MODEL` is

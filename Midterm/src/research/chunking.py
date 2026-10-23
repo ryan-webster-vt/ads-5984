@@ -10,10 +10,12 @@ from models import EvidenceChunk, Faculty, Publication
 
 
 def _content_hash(text: str) -> str:
+    # A short prefix is enough to detect edits while keeping metadata compact.
     return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
 
 
 def _split_sentences(text: str) -> list[str]:
+    # The lookbehind keeps terminal punctuation attached to the sentence.
     parts = re.split(r"(?<=[.!?])\s+", text.strip())
     return [part.strip() for part in parts if part.strip()]
 
@@ -26,6 +28,7 @@ def split_text_sentence_aware(
 ) -> list[str]:
     """Pack sentences into bounded windows without mixing documents."""
     text = " ".join(text.split())
+    # Normalize whitespace before measuring so chunk sizes are comparable.
     if not text:
         return [""]
     if len(text) <= max_chars:
@@ -35,6 +38,7 @@ def split_text_sentence_aware(
     chunks: list[str] = []
     buffer = ""
     for sentence in sentences:
+        # A single overlong sentence is hard-split; chunks never cross documents.
         while len(sentence) > max_chars:
             if buffer:
                 chunks.append(buffer.strip())
@@ -47,6 +51,7 @@ def split_text_sentence_aware(
             continue
         if buffer:
             chunks.append(buffer.strip())
+            # A small tail overlap preserves context across chunk boundaries.
             tail = buffer[-overlap_chars:] if overlap_chars else ""
             buffer = f"{tail} {sentence}".strip()
         else:
@@ -85,6 +90,8 @@ def chunk_publication(
     faculty_names: dict[str, str],
     index_version: str = config.INDEX_VERSION,
 ) -> list[EvidenceChunk]:
+    # The header repeats identity metadata in every chunk so each chunk remains
+    # independently citable after retrieval.
     header = _publication_header(publication, faculty_names)
     body_parts = []
     if publication.abstract:
@@ -94,6 +101,7 @@ def chunk_publication(
     if publication.index_keywords:
         body_parts.append(f"Index keywords: {publication.index_keywords}")
     if not body_parts:
+        # Missing evidence must stay explicit; never fabricate an abstract.
         body_parts.append(
             "No abstract or keywords are available for this publication; "
             "use the title and source metadata only."
@@ -103,6 +111,7 @@ def chunk_publication(
     chunks: list[EvidenceChunk] = []
     for index, body in enumerate(body_chunks):
         text = f"{header}\n\n{body}"
+        # Stable IDs make reruns idempotent and let citations resolve exactly.
         chunks.append(
             EvidenceChunk(
                 evidence_id=f"pub::{publication.eid}::c{index:02d}",
@@ -127,6 +136,7 @@ def chunk_publication(
 
 
 def _metric(value: int | float | None) -> str:
+    # Missing metrics are labeled unknown rather than imputed or shown as zero.
     return "unknown" if value is None else str(value)
 
 
@@ -135,6 +145,8 @@ def chunk_faculty_profile(
     index_version: str = config.INDEX_VERSION,
 ) -> EvidenceChunk:
     """Profile chunks contain roster facts only, never invented biographies."""
+    # Profile chunks contain roster facts and metric caveats only. They aid recall
+    # but are not a substitute for publication-level evidence.
     text = "\n".join(
         [
             "Faculty roster facts",

@@ -1,3 +1,4 @@
+# Offline test module: Exact Scopus ID joins and CSV loader validation.
 from __future__ import annotations
 
 from src.research.identity import (
@@ -9,6 +10,7 @@ from src.research.identity import (
 from src.research.loaders import load_faculty, load_publications
 
 
+# Verifies: real roster identity counts.
 def test_real_roster_identity_counts():
     faculty = load_faculty()
     assert len(faculty) == 501
@@ -20,6 +22,7 @@ def test_real_roster_identity_counts():
     assert len(build_eligible_faculty_index(faculty)) == 499
 
 
+# Verifies: real publication counts and conflict exclusion.
 def test_real_publication_counts_and_conflict_exclusion():
     faculty = load_faculty()
     eligible = build_eligible_faculty_index(faculty)
@@ -36,6 +39,7 @@ def test_real_publication_counts_and_conflict_exclusion():
     ) == 1602
 
 
+# Verifies: author id parsing and complete id matching.
 def test_author_id_parsing_and_complete_id_matching():
     assert parse_author_ids("123; 456 ;789") == ["123", "456", "789"]
     faculty = load_faculty()

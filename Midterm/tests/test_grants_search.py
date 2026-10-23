@@ -1,3 +1,4 @@
+# Offline test module: Grants.gov search pagination and fixture normalization.
 from __future__ import annotations
 
 import json
@@ -20,6 +21,7 @@ def _fixture_pages() -> list[dict]:
     return payload["pages"]
 
 
+# Verifies: recorded search pages normalize all hits.
 def test_recorded_search_pages_normalize_all_hits():
     pages = _fixture_pages()
     hits = [hit for page in pages for hit in page["response"]["data"]["oppHits"]]
@@ -31,6 +33,7 @@ def test_recorded_search_pages_normalize_all_hits():
     assert {item.status for item in opportunities} <= {"posted", "forecasted"}
 
 
+# Verifies: pagination covers two pages and reports complete.
 def test_pagination_covers_two_pages_and_reports_complete():
     pages = _fixture_pages()
     state = {"calls": 0}
@@ -50,6 +53,7 @@ def test_pagination_covers_two_pages_and_reports_complete():
     assert state["calls"] == 2
 
 
+# Verifies: pagination marks page limit partial.
 def test_pagination_marks_page_limit_partial():
     pages = _fixture_pages()
 
@@ -68,6 +72,7 @@ def test_pagination_marks_page_limit_partial():
     assert complete is False
 
 
+# Verifies: pagination propagates page failure.
 def test_pagination_propagates_page_failure():
     def page_fn(**kwargs):
         raise RuntimeError("page failed")
@@ -76,6 +81,7 @@ def test_pagination_propagates_page_failure():
         fetch_search_hits(rows=3, page_fn=page_fn)
 
 
+# Verifies: recorded forecast detail normalizes.
 def test_recorded_forecast_detail_normalizes():
     path = config.FIXTURES_DIR / "grants_fetch_forecast.json"
     record = load_opportunity_fixture(path)
@@ -92,6 +98,7 @@ def test_recorded_forecast_detail_normalizes():
     assert "<p>" not in record.description
 
 
+# Verifies: date amount and bool parsing.
 def test_date_amount_and_bool_parsing():
     assert parse_date("Dec 10, 2020 12:00:00 AM EST") == "2020-12-10"
     assert parse_date("08/01/2024") == "2024-08-01"

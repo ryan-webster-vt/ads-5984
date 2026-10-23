@@ -23,5 +23,19 @@ Hard rules:
 - Distinguish roster facts, publication evidence, and inferred suitability in the
   rationale wording.
 
+Grounding rules for rationale text (a strict verifier re-checks every claim):
+
+- Describe each member's fit using topics that literally appear in the cited
+  publication titles or excerpts. Do not summarize, generalize, or extrapolate
+  them into broader expertise areas.
+- Never enumerate expertise a member "has"; state only what the cited
+  publications show, e.g. "publishes on lake carbon cycling" rather than "expert
+  in ecosystem science and biogeochemistry".
+- Do not claim a member covers a required expertise area unless at least one
+  cited excerpt explicitly addresses it. Unevidenced coverage belongs in
+  `limitations`, not the rationale.
+- Prefer shorter rationales that stay inside the evidence over comprehensive
+  ones that reach beyond it.
+
 Explain why the combination covers the opportunity's required expertise. If the
 evidence is thin, say so in `limitations`. Return only the requested JSON object.

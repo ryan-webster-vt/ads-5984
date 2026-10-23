@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from datetime import date, datetime
 
 import pandas as pd
@@ -11,6 +12,7 @@ import config
 from models import Opportunity, OpportunityDatabase
 from src.grants.store import ARCHIVED_STATUSES, OPEN_STATUSES, is_expired, is_visible_open
 
+# Column names used by the browser; kept explicit so filters/sorts remain stable.
 FRAME_COLUMNS = [
     "ID",
     "Title",
@@ -25,12 +27,16 @@ FRAME_COLUMNS = [
 
 
 def _award_value(record: Opportunity) -> float | None:
+    # Use the ceiling when available, otherwise estimated funding; unknown stays
+    # null so the UI can display "Unknown" instead of zero.
     if record.award_ceiling is not None:
         return record.award_ceiling
     return record.estimated_funding
 
 
 def records_to_frame(records: list[Opportunity]) -> pd.DataFrame:
+    # Build a typed frame with explicit columns so an empty store still has the
+    # schema filters expect.
     rows = [
         {
             "id": record.opportunity_id,
@@ -62,6 +68,7 @@ def records_to_frame(records: list[Opportunity]) -> pd.DataFrame:
         "detail_status",
         "number",
     ])
+    # Coerce malformed dates/amounts to NaT/NaN; the UI treats those as unknown.
     for column in ("open_date", "close_date"):
         frame[column] = pd.to_datetime(frame[column], errors="coerce")
     frame["amount"] = pd.to_numeric(frame["amount"], errors="coerce")
@@ -85,6 +92,7 @@ def filter_opportunities(
 ) -> pd.DataFrame:
     if frame.empty:
         return frame.copy()
+    # The browse view starts from explicit open statuses, not the raw store.
     today = today or date.today()
     today_ts = pd.Timestamp(today)
     result = frame[frame["status"].isin(OPEN_STATUSES)].copy()
@@ -98,6 +106,8 @@ def filter_opportunities(
         result = result[result["agency"].isin(agencies)]
     if doc_types:
         result = result[result["doc_type"].isin(doc_types)]
+    # All text matching is literal (regex=False) so user input cannot inject a
+    # pattern or cause a catastrophic regex.
     if cfda.strip():
         result = result[
             result["cfda"].str.contains(cfda.strip(), case=False, regex=False, na=False)
@@ -137,6 +147,8 @@ def sort_opportunities(
         "Agency": "agency",
         "Status": "status",
     }
+    # Map display labels to internal columns and add ID as a deterministic
+    # tie-breaker so equal values never reorder between reruns.
     key = column_map.get(column, column)
     return frame.sort_values(
         by=[key, "id"],
@@ -151,6 +163,7 @@ def paginate(
 ) -> tuple[pd.DataFrame, int]:
     if frame.empty:
         return frame.copy(), 1
+    # Clamp the requested page to the available range after filtering.
     page_size = max(1, page_size)
     page_count = max(1, (len(frame) + page_size - 1) // page_size)
     page = min(max(1, page), page_count)
@@ -159,6 +172,7 @@ def paginate(
 
 
 def _format_update(timestamp: str | None) -> str:
+    # Display timestamps in UTC to avoid locale-dependent parsing in the UI.
     if not timestamp:
         return "never"
     try:
@@ -169,6 +183,8 @@ def _format_update(timestamp: str | None) -> str:
 
 
 def _display_frame(frame: pd.DataFrame) -> pd.DataFrame:
+    # Keep the table read-only and human-friendly. Award stays numeric so
+    # Streamlit's native column sort is correct; the column config formats it.
     display = pd.DataFrame(
         {
             "Title": frame["title"],
@@ -177,17 +193,25 @@ def _display_frame(frame: pd.DataFrame) -> pd.DataFrame:
             "Status": frame["status"],
             "Open date": frame["open_date"].dt.strftime("%Y-%m-%d").fillna("Unknown"),
             "Close date": frame["close_date"].dt.strftime("%Y-%m-%d").fillna("Unknown"),
-            "Award": frame["amount"].map(
-                lambda value: "Unknown" if pd.isna(value) else f"${value:,.0f}"
-            ),
+            "Award": frame["amount"],
         }
     )
     return display.reset_index(drop=True)
 
 
+def _table_key(page_frame: pd.DataFrame, page: int, page_size: int) -> str:
+    # Reset selection when the visible rows change (page/filter/sort) but keep it
+    # stable across unrelated reruns of the same page.
+    ids = "|".join(page_frame["id"].astype(str))
+    digest = hashlib.sha1(ids.encode("utf-8")).hexdigest()[:12]
+    return f"opportunity-table-{page}-{page_size}-{digest}"
+
+
 def render_opportunity_browser(database: OpportunityDatabase) -> Opportunity | None:
     records = database.opportunities
     today = date.today()
+    # Feed count, visible count, expired count, and archived count answer different
+    # operational questions and are shown separately.
     feed_open_count = sum(1 for record in records if record.status in OPEN_STATUSES)
     open_count = sum(1 for record in records if is_visible_open(record, today=today))
     expired_count = sum(
@@ -234,6 +258,8 @@ def render_opportunity_browser(database: OpportunityDatabase) -> Opportunity | N
         st.info("No opportunities are stored yet. Refresh to harvest Grants.gov.")
         return None
 
+    # Filters are intentionally explicit; the filtered frame is also the oracle
+    # used by tests.
     with st.expander("Filters", expanded=True):
         col_a, col_b, col_c = st.columns(3)
         statuses = col_a.multiselect(
@@ -286,6 +312,8 @@ def render_opportunity_browser(database: OpportunityDatabase) -> Opportunity | N
         today=today,
     )
 
+    # Warn when an amount filter hides records whose detail fetch failed or whose
+    # amount is genuinely absent, rather than pretending those records do not exist.
     if amount_min or amount_max:
         unknown_pool = filter_opportunities(
             frame,
@@ -320,6 +348,7 @@ def render_opportunity_browser(database: OpportunityDatabase) -> Opportunity | N
         ),
     )
 
+    # Sort, then paginate; the selection widget only exposes IDs on this page.
     ordered = sort_opportunities(filtered, column=sort_column, ascending=ascending)
     page = st.number_input("Page", min_value=1, value=1, step=1)
     page_frame, page_count = paginate(
@@ -334,18 +363,59 @@ def render_opportunity_browser(database: OpportunityDatabase) -> Opportunity | N
         st.info("No opportunities match the current filters.")
         return None
 
-    st.dataframe(_display_frame(page_frame), width="stretch", hide_index=True)
-
-    ids = page_frame["id"].tolist()
-    by_id = {record.opportunity_id: record for record in records}
-    selected_id = st.selectbox(
-        "Select an opportunity",
-        options=ids,
-        format_func=lambda value: (
-            f"{by_id[value].title} — {by_id[value].agency or 'Unknown agency'} "
-            f"({by_id[value].status})"
-        ),
+    table_event = st.dataframe(
+        _display_frame(page_frame),
+        width="stretch",
+        hide_index=True,
+        on_select="rerun",
+        selection_mode="single-row",
+        key=_table_key(page_frame, int(page), int(page_size)),
+        column_config={
+            # Keep Award numeric so clicking the column header sorts by value,
+            # and format it as currency for display.
+            "Award": st.column_config.NumberColumn(
+                "Award",
+                format="$%.0f",
+                help="Blank means the award amount is unknown.",
+            )
+        },
     )
-    if st.button("Build team for selected opportunity", type="primary"):
-        return by_id.get(selected_id)
+    st.caption(
+        "Click a row or its title to select an opportunity. "
+        "Blank award amounts are unknown."
+    )
+
+    # Selection comes from the table itself; there is no separate selectbox.
+    by_id = {record.opportunity_id: record for record in records}
+    page_records = page_frame.reset_index(drop=True)
+    selected_id = st.session_state.get("browser_selected_opportunity_id")
+    try:
+        selected_rows = list(table_event.selection.rows)
+    except AttributeError:
+        selected_rows = []
+    if selected_rows:
+        position = int(selected_rows[0])
+        if 0 <= position < len(page_records):
+            selected_id = str(page_records.iloc[position]["id"])
+            st.session_state["browser_selected_opportunity_id"] = selected_id
+    elif selected_id not in set(page_records["id"].astype(str)):
+        # The selected row is no longer on this page after filtering/paging.
+        selected_id = None
+        st.session_state.pop("browser_selected_opportunity_id", None)
+
+    if selected_id is None:
+        st.info("Click a row or its title to select an opportunity.")
+    else:
+        selected = by_id.get(selected_id)
+        if selected is not None:
+            st.caption(
+                f"Selected: **{selected.title}** — "
+                f"{selected.agency or 'Unknown agency'} ({selected.status})"
+            )
+    if st.button(
+        "Build team for selected opportunity",
+        type="primary",
+        disabled=selected_id is None,
+    ):
+        return by_id.get(selected_id) if selected_id is not None else None
     return None

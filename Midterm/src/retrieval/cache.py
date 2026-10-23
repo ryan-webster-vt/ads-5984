@@ -19,6 +19,7 @@ from src.retrieval.retrieve import retrieve_for_research_query
 
 def cache_context_from_manifest(manifest: IndexManifest) -> dict[str, str]:
     """Return the index/config fields that must invalidate cached evidence."""
+    # Any change here means the same query may map to different evidence chunks.
     return {
         "index_version": manifest.index_version,
         "collection_name": manifest.collection_name,
@@ -38,6 +39,8 @@ def retrieval_cache_key(
     union_cap: int = config.RETRIEVAL_UNION_CAP,
 ) -> str:
     """Hash every input that changes retrieval or reranking semantics."""
+    # Include prompt/model settings because reranking can change the selected
+    # evidence even when the underlying vector query is identical.
     payload = {
         "cache_version": config.RETRIEVAL_CACHE_VERSION,
         "context": cache_context,
@@ -68,10 +71,13 @@ class RetrievalCache:
     directory: Path = config.RETRIEVAL_CACHE_DIR
     ttl_hours: float = config.RETRIEVAL_CACHE_TTL_HOURS
 
+    # Keys are SHA-256 hex strings, so they are safe as flat filenames.
     def _path(self, key: str) -> Path:
         return self.directory / f"{key}.json"
 
     def get(self, key: str, *, now: datetime | None = None) -> dict[str, Any] | None:
+        # Treat unreadable/old-format entries as misses; never fail a team build
+        # because the cache is corrupt.
         path = self._path(key)
         if not path.exists():
             return None
@@ -79,6 +85,7 @@ class RetrievalCache:
             payload = read_json(path)
         except (OSError, ValueError):
             return None
+        # Version and exact-key checks guard against stale or manually edited rows.
         if payload.get("cache_version") != config.RETRIEVAL_CACHE_VERSION:
             return None
         if payload.get("key") != key:
@@ -126,6 +133,7 @@ class RetrievalCache:
         )
 
     def clear(self) -> int:
+        # Used by ``--clear-cache`` and tests; only cache JSON files are removed.
         if not self.directory.exists():
             return 0
         removed = 0
@@ -148,6 +156,7 @@ def cached_retrieve(
     use_cache: bool = True,
 ) -> tuple[list[RetrievedEvidence], RerankOutcome]:
     """Return retrieval evidence, reusing a compatible cache when allowed."""
+    # Evaluation can explicitly bypass both reads and writes for repeatability.
     if not use_cache or cache is None or not cache_context:
         return retrieve_for_research_query(
             collection,
@@ -167,6 +176,8 @@ def cached_retrieve(
     )
     payload = cache.get(key)
     if payload is not None:
+        # Validate cached evidence through the model so old/broken entries are
+        # ignored rather than crashing the pipeline.
         try:
             evidence = [
                 RetrievedEvidence.model_validate(item)
@@ -176,6 +187,8 @@ def cached_retrieve(
             evidence = []
         if evidence:
             outcome_payload = payload.get("outcome") or {}
+            # A cache hit costs no rerank LLM call, but preserves the original
+            # fallback/model-scored metadata for run reporting.
             return evidence, RerankOutcome(
                 evidence=evidence,
                 calls=0,

@@ -1,3 +1,4 @@
+# Offline test module: Constraint merging, member resolution, ambiguity, and explicit state.
 from __future__ import annotations
 
 import pytest
@@ -53,6 +54,7 @@ def _candidate(scopus_id, department):
     )
 
 
+# Verifies: member resolution is exact or unambiguous.
 def test_member_resolution_is_exact_or_unambiguous():
     faculty = _faculty()
     assert resolve_member_reference("2", faculty) == "2"
@@ -62,6 +64,7 @@ def test_member_resolution_is_exact_or_unambiguous():
         resolve_member_reference("Nobody, Nemo", faculty)
 
 
+# Verifies: ambiguous member resolution requires clarification.
 def test_ambiguous_member_resolution_requires_clarification():
     faculty = _faculty()
     faculty["5"] = Faculty(
@@ -74,6 +77,7 @@ def test_ambiguous_member_resolution_requires_clarification():
         resolve_member_reference("Smith", faculty)
 
 
+# Verifies: size tenure and department constraints apply.
 def test_size_tenure_and_department_constraints_apply():
     faculty = _faculty()
     state = initial_constraints(4)
@@ -98,6 +102,7 @@ def test_size_tenure_and_department_constraints_apply():
     assert [candidate.scopus_id for candidate in filtered] == ["1"]
 
 
+# Verifies: include and exclude same person is a hard conflict.
 def test_include_and_exclude_same_person_is_a_hard_conflict():
     faculty = _faculty()
     result = apply_patch(
@@ -115,6 +120,7 @@ def test_include_and_exclude_same_person_is_a_hard_conflict():
     assert "2" not in result.state.excluded_members
 
 
+# Verifies: unknown member and invalid size are conflicts.
 def test_unknown_member_and_invalid_size_are_conflicts():
     result = apply_patch(
         initial_constraints(4),
@@ -125,6 +131,7 @@ def test_unknown_member_and_invalid_size_are_conflicts():
     assert len(result.conflicts) >= 2
 
 
+# Verifies: tenure track local policy.
 def test_tenure_track_local_policy():
     faculty = _faculty()
     assert is_tenure_track(faculty["1"])

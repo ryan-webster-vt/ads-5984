@@ -1,3 +1,4 @@
+# Offline test module: Shared pytest setup: make the project importable from any test cwd.
 from __future__ import annotations
 
 import sys

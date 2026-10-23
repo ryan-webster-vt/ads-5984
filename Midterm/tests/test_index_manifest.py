@@ -1,3 +1,4 @@
+# Offline test module: Index compatibility checks, source mismatch, and deterministic selection.
 from __future__ import annotations
 
 import pytest
@@ -37,6 +38,7 @@ def _manifest(**overrides) -> IndexManifest:
     return IndexManifest(**data)
 
 
+# Verifies: compatible manifest has no issues.
 def test_compatible_manifest_has_no_issues():
     issues = index_compatibility_issues(
         _manifest(),
@@ -46,6 +48,7 @@ def test_compatible_manifest_has_no_issues():
     assert issues == []
 
 
+# Verifies: every incompatibility is reported.
 def test_every_incompatibility_is_reported():
     issues = index_compatibility_issues(
         _manifest(
@@ -67,6 +70,17 @@ def test_every_incompatibility_is_reported():
     assert any("corpus data changed" in issue for issue in issues)
 
 
+# Verifies: source mismatch is reported.
+def test_source_mismatch_is_reported():
+    issues = index_compatibility_issues(
+        _manifest(source="csv"),
+        expected_model="qwen3-embedding:8b",
+        expected_source="elsevier",
+    )
+    assert any("index source" in issue for issue in issues)
+
+
+# Verifies: mismatch raises clear rebuild instruction.
 def test_mismatch_raises_clear_rebuild_instruction():
     with pytest.raises(IndexMismatchError) as excinfo:
         assert_index_compatible(
@@ -87,6 +101,7 @@ def _publication(eid: str, year: int, cited_by: int) -> Publication:
     )
 
 
+# Verifies: selection is deterministic and limit is newest first.
 def test_selection_is_deterministic_and_limit_is_newest_first():
     publications = [
         _publication("e1", 2020, 100),

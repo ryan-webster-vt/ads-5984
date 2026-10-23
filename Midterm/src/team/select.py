@@ -6,6 +6,7 @@ import config
 from models import Faculty, FacultyCandidate, TeamMember, UserConstraints
 from src.team.constraints import ConstraintError, member_allowed_by_state
 
+# Non-PI roles are assigned in this fixed order so repeated builds are stable.
 ROLE_SEQUENCE = (
     "Co-PI / Domain Expert",
     "Domain Expert",
@@ -15,8 +16,10 @@ ROLE_SEQUENCE = (
 
 
 def _pi_fit(candidate: FacultyCandidate, constraints: UserConstraints | None = None) -> float:
+    # An explicit user preference overrides the local tenure/tenure-track prior.
     if constraints and constraints.pi_preference == candidate.scopus_id:
         return 2.0
+    # The bonus is a local VT assumption about PI readiness, not sponsor policy.
     tenure_bonus = 0.0
     if "Academic Tenure" in candidate.tenure and "Pending" not in candidate.tenure:
         tenure_bonus = 0.05
@@ -26,6 +29,7 @@ def _pi_fit(candidate: FacultyCandidate, constraints: UserConstraints | None = N
     return 0.60 * candidate.score + 0.25 * metrics + 0.15 * candidate.recency + tenure_bonus
 
 
+# The shortlist bounds what the LLM may choose from; selection never invents IDs.
 def shortlist_candidates(
     candidates: list[FacultyCandidate],
     limit: int = config.MAX_SHORTLIST,
@@ -34,6 +38,8 @@ def shortlist_candidates(
 
 
 def _preferred(candidate: FacultyCandidate, constraints: UserConstraints | None) -> bool:
+    # Department preferences are soft: preferred candidates are tried first, but
+    # they do not exclude other departments.
     if constraints is None or not constraints.department_preferences:
         return False
     preferred = {value.lower() for value in constraints.department_preferences}
@@ -49,6 +55,8 @@ def select_baseline_team(
     constraints: UserConstraints | None = None,
 ) -> tuple[list[TeamMember], str]:
     """Select a stable, department-aware team from the deterministic ranking."""
+    # Explicit state controls the size; the argument is a fallback for callers
+    # without constraints.
     if constraints is not None:
         team_size = constraints.team_size
     allowed: list[FacultyCandidate] = []
@@ -61,6 +69,8 @@ def select_baseline_team(
         allowed.append(candidate)
     ranked = sorted(allowed, key=lambda candidate: (-candidate.score, candidate.scopus_id))
 
+    # Required members must be present in the retrieved candidate set; the
+    # baseline never fabricates evidence for a requested person.
     required_ids = list(constraints.required_members) if constraints else []
     if len(required_ids) > team_size:
         raise ConstraintError(
@@ -98,6 +108,8 @@ def select_baseline_team(
             department_counts.get(candidate.department, 0) + 1
         )
 
+    # Two-pass greedy selection: preferred departments first, then the full
+    # ranking. This is explainable and stable, not a global optimizer.
     passes = (
         [candidate for candidate in ranked if _preferred(candidate, constraints)],
         ranked,
@@ -114,6 +126,7 @@ def select_baseline_team(
         if len(selected) >= team_size:
             break
 
+    # Final pass relaxes the department cap only if the team is still short.
     if len(selected) < team_size:
         for candidate in ranked:
             if len(selected) >= team_size:
@@ -124,6 +137,8 @@ def select_baseline_team(
     if not selected:
         raise ConstraintError("No eligible faculty candidates were retrieved")
 
+    # PI choice is deterministic: explicit preference first, then _pi_fit, with a
+    # stable Scopus-ID tie-break.
     pi_candidate = sorted(
         selected,
         key=lambda candidate: (-_pi_fit(candidate, constraints), candidate.scopus_id),
@@ -137,6 +152,8 @@ def select_baseline_team(
         else:
             role = ROLE_SEQUENCE[min(non_pi_index, len(ROLE_SEQUENCE) - 1)]
             non_pi_index += 1
+        # Baselines cite real titles and explain the deterministic score; they do
+        # not claim availability or sponsor eligibility.
         evidence_text = "; ".join(candidate.evidence_titles[:2])
         rationale = (
             f"Publication evidence includes: {evidence_text}. "

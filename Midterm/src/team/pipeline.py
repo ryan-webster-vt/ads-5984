@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
@@ -35,6 +36,8 @@ from src.team.scoring import ScoringWeights, score_faculty_candidates
 
 @dataclass
 class BuildResult:
+    # ``payload`` is the exact JSON persisted under data/runs; the other fields
+    # let callers render without re-parsing it.
     payload: dict
     evidence: list[RetrievedEvidence]
     candidates: list[FacultyCandidate]
@@ -44,10 +47,13 @@ class BuildResult:
 
 
 def new_run_id() -> str:
+    # Short IDs are convenient in filenames and logs while remaining unique enough
+    # for a single app deployment.
     return uuid.uuid4().hex[:12]
 
 
 def _budget_snapshot(llm_client: object | None) -> dict:
+    # Only the per-run wrapper exposes a complete budget; raw clients return none.
     if isinstance(llm_client, BudgetedLLMClient):
         return llm_client.budget_snapshot
     return {}
@@ -65,6 +71,7 @@ def retrieve_and_score(
     use_cache: bool = True,
     cache_context: dict[str, str] | None = None,
 ) -> tuple[list[RetrievedEvidence], list[FacultyCandidate], int, bool, bool]:
+    # Cache exact evidence lists only; generation and validation always rerun.
     cache = None
     if use_cache and config.RETRIEVAL_CACHE_ENABLED:
         cache = RetrievalCache(config.RETRIEVAL_CACHE_DIR)
@@ -78,6 +85,7 @@ def retrieve_and_score(
         cache_context=cache_context,
         use_cache=use_cache,
     )
+    # Explicit constraint overrides are applied before deterministic filtering.
     weights = ScoringWeights.from_override(constraints.weights_override)
     candidates = score_faculty_candidates(
         evidence,
@@ -86,6 +94,8 @@ def retrieve_and_score(
         weights=weights,
         recency_preference=constraints.recency_preference,
     )
+    # Hard constraints are applied after scoring so excluded members never reach
+    # the shortlist, even if the LLM would otherwise choose them.
     candidates = filter_candidates(candidates, faculty_by_id, constraints)
     return (
         evidence,
@@ -101,6 +111,8 @@ def _candidate_payloads(
     faculty_by_id: dict[str, Faculty],
 ) -> list[dict]:
     payloads: list[dict] = []
+    # Attach roster facts separately from inferred candidate scores so the UI can
+    # label each value by source.
     for candidate in candidates:
         item = candidate.model_dump(mode="json")
         member = faculty_by_id.get(candidate.scopus_id)
@@ -142,6 +154,8 @@ def build_run_payload(
     errors: list[str] | None = None,
 ) -> tuple[dict, RunMetadata]:
     weights = ScoringWeights.from_override(constraints.weights_override)
+    # Metadata is intentionally exhaustive: a run should be explainable without
+    # re-running the pipeline.
     metadata = RunMetadata(
         run_id=run_id,
         timestamp=datetime.now(UTC).isoformat(),
@@ -150,6 +164,11 @@ def build_run_payload(
         corpus_hash=manifest.corpus_sha256,
         embedding_model=manifest.embedding_model,
         chat_model=getattr(llm_client, "model", "unavailable"),
+        stage_models=(
+            config.stage_models(getattr(llm_client, "model", "unavailable"))
+            if llm_client is not None
+            else {}
+        ),
         query=research_query.problem_statement,
         search_queries=research_query.search_queries,
         research_query=research_query.model_dump(mode="json"),
@@ -161,13 +180,16 @@ def build_run_payload(
         cache_enabled=use_cache,
         llm_calls=getattr(llm_client, "calls", 0),
         rerank_calls=rerank_calls,
-        generator_calls=1 if proposal.used_llm else 0,
+        # Counts attempts, including a proposal the verifier later rejected;
+        # `fallback_used` already says whether the final team is the baseline.
+        generator_calls=1 if proposal.used_llm or proposal.llm_call_count else 0,
         verifier_calls=proposal.verifier_calls,
         repair_attempts=proposal.repair_attempts,
         token_usage=getattr(llm_client, "token_usage", {}) or {},
         llm_budget=_budget_snapshot(llm_client),
         latency_ms=elapsed_ms,
         runtime_budget_ms=int(config.RUNTIME_BUDGETS["team_build_p95_ms"]),
+        # Errors are already redacted by the caller.
         errors=list(errors or []),
         validation_issues=proposal.validation_issues,
         fallback_used=not proposal.used_llm,
@@ -178,6 +200,7 @@ def build_run_payload(
         final_team=[member.scopus_id for member in proposal.members],
         coverage=proposal.coverage,
     )
+    # Persist inputs, scores, evidence, and outputs together for auditability.
     payload = {
         "metadata": metadata.model_dump(mode="json"),
         "proposal": proposal.model_dump(mode="json"),
@@ -219,13 +242,30 @@ def build_team_run(
     turns: list[dict] | None = None,
     conversation: list[dict] | None = None,
     persist: bool = True,
+    progress: Callable[[str, float], None] | None = None,
 ) -> BuildResult:
     started = time.perf_counter()
+
+    def report(label: str, fraction: float) -> None:
+        # The UI callback only records stage labels/fractions; rendering stays in
+        # the Streamlit main thread.
+        if progress is not None:
+            progress(label, fraction)
+
+    # Wrap a raw client once so optimizer/reranker/generator share one budget.
     llm_client = ensure_budgeted(llm_client)
+    # The chat model affects reranking, so it is part of the cache identity.
     cache_context = dict(cache_context or cache_context_from_manifest(manifest))
     cache_context["chat_model"] = str(getattr(llm_client, "model", "none") or "none")
+    # The effective rerank model (stage override or client default) changes which
+    # evidence a cache entry would contain, so it keys the cache separately.
+    cache_context["rerank_model"] = (
+        config.stage_model("rerank") or cache_context["chat_model"]
+    )
     cache_context["chat_enabled"] = "yes" if llm_client is not None else "no"
+    # Follow-ups can pass previously retrieved evidence to avoid a second pass.
     if evidence is None or candidates is None:
+        report("Retrieving and reranking evidence", 0.25)
         (
             evidence,
             candidates,
@@ -242,11 +282,14 @@ def build_team_run(
             cache_context=cache_context,
         )
     else:
+        # Even reused evidence is filtered again because constraints may have
+        # changed since the previous turn.
         candidates = filter_candidates(candidates, faculty_by_id, constraints)
     if not candidates:
         raise RuntimeError(
             "No faculty candidates matched the retrieval and explicit constraints."
         )
+    report("Generating the team proposal", 0.6)
     proposal = generate_team_proposal(
         run_id=run_id,
         opportunity=opportunity,
@@ -259,8 +302,11 @@ def build_team_run(
         research_query=research_query,
         constraints=constraints,
     )
+    report("Validating evidence and constraints", 0.9)
     elapsed_ms = int((time.perf_counter() - started) * 1000)
     errors: list[str] = []
+    # Surface validation failures in run metadata and the UI rather than hiding
+    # them behind the fallback team.
     if proposal.validation_issues:
         errors.append(
             "proposal validation issues: "
@@ -288,6 +334,8 @@ def build_team_run(
         errors=[redact_secrets(item)[:300] for item in errors],
     )
     if persist:
+        # Atomic write prevents a partially rendered run file after a crash.
+        report("Saving run metadata", 0.98)
         config.ensure_directories()
         write_json_atomic(config.RUNS_DIR / f"{run_id}.json", payload)
     return BuildResult(

@@ -11,7 +11,10 @@ from typing import Any
 
 from models import Opportunity
 
+# Statuses that represent a currently open solicitation. Closed/archived values
+# are retained in the store but hidden by the UI.
 OPEN_STATUSES = {"posted", "forecasted"}
+# Grants.gov mixes ISO, US, and human-readable timestamps across feed versions.
 _DATE_FORMATS = (
     "%Y-%m-%d",
     "%m/%d/%Y",
@@ -23,8 +26,10 @@ _DATE_FORMATS = (
 
 
 def strip_html(value: str | None) -> str:
+    """Convert API HTML into plain text while preserving paragraph boundaries."""
     if not value:
         return ""
+    # Decode entities before tag stripping so encoded markup is handled too.
     text = html.unescape(value)
     text = re.sub(r"<br\s*/?>", "\n", text, flags=re.IGNORECASE)
     text = re.sub(r"</p\s*>", "\n", text, flags=re.IGNORECASE)
@@ -33,6 +38,7 @@ def strip_html(value: str | None) -> str:
 
 
 def parse_amount(value: Any) -> float | None:
+    """Parse amounts defensively; blanks and "none" become null, not zero."""
     if value is None:
         return None
     if isinstance(value, (int, float)):
@@ -47,6 +53,7 @@ def parse_amount(value: Any) -> float | None:
 
 
 def parse_bool(value: Any) -> bool | None:
+    """Treat unknown boolean spellings as null instead of guessing a value."""
     if value is None:
         return None
     if isinstance(value, bool):
@@ -70,6 +77,8 @@ def parse_date(value: Any) -> str | None:
     text = str(value).strip()
     if not text or text.lower() in {"none", "n/a", "na", "null"}:
         return None
+    # Try known formats first; the regex fallbacks handle stray time zones or
+    # labels that the API occasionally appends around a valid date.
     for fmt in _DATE_FORMATS:
         try:
             return datetime.strptime(text, fmt).date().isoformat()
@@ -95,15 +104,18 @@ def parse_date(value: Any) -> str | None:
 
 
 def source_hash(payload: dict[str, Any]) -> str:
+    """Hash a raw payload deterministically for change detection and provenance."""
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
 
 def utc_now_iso() -> str:
+    """Return a timezone-aware timestamp used for cache and refresh metadata."""
     return datetime.now(UTC).isoformat()
 
 
 def _status(data: dict[str, Any], detail: dict[str, Any] | None = None) -> str:
+    # Detail payloads sometimes carry a more accurate status than search hits.
     detail = detail or {}
     ost = str(data.get("ost") or detail.get("ost") or "").strip().lower()
     if ost in {"posted", "forecasted", "closed", "archived"}:
@@ -117,6 +129,7 @@ def _status(data: dict[str, Any], detail: dict[str, Any] | None = None) -> str:
 
 
 def _cfda_numbers(data: dict[str, Any]) -> list[str]:
+    # CFDA/assistance-listing entries appear in more than one shape across APIs.
     values = data.get("cfdaList") or data.get("cfdas") or []
     numbers: list[str] = []
     for item in values:
@@ -129,6 +142,8 @@ def _cfda_numbers(data: dict[str, Any]) -> list[str]:
 
 def normalize_search_hit(data: dict[str, Any]) -> Opportunity:
     """Normalize one search2 hit, which lacks synopsis amounts and eligibility."""
+    # Search hits are usable for browsing immediately; detail fields are filled
+    # later by the refresh service and explicitly marked ``search_only``.
     return Opportunity(
         opportunity_id=str(data.get("id") or ""),
         opportunity_number=str(data.get("number") or data.get("opportunityNumber") or ""),
@@ -151,18 +166,23 @@ def normalize_search_hit(data: dict[str, Any]) -> Opportunity:
 
 
 def normalize_opportunity(data: dict[str, Any], raw_ref: str | None = None) -> Opportunity:
+    """Normalize a fetchOpportunity response into the shared record contract."""
+    # A record is either a synopsis (posted) or a forecast; the two payloads use
+    # different field names but expose the same core details.
     synopsis = data.get("synopsis") or {}
     forecast = data.get("forecast") or {}
     detail = synopsis if synopsis else forecast
     agency_details = data.get("agencyDetails") or detail.get("agencyDetails") or {}
     top_agency = data.get("topAgencyDetails") or {}
     raw_description = detail.get("synopsisDesc") or detail.get("forecastDesc") or ""
+    # Forecasts often provide an estimated response date instead of a firm one.
     close_value = (
         detail.get("responseDate")
         or detail.get("estApplicationResponseDate")
         or detail.get("responseDateDesc")
     )
     close_date = parse_date(close_value)
+    # Revision drives detail-cache invalidation when Grants.gov edits a record.
     revision = data.get("revision")
     if revision is None:
         revision = detail.get("version")
@@ -188,6 +208,7 @@ def normalize_opportunity(data: dict[str, Any], raw_ref: str | None = None) -> O
         close_date=close_date,
         revision=int(revision) if revision is not None else None,
         description=strip_html(raw_description),
+        # Keep the raw HTML only as provenance; the UI renders the plain text.
         description_html=raw_description or None,
         eligibility=strip_html(detail.get("applicantEligibilityDesc")),
         award_ceiling=parse_amount(detail.get("awardCeiling")),

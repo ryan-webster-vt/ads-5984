@@ -1,3 +1,4 @@
+# Offline test module: Deterministic repeatability metrics and runtime-budget evaluation.
 from __future__ import annotations
 
 import config
@@ -53,6 +54,7 @@ def _evidence():
     return evidence
 
 
+# Verifies: five deterministic runs are stable and validate.
 def test_five_deterministic_runs_are_stable_and_validate():
     faculty = _faculty()
     evidence = _evidence()
@@ -100,6 +102,7 @@ def test_five_deterministic_runs_are_stable_and_validate():
     assert len(set(pi_ids)) == 1
 
 
+# Verifies: baseline satisfies required excluded PI and evidence properties.
 def test_baseline_satisfies_required_excluded_pi_and_evidence_properties():
     faculty = _faculty()
     evidence = _evidence()
@@ -143,6 +146,7 @@ def test_baseline_satisfies_required_excluded_pi_and_evidence_properties():
     assert all(member.evidence_ids for member in proposal.members)
 
 
+# Verifies: evaluation metrics meet targets for stable runs.
 def test_evaluation_metrics_meet_targets_for_stable_runs():
     observations = [
         RunObservation(
@@ -165,6 +169,7 @@ def test_evaluation_metrics_meet_targets_for_stable_runs():
     assert summary["runtime"]["within_budget"] is True
 
 
+# Verifies: evaluation metrics detect member PI and validator instability.
 def test_evaluation_metrics_detect_member_pi_and_validator_instability():
     observations = [
         RunObservation(
@@ -190,6 +195,7 @@ def test_evaluation_metrics_detect_member_pi_and_validator_instability():
     assert summary["targets"]["targets_met"] is False
 
 
+# Verifies: evaluation runtime budget flags excess latency and calls.
 def test_evaluation_runtime_budget_flags_excess_latency_and_calls():
     observations = [
         RunObservation(
@@ -207,6 +213,7 @@ def test_evaluation_runtime_budget_flags_excess_latency_and_calls():
     assert summary["runtime"]["within_budget"] is False
 
 
+# Verifies: five offline runs record evaluation targets.
 def test_five_offline_runs_record_evaluation_targets():
     faculty = _faculty()
     evidence = _evidence()

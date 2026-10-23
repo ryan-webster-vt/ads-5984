@@ -1,3 +1,4 @@
+# Offline test module: Vector evidence aggregation and faculty candidate scoring.
 from __future__ import annotations
 
 from models import Faculty, RetrievedEvidence
@@ -30,6 +31,7 @@ def _evidence(evidence_id, faculty_id, similarity, year=2024):
     )
 
 
+# Verifies: aggregation uses exact faculty ids and stable sort.
 def test_aggregation_uses_exact_faculty_ids_and_stable_sort():
     faculty = {
         "111": _faculty("111", "Alpha, A", "Biological Sciences", h_index=20, citations=2000),
@@ -57,6 +59,7 @@ def test_aggregation_uses_exact_faculty_ids_and_stable_sort():
     assert "h_index" in gamma.metric_missing
 
 
+# Verifies: aggregation ignores profile only faculty.
 def test_aggregation_ignores_profile_only_faculty():
     faculty = {"111": _faculty("111", "Alpha, A", "Biological Sciences", h_index=5)}
     evidence = [

@@ -7,6 +7,9 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 
+# --------------------------------------------------------------------------- #
+# Grants.gov records and the local opportunity store
+# --------------------------------------------------------------------------- #
 class Opportunity(BaseModel):
     opportunity_id: str
     opportunity_number: str = ""
@@ -28,17 +31,22 @@ class Opportunity(BaseModel):
     cfda_numbers: list[str] = Field(default_factory=list)
     synopsis_url: str | None = None
     raw_ref: str | None = None
+    # Detail status distinguishes a search-only hit from a successfully enriched
+    # record and from a record whose latest detail fetch failed.
     detail_status: str = "missing"
     detail_error: str | None = None
     detail_fetched_at: str | None = None
     first_seen: str | None = None
     last_seen: str | None = None
     source_hash: str | None = None
+    # Archive fields are populated only by the deterministic merge policy.
     archive_reason: str | None = None
     archived_at: str | None = None
 
 
 class RefreshSummary(BaseModel):
+    # ``open_count`` is the raw Grants.gov feed count; ``active_open_count`` hides
+    # records whose explicit close date has already passed.
     started_at: str
     completed_at: str
     status: Literal["success", "partial", "failed"]
@@ -55,12 +63,17 @@ class RefreshSummary(BaseModel):
 
 
 class OpportunityDatabase(BaseModel):
+    # The schema version allows future migrations without guessing at old JSON.
     schema_version: str = "1"
     last_refresh: RefreshSummary | None = None
     opportunities: list[Opportunity] = Field(default_factory=list)
 
 
+# --------------------------------------------------------------------------- #
+# Research corpus records
+# --------------------------------------------------------------------------- #
 class Faculty(BaseModel):
+    # Roster facts live here; inferred suitability belongs in TeamMember instead.
     scopus_id: str
     author_name: str
     department: str
@@ -77,12 +90,16 @@ class Faculty(BaseModel):
     corporate_collaboration_pct: float | None = None
     international_collaboration_pct: float | None = None
     top_journal_quartile_pct: float | None = None
+    # The duplicate Scopus ID in the source roster is flagged and excluded by
+    # default; it can be manually disambiguated later.
     identity_conflict: bool = False
     eligible_for_selection: bool = True
     data_quality_flags: list[str] = Field(default_factory=list)
 
 
 class Publication(BaseModel):
+    # One canonical work after EID/DOI/title deduplication. ``alias_eids`` retains
+    # merged source EIDs so evidence provenance stays auditable.
     eid: str
     doi: str | None = None
     title: str
@@ -103,10 +120,13 @@ class Publication(BaseModel):
     dedupe_key: str = ""
     canonical_eid: str = ""
     alias_eids: list[str] = Field(default_factory=list)
+    # Flags such as no_abstract, unattributed, doi_conflict, and deduped_alias.
     data_quality_flags: list[str] = Field(default_factory=list)
 
 
 class EvidenceChunk(BaseModel):
+    # Stable chunk IDs and content hashes let retrieved evidence be cited exactly
+    # and let cache keys detect content changes.
     evidence_id: str
     chunk_type: Literal["publication", "faculty_profile"]
     parent_id: str
@@ -125,6 +145,8 @@ class EvidenceChunk(BaseModel):
     provenance_url: str | None = None
 
     def metadata(self) -> dict[str, Any]:
+        # Chroma metadata must be scalar; lists are encoded as CSV and long text
+        # is truncated to keep the index lightweight.
         return {
             "chunk_type": self.chunk_type,
             "parent_id": self.parent_id,
@@ -144,6 +166,7 @@ class EvidenceChunk(BaseModel):
 
 
 class RetrievedEvidence(BaseModel):
+    # Similarity is normalized for display; distance is the raw Chroma value.
     evidence_id: str
     text: str
     metadata: dict[str, Any]
@@ -152,6 +175,7 @@ class RetrievedEvidence(BaseModel):
 
 
 class FacultyCandidate(BaseModel):
+    # A deterministic candidate produced before the LLM sees the shortlist.
     scopus_id: str
     author_name: str
     department: str
@@ -171,7 +195,11 @@ class FacultyCandidate(BaseModel):
     rank: str = ""
 
 
+# --------------------------------------------------------------------------- #
+# LLM structured-output contracts
+# --------------------------------------------------------------------------- #
 class LLMResearchQuery(BaseModel):
+    # This is the exact JSON shape requested from the optimizer model.
     problem_statement: str
     required_expertise: list[str] = Field(default_factory=list)
     methods: list[str] = Field(default_factory=list)
@@ -181,6 +209,7 @@ class LLMResearchQuery(BaseModel):
 
 
 class ResearchQuery(BaseModel):
+    # The normalized query used by retrieval, including fallback/error metadata.
     problem_statement: str
     required_expertise: list[str] = Field(default_factory=list)
     methods: list[str] = Field(default_factory=list)
@@ -193,6 +222,8 @@ class ResearchQuery(BaseModel):
 
 
 class UserConstraints(BaseModel):
+    # Explicit state is the source of truth for follow-ups; the chat transcript is
+    # never used to reconstruct constraints by itself.
     team_size: int = 4
     required_members: list[str] = Field(default_factory=list)
     excluded_members: list[str] = Field(default_factory=list)
@@ -209,6 +240,7 @@ class UserConstraints(BaseModel):
 
 
 class ConstraintPatch(BaseModel):
+    # Patches are merged into UserConstraints after deterministic name resolution.
     team_size: int | None = None
     add_required_members: list[str] = Field(default_factory=list)
     add_excluded_members: list[str] = Field(default_factory=list)
@@ -225,6 +257,7 @@ class ConstraintPatch(BaseModel):
 
 
 class FollowupResult(BaseModel):
+    # Includes the merge outcome and whether retrieval must be redone.
     patch: ConstraintPatch
     state: UserConstraints
     conflicts: list[str] = Field(default_factory=list)
@@ -235,6 +268,7 @@ class FollowupResult(BaseModel):
 
 
 class LLMRerankItem(BaseModel):
+    # Model-provided score is advisory; deterministic diversity caps still apply.
     evidence_id: str
     score: int = 0
     matched_concepts: list[str] = Field(default_factory=list)
@@ -246,6 +280,7 @@ class LLMRerankBatch(BaseModel):
 
 
 class VerificationIssue(BaseModel):
+    # Issues are structured so the UI can point at a member or evidence item.
     issue: str
     member_id: str | None = None
     evidence_id: str | None = None
@@ -257,6 +292,7 @@ class LLMVerification(BaseModel):
 
 
 class LLMTeamMember(BaseModel):
+    # The generator may only choose members and evidence from the supplied packet.
     scopus_id: str
     role: str
     rationale: str
@@ -271,6 +307,7 @@ class LLMTeamProposal(BaseModel):
 
 
 class TeamMember(BaseModel):
+    # The final, validated member record rendered by the UI.
     scopus_id: str
     name: str
     department: str
@@ -282,10 +319,13 @@ class TeamMember(BaseModel):
     score: float = 0.0
     score_components: dict[str, float] = Field(default_factory=dict)
     metric_missing: list[str] = Field(default_factory=list)
+    # True means the rationale is an inference from evidence, not a roster fact.
     inferred_suitability: bool = True
 
 
 class TeamProposal(BaseModel):
+    # Includes both the LLM result and the deterministic baseline so fallbacks are
+    # visible rather than silently replacing the model's answer.
     run_id: str
     opportunity_id: str
     members: list[TeamMember]
@@ -305,6 +345,7 @@ class TeamProposal(BaseModel):
 
 
 class RunMetadata(BaseModel):
+    # Persisted for every build; secrets are redacted before this model is saved.
     run_id: str
     timestamp: str
     opportunity_id: str
@@ -312,6 +353,8 @@ class RunMetadata(BaseModel):
     corpus_hash: str = ""
     embedding_model: str
     chat_model: str
+    # Effective per-stage generation models; empty when no LLM client ran.
+    stage_models: dict[str, str] = Field(default_factory=dict)
     query: str
     search_queries: list[str] = Field(default_factory=list)
     research_query: dict[str, Any] = Field(default_factory=dict)
@@ -342,6 +385,7 @@ class RunMetadata(BaseModel):
 
 
 class ConversationTurn(BaseModel):
+    # A compact per-turn record used by the UI and follow-up state machine.
     turn_index: int
     user_message: str = ""
     assistant_message: str = ""
@@ -351,6 +395,7 @@ class ConversationTurn(BaseModel):
 
 
 class TeamRun(BaseModel):
+    # Full session snapshot including constraint history and draft proposals.
     run_id: str
     opportunity_id: str
     conversation_turns: list[ConversationTurn] = Field(default_factory=list)
@@ -361,6 +406,8 @@ class TeamRun(BaseModel):
 
 
 class IndexManifest(BaseModel):
+    # The manifest is the compatibility contract between ingestion and retrieval.
+    # It records both CSV file hashes and the source-specific corpus hash.
     index_version: str
     collection_name: str
     source: str = "csv"

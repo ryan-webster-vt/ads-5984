@@ -31,16 +31,21 @@ ProgressCallback = Callable[[str, int, int], None]
 
 @dataclass
 class RefreshResult:
+    # ``database`` is always safe to render; ``written`` distinguishes a real
+    # update from a failed refresh that preserved the previous snapshot.
     database: OpportunityDatabase
     summary: RefreshSummary
     written: bool
 
 
 def _cache_path(cache_dir: Path, opportunity_id: str) -> Path:
+    # Opportunity IDs are numeric strings from Grants.gov, so they are safe as
+    # filenames and keep cache inspection straightforward.
     return cache_dir / f"{opportunity_id}.json"
 
 
 def _load_cache(path: Path) -> dict[str, Any] | None:
+    # Cache corruption must degrade to a refetch, never break the refresh.
     if not path.exists():
         return None
     try:
@@ -54,6 +59,8 @@ def _cache_is_fresh(
 ) -> bool:
     if ttl_hours <= 0:
         return False
+    # Timestamps are stored with timezone information; tolerate older naive
+    # entries by assuming UTC instead of failing the whole refresh.
     cached_at = payload.get("cached_at")
     if not cached_at:
         return False
@@ -67,6 +74,8 @@ def _cache_is_fresh(
 
 
 def _apply_detail(record: Opportunity, detail: Opportunity) -> None:
+    # Detail data wins over search-level fields, except that an existing explicit
+    # close date is kept if the detail payload omits it.
     record.agency = detail.agency or record.agency
     record.agency_code = detail.agency_code or record.agency_code
     record.open_date = detail.open_date or record.open_date
@@ -87,6 +96,7 @@ def _apply_detail(record: Opportunity, detail: Opportunity) -> None:
 
 
 def _preserve_previous_detail(record: Opportunity, previous: Opportunity | None) -> None:
+    # A transient detail failure must not erase good data from an earlier refresh.
     if previous is None or previous.detail_status != "success":
         return
     record.description = previous.description or record.description
@@ -119,6 +129,7 @@ def _enrich_details(
     errors: list[str] = []
     to_fetch: list[Opportunity] = []
 
+    # First pass is cheap: reuse fresh cache entries and queue the rest.
     for record in fresh:
         cache = _load_cache(_cache_path(cache_dir, record.opportunity_id))
         if cache and not force and _cache_is_fresh(cache, now=now, ttl_hours=ttl_hours):
@@ -137,9 +148,12 @@ def _enrich_details(
         progress("details", 0, total)
 
     def _fetch(record: Opportunity) -> tuple[Opportunity, dict[str, Any]]:
+        # Runs in a worker thread; only immutable inputs cross the thread boundary.
         return record, fetch_fn(record.opportunity_id)
 
     if to_fetch:
+        # Concurrent detail fetches are bounded to keep Grants.gov load and memory
+        # use predictable; results are applied on the main thread as they finish.
         with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
             futures = {pool.submit(_fetch, record): record for record in to_fetch}
             for done, future in enumerate(as_completed(futures), start=1):
@@ -150,6 +164,8 @@ def _enrich_details(
                         payload, raw_ref=config.GRANTS_FETCH_URL
                     )
                     _apply_detail(record, detail)
+                    # Cache the normalized detail plus its revision so a later
+                    # refresh can invalidate it when Grants.gov edits the record.
                     cache_dir.mkdir(parents=True, exist_ok=True)
                     write_json_atomic(
                         _cache_path(cache_dir, record.opportunity_id),
@@ -161,6 +177,8 @@ def _enrich_details(
                     )
                     fetched += 1
                 except Exception as exc:
+                    # Keep the search-level record and the last known detail, then
+                    # report a partial refresh instead of inventing missing values.
                     failed += 1
                     _preserve_previous_detail(
                         record, previous_by_id.get(record.opportunity_id)
@@ -193,6 +211,7 @@ def refresh_open_opportunities(
     now_fn: Callable[[], datetime] | None = None,
     progress: ProgressCallback | None = None,
 ) -> RefreshResult:
+    # Defaults come from config so the UI and CLI share one budget and cache.
     store_path = store_path or config.OPPORTUNITIES_PATH
     cache_dir = cache_dir or config.DETAIL_CACHE_DIR
     fetch_detail_fn = fetch_detail_fn or fetch_opportunity_detail
@@ -201,6 +220,7 @@ def refresh_open_opportunities(
     started_iso = started.isoformat()
     previous_db = load_database(store_path)
 
+    # A search failure aborts before any write: the last good snapshot stays.
     try:
         hits, hit_count, _pages, complete_feed = fetch_search_hits(
             rows=rows,
@@ -241,11 +261,15 @@ def refresh_open_opportunities(
             progress=progress,
         )
     else:
+        # Search-only mode deliberately leaves amounts unknown rather than
+        # reusing stale detail data as if it were current.
         for record in fresh:
             _preserve_previous_detail(record, previous_by_id.get(record.opportunity_id))
             if previous_by_id.get(record.opportunity_id):
                 record.detail_status = "search_only"
 
+    # Archive decisions are centralized in the store merge, which also enforces
+    # the complete-feed-only policy.
     merged, archived_count = merge_open_feed(
         previous_db.opportunities,
         fresh,
@@ -253,6 +277,8 @@ def refresh_open_opportunities(
         now=started_iso,
     )
     merged.sort(key=lambda record: record.opportunity_id)
+    # The feed count and the visible/active count are intentionally different:
+    # active hides records with an explicit past close date.
     today = started.astimezone().date()
     open_count = sum(
         1 for record in merged if record.status in config.OPPORTUNITY_OPEN_STATUSES
@@ -260,6 +286,7 @@ def refresh_open_opportunities(
     active_open_count = sum(
         1 for record in merged if is_visible_open(record, today=today)
     )
+    # Detail failures make the run partial even when the feed itself was complete.
     status = "success" if complete_feed and detail_failed == 0 else "partial"
     summary = RefreshSummary(
         started_at=started_iso,

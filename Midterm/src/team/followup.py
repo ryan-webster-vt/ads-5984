@@ -4,12 +4,16 @@ from __future__ import annotations
 
 import re
 
+import config
 from models import ConstraintPatch, Faculty, FollowupResult, ResearchQuery, UserConstraints
 from src.prompting import load_prompt
-from src.team.constraints import apply_patch
+from src.team.constraints import apply_patch, coerce_constraints
 
+# Only sizes inside the configured 3–5 policy are recognized; out-of-range values
+# are rejected by apply_patch.
 SIZE_WORDS = {"three": 3, "four": 4, "five": 5, "3": 3, "4": 4, "5": 5}
 
+# Aliases map user words ("chemist") to roster department names without an LLM.
 DEPARTMENT_ALIASES = {
     "chemist": "Chemistry",
     "chemistry": "Chemistry",
@@ -36,11 +40,14 @@ DEPARTMENT_ALIASES = {
     "data science": "Academy of Data Science",
 }
 
+# Names are only candidate references; they are resolved against the roster later.
 NAME_PATTERN = r"(?:dr\.?\s+|prof(?:essor)?\.?\s+)?([A-Za-z][A-Za-z'’.-]*(?:\s+[A-Za-z][A-Za-z'’.-]*){0,3}|\d{6,})"
 EXPERTISE_MARKERS = ("expertise", "focus", "method", "background", "skill", "strength")
 
 
 def _clean_reference(value: str) -> str:
+    # Stop at conjunction/action words so "Include Dr. X and add climate" does not
+    # become a single malformed name.
     value = re.split(
         r"\s+(?:and|but|then|also|exclude|remove|include|add)\b",
         value,
@@ -52,6 +59,8 @@ def _clean_reference(value: str) -> str:
 
 
 def _department_for(value: str) -> str | None:
+    # Longest alias is not special-cased because the alias table is specific enough
+    # for the scripted follow-ups supported by the app.
     lowered = value.lower().strip()
     for alias, department in DEPARTMENT_ALIASES.items():
         if alias in lowered:
@@ -67,6 +76,7 @@ def _is_expertise_phrase(value: str) -> bool:
 
 
 def _parse_size(text: str, patch: ConstraintPatch) -> None:
+    # Several phrasings are accepted so common follow-ups do not require the LLM.
     size_words = "|".join(SIZE_WORDS)
     patterns = (
         rf"\b(?:shrink|reduce|cut|make|keep|set|change|grow|expand|increase)\b"
@@ -82,6 +92,8 @@ def _parse_size(text: str, patch: ConstraintPatch) -> None:
 
 
 def _parse_replace(text: str, patch: ConstraintPatch) -> None:
+    # Replacement is expressed as exclude + either a department preference or a
+    # required person; the LLM path may return the same shape.
     match = re.search(
         rf"\breplace\s+{NAME_PATTERN}\s+with\s+([^.;\n]+)",
         text,
@@ -104,6 +116,7 @@ def _parse_replace(text: str, patch: ConstraintPatch) -> None:
 
 
 def _parse_named_members(text: str, patch: ConstraintPatch) -> None:
+    # Explicit include/exclude verbs are parsed separately from expertise phrases.
     for match in re.finditer(
         rf"\b(?:include|require|bring in|add)\s+{NAME_PATTERN}",
         text,
@@ -130,6 +143,7 @@ def _parse_named_members(text: str, patch: ConstraintPatch) -> None:
 
 
 def _parse_expertise(text: str, patch: ConstraintPatch) -> None:
+    # Capture the phrase after "expertise in/on" and map known fields to departments.
     patterns = (
         r"\b(?:add|include|increase|strengthen)\s+([^,.;\n]+?)\s+(?:expertise|focus|methods|background|skills?)\b",
         r"\b(?:expertise|focus|methods?)\s+(?:in|on)\s+([^,.;\n]+)",
@@ -147,6 +161,7 @@ def _parse_expertise(text: str, patch: ConstraintPatch) -> None:
 
 
 def _parse_department_preferences(text: str, patch: ConstraintPatch) -> None:
+    # Explicit "... department" phrases take priority, followed by known aliases.
     for match in re.finditer(
         r"\b(?:prefer|prioritize|from|in|with)\s+(?:the\s+)?([A-Za-z -]+?)\s+department\b",
         text,
@@ -161,6 +176,7 @@ def _parse_department_preferences(text: str, patch: ConstraintPatch) -> None:
 
 
 def _parse_pi(text: str, patch: ConstraintPatch) -> None:
+    # PI references remain names/IDs here; apply_patch resolves them exactly.
     match = re.search(
         rf"\b(?:pi|principal investigator)\b[^.\n]{{0,40}}"
         rf"\b(?:should be|must be|prefer|make)\s+{NAME_PATTERN}",
@@ -172,6 +188,7 @@ def _parse_pi(text: str, patch: ConstraintPatch) -> None:
 
 
 def _parse_tenure(text: str, patch: ConstraintPatch) -> None:
+    # Negated tenure requests must not accidentally set the tenure-only flag.
     if re.search(r"\b(?:non[- ]?tenure|not tenure[- ]?track)\b", text, re.IGNORECASE):
         return
     if re.search(
@@ -184,6 +201,8 @@ def _parse_tenure(text: str, patch: ConstraintPatch) -> None:
 
 
 def deterministic_parse_patch(message: str) -> ConstraintPatch:
+    # Run every parser against the same message; patches are additive and merged by
+    # apply_patch.
     patch = ConstraintPatch()
     _parse_size(message, patch)
     _parse_replace(message, patch)
@@ -192,6 +211,7 @@ def deterministic_parse_patch(message: str) -> ConstraintPatch:
     _parse_department_preferences(message, patch)
     _parse_pi(message, patch)
     _parse_tenure(message, patch)
+    # An unmapped request asks for clarification instead of guessing a change.
     if not patch.model_dump(exclude_none=True, exclude_defaults=True):
         patch.clarification_needed = (
             "I could not map that request to a size, member, expertise, or "
@@ -212,7 +232,10 @@ def parse_followup(
     llm_client: object | None = None,
 ) -> ConstraintPatch:
     """Parse one turn; LLM output is optional and validated downstream."""
+    # Normalize Streamlit hot-reload/session objects before prompting or merging.
+    current_state = coerce_constraints(current_state)
     if llm_client is not None:
+        # The model sees the explicit state, not the whole chat transcript.
         system = load_prompt("parse_followup")
         user = (
             f"Current constraint state:\n{current_state.model_dump_json()}\n\n"
@@ -224,10 +247,12 @@ def parse_followup(
                 system=system,
                 user=user,
                 schema=ConstraintPatch,
+                model=config.stage_model("followup"),
             )
             if not _patch_is_empty(patch):
                 return patch
         except Exception:
+            # Any model/transport/validation failure falls through to the parser.
             pass
     return deterministic_parse_patch(message)
 
@@ -239,12 +264,16 @@ def apply_followup(
     *,
     llm_client: object | None = None,
 ) -> FollowupResult:
+    # Coerce once at the boundary so every returned FollowupResult contains the
+    # currently imported UserConstraints class.
+    current_state = coerce_constraints(current_state)
     patch = parse_followup(
         message,
         current_state,
         faculty_by_id,
         llm_client=llm_client,
     )
+    # Clarification turns do not mutate state or trigger retrieval.
     if patch.clarification_needed:
         return FollowupResult(
             patch=patch,
@@ -265,6 +294,8 @@ def augment_research_query(
     constraints: UserConstraints,
 ) -> ResearchQuery:
     """Add newly requested expertise as one bounded additional retrieval query."""
+    # At most one additional query is appended, preserving the original bounded
+    # retrieval budget.
     additions = [
         value
         for value in constraints.add_expertise

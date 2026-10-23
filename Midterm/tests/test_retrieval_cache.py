@@ -1,3 +1,4 @@
+# Offline test module: Retrieval-cache keys, TTL, invalidation, and no-cache behavior.
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
@@ -53,6 +54,7 @@ def _outcome(*, fallback: bool = False) -> RerankOutcome:
     )
 
 
+# Verifies: cache key invalidates on model index query and k.
 def test_cache_key_invalidates_on_model_index_query_and_k():
     base = retrieval_cache_key(_query(), cache_context=CONTEXT, k_in=30, k_out=12)
     assert base == retrieval_cache_key(
@@ -72,6 +74,7 @@ def test_cache_key_invalidates_on_model_index_query_and_k():
     )
 
 
+# Verifies: cache roundtrip and ttl.
 def test_cache_roundtrip_and_ttl(tmp_path):
     cache = RetrievalCache(tmp_path, ttl_hours=24)
     key = retrieval_cache_key(_query(), cache_context=CONTEXT, k_in=30, k_out=12)
@@ -83,6 +86,7 @@ def test_cache_roundtrip_and_ttl(tmp_path):
     assert cache.get(key, now=NOW + timedelta(hours=25)) is None
 
 
+# Verifies: cached retrieve hit skips retrieval.
 def test_cached_retrieve_hit_skips_retrieval(tmp_path, monkeypatch):
     calls: list[int] = []
 
@@ -113,6 +117,7 @@ def test_cached_retrieve_hit_skips_retrieval(tmp_path, monkeypatch):
     assert [item.evidence_id for item in first] == [item.evidence_id for item in second]
 
 
+# Verifies: no cache bypasses persistent cache.
 def test_no_cache_bypasses_persistent_cache(tmp_path, monkeypatch):
     calls: list[int] = []
 
@@ -136,6 +141,7 @@ def test_no_cache_bypasses_persistent_cache(tmp_path, monkeypatch):
     assert list(tmp_path.glob("*.json")) == []
 
 
+# Verifies: transient reranker fallback is not cached.
 def test_transient_reranker_fallback_is_not_cached(tmp_path, monkeypatch):
     def fake_retrieve(collection, research_query, **kwargs):
         return _evidence(), _outcome(fallback=True)
@@ -152,6 +158,7 @@ def test_transient_reranker_fallback_is_not_cached(tmp_path, monkeypatch):
     assert list(tmp_path.glob("*.json")) == []
 
 
+# Verifies: cache context from manifest uses index metadata.
 def test_cache_context_from_manifest_uses_index_metadata():
     class Manifest:
         index_version = "full-v1"
