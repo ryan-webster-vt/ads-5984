@@ -1,0 +1,61 @@
+{
+  "abstracts-retrieval-response": {
+    "coredata": {
+      "eid": "2-s2.0-85190000001",
+      "prism:doi": "10.1000/elsevier.fixture.2024.001",
+      "dc:title": "Long-term ecological synthesis of lake carbon dynamics",
+      "prism:publicationName": "Ecological Monographs",
+      "prism:coverDate": "2024-03-01",
+      "prism:url": "https://www.scopus.com/record/display.uri?eid=2-s2.0-85190000001",
+      "citedby-count": "42",
+      "openaccess": "1",
+      "subtypeDescription": "Article",
+      "dc:description": "<p>We synthesize two decades of lake carbon observations to quantify how climate and land use alter carbon burial. The analysis combines long-term monitoring, Bayesian state-space models, and open data workflows.</p>"
+    },
+    "authors": {
+      "author": [
+        {
+          "@auid": "7403498714",
+          "ce:indexed-name": "Barrett J.E.",
+          "preferred-name": {
+            "ce:indexed-name": "Barrett J.E.",
+            "ce:surname": "Barrett",
+            "ce:given-name": "John E."
+          }
+        },
+        {
+          "@auid": "24553952400",
+          "ce:indexed-name": "Carey C.C.",
+          "preferred-name": {
+            "ce:indexed-name": "Carey C.C.",
+            "ce:surname": "Carey",
+            "ce:given-name": "Cayelan C."
+          }
+        }
+      ]
+    },
+    "authkeywords": {
+      "author-keyword": [
+        {
+          "$": "lake carbon"
+        },
+        {
+          "$": "long-term monitoring"
+        },
+        {
+          "$": "ecological synthesis"
+        }
+      ]
+    },
+    "idxterms": {
+      "mainterm": [
+        {
+          "$": "carbon burial"
+        },
+        {
+          "$": "Bayesian state-space model"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,171 @@
+{
+  "errorcode": 0,
+  "msg": "Webservice Succeeds",
+  "data": {
+    "id": 361447,
+    "revision": 0,
+    "opportunityNumber": "PAR-26-129",
+    "opportunityTitle": "Systematic Testing of Radionuclides in Preclinical Experiments (STRIPE, RP1 Clinical Trial Not Allowed)",
+    "owningAgencyCode": "HHS-NIH11",
+    "publisherUid": "85078824959489933389587371192040018034",
+    "flag2006": "N",
+    "opportunityCategory": {
+      "category": "D",
+      "description": "Discretionary"
+    },
+    "agencyDetails": {
+      "code": "NIH",
+      "seed": "HHS-NIH11",
+      "agencyName": "National Institutes of Health",
+      "agencyCode": "HHS-NIH11",
+      "topAgencyCode": "HHS"
+    },
+    "topAgencyDetails": {
+      "code": "HHS",
+      "seed": "HHS",
+      "agencyName": "Department of Health and Human Services",
+      "agencyCode": "HHS",
+      "topAgencyCode": "HHS"
+    },
+    "forecast": {
+      "opportunityId": 361447,
+      "version": 1,
+      "postingDate": "Mar 11, 2026 12:00:00 AM EDT",
+      "forecastDesc": "<p>Through this Notice of Funding Opportunity (NOFO), the National Cancer Institute (NCI) intends to support research projects that employ state-of-the-art cancer biology approaches and preclinical model systems to investigate the biological effects of radiation emitted by radionuclides used in radiopharmaceutical therapy (RPT). The focus of this initiative is to advance mechanistic understanding of how different forms of radionuclide-emitted radiation affect normal tissues, tumor cells, and the tumor microenvironment, and how these effects can be leveraged to improve therapeutic outcomes. This NOFO will support the&nbsp;<strong>Systematic Testing of Radionuclides in Preclinical Experiments (STRIPE)</strong>&nbsp;program. The overarching goal of STRIPE is to stimulate multidisciplinary research that integrates cancer biology, radiation biology, radiochemistry, imaging, dosimetry, and preclinical modeling. Funded projects are expected to generate fundamental biological insights that can serve as the foundation for the development of new targeting strategies, optimized treatment regimens, and innovative combination approaches for RPT, ultimately leading to more effective and precise anticancer therapies.</p><p>This NOFO consolidates prior exploratory/developmental and research project funding mechanisms to streamline the application process and sustain momentum in this critical research area. The applicants have the option of submitting either for exploratory/developmental research projects with a project period of up to 2 years or for research projects with a project period of 4 to 5 years. Collectively, the STRIPE program is intended to broaden the scientific base of RPT research, lower barriers to entry for cancer biology investigators, and accelerate the generation of reproducible, mechanistically informed data that will enable more effective and personalized use of radiopharmaceutical therapies in cancer care.</p>",
+      "costSharing": false,
+      "agencyContactName": "STRIPE-Program NCI",
+      "agencyContactPhone": "Phone: 240-276-5690",
+      "agencyContactEmail": "Email: STRIPE-ProgramContact@mail.nih.gov",
+      "agencyContactEmailDesc": "Email: STRIPE-ProgramContact@mail.nih.gov",
+      "agencyCode": "HHS-NIH11",
+      "applicantEligibilityDesc": "Other Eligible ApplicantsIndian/Native American Tribal Governments (Other than Federally Recognized);Eligible Agencies of the Federal Government;U.S. Territory or Possession;Faith-based or Community-based Organizations;Regional Organizations;Non-domestic (non-U.S.) Entities (Foreign Institutions).",
+      "estSynopsisPostingDate": "Jun 15, 2026 12:00:00 AM EDT",
+      "estApplicationResponseDate": "Oct 05, 2026 12:00:00 AM EDT",
+      "estAwardDate": "Jul 01, 2027 12:00:00 AM EDT",
+      "estProjectStartDate": "Jul 01, 2027 12:00:00 AM EDT",
+      "fiscalYear": 2027,
+      "createTimeStamp": "Mar 11, 2026 01:36:03 PM EDT",
+      "createdDate": "Mar 11, 2026 01:36:03 PM EDT",
+      "lastUpdatedDate": "Mar 11, 2026 01:36:03 PM EDT",
+      "agencyDetails": {
+        "code": "NIH",
+        "seed": "HHS-NIH11",
+        "agencyName": "National Institutes of Health",
+        "agencyCode": "HHS-NIH11",
+        "topAgencyCode": "HHS"
+      },
+      "applicantTypes": [
+        {
+          "id": "23",
+          "description": "Small businesses"
+        },
+        {
+          "id": "20",
+          "description": "Private institutions of higher education"
+        },
+        {
+          "id": "08",
+          "description": "Public housing authorities/Indian housing authorities"
+        },
+        {
+          "id": "01",
+          "description": "County governments"
+        },
+        {
+          "id": "04",
+          "description": "Special district governments"
+        },
+        {
+          "id": "05",
+          "description": "Independent school districts"
+        },
+        {
+          "id": "22",
+          "description": "For profit organizations other than small businesses"
+        },
+        {
+          "id": "06",
+          "description": "Public and State controlled institutions of higher education"
+        },
+        {
+          "id": "00",
+          "description": "State governments"
+        },
+        {
+          "id": "25",
+          "description": "Others (see text field entitled \"Additional Information on Eligibility\" for clarification)"
+        },
+        {
+          "id": "02",
+          "description": "City or township governments"
+        },
+        {
+          "id": "07",
+          "description": "Native American tribal governments (Federally recognized)"
+        },
+        {
+          "id": "13",
+          "description": "Nonprofits that do not have a 501(c)(3) status with the IRS, other than institutions of higher education"
+        },
+        {
+          "id": "11",
+          "description": "Native American tribal organizations (other than Federally recognized tribal governments)"
+        },
+        {
+          "id": "12",
+          "description": "Nonprofits having a 501(c)(3) status with the IRS, other than institutions of higher education"
+        }
+      ],
+      "fundingInstruments": [
+        {
+          "id": "G",
+          "description": "Grant"
+        }
+      ],
+      "fundingActivityCategories": [
+        {
+          "id": "HL",
+          "description": "Health"
+        }
+      ],
+      "postingDateStr": "2026-03-11-00-00-00",
+      "estSynopsisPostingDateStr": "2026-06-15-00-00-00",
+      "estApplicationResponseDateStr": "2026-10-05-00-00-00",
+      "estAwardDateStr": "2027-07-01-00-00-00",
+      "estProjectStartDateStr": "2027-07-01-00-00-00",
+      "createTimeStampStr": "2026-03-11-13-36-03"
+    },
+    "synopsisAttachmentFolders": [],
+    "synopsisDocumentURLs": [],
+    "synAttChangeComments": [],
+    "cfdas": [
+      {
+        "id": 432170,
+        "opportunityId": 361447,
+        "cfdaNumber": "93.394",
+        "programTitle": "Cancer Detection and Diagnosis Research"
+      },
+      {
+        "id": 432169,
+        "opportunityId": 361447,
+        "cfdaNumber": "93.395",
+        "programTitle": "Cancer Treatment Research"
+      }
+    ],
+    "opportunityHistoryDetails": [],
+    "opportunityPkgs": [],
+    "closedOpportunityPkgs": [],
+    "synopsisModifiedFields": [],
+    "forecastModifiedFields": [],
+    "errorMessages": [],
+    "synPostDateInPast": true,
+    "docType": "forecast",
+    "forecastHistCount": 0,
+    "synopsisHistCount": 0,
+    "assistCompatible": false,
+    "assistURL": "",
+    "relatedOpps": [],
+    "draftMode": "N",
+    "ost": "FORECASTED"
+  }
+}

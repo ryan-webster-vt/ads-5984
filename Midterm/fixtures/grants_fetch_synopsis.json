@@ -1,0 +1,758 @@
+{
+  "agencyDetails": {
+    "agencyCode": "NSF",
+    "agencyName": "U.S. National Science Foundation",
+    "code": "NSF",
+    "seed": "NSF",
+    "topAgencyCode": "NSF"
+  },
+  "assistCompatible": false,
+  "assistURL": "",
+  "cfdas": [
+    {
+      "cfdaNumber": "47.074",
+      "id": 386880,
+      "opportunityId": 330296,
+      "programTitle": "Biological Sciences"
+    },
+    {
+      "id": 386862,
+      "opportunityId": 330296
+    }
+  ],
+  "closedOpportunityPkgs": [],
+  "docType": "synopsis",
+  "draftMode": "N",
+  "errorMessages": [],
+  "flag2006": "N",
+  "forecastHistCount": 0,
+  "forecastModifiedFields": [],
+  "id": 330296,
+  "listed": "L",
+  "opportunityCategory": {
+    "category": "D",
+    "description": "Discretionary"
+  },
+  "opportunityHistoryDetails": [
+    {
+      "cfdas": [
+        {
+          "cfdaNumber": "47.074",
+          "id": 386880,
+          "opportunityId": 330296,
+          "programTitle": "Biological Sciences",
+          "revision": 5
+        },
+        {
+          "id": 386862,
+          "opportunityId": 330296,
+          "revision": 5
+        }
+      ],
+      "forecastModifiedFields": [],
+      "listed": "L",
+      "oppHistId": {
+        "opportunityId": 330296,
+        "revision": 0
+      },
+      "opportunityCategory": {
+        "category": "D",
+        "description": "Discretionary"
+      },
+      "opportunityId": 330296,
+      "opportunityNumber": "21-544",
+      "opportunityTitle": "Long Term Research in Environmental Biology",
+      "owningAgencyCode": "NSF",
+      "publisherUid": "NSFServices",
+      "revision": 0,
+      "synopsis": {
+        "actionDate": "Jan 28, 2023 02:00:19 AM EST",
+        "actionType": "U",
+        "agencyAddressDesc": "If you have any problems linking to this funding announcement, please contact the email address above.",
+        "agencyCode": "NSF",
+        "agencyContactDesc": "NSF grants.gov support\ngrantsgovsupport@nsf.gov",
+        "agencyContactEmail": "grantsgovsupport@nsf.gov",
+        "agencyContactEmailDesc": "If you have any problems linking to this funding announcement, please contact the email address above.",
+        "agencyContactName": "National Science Foundation",
+        "agencyContactPhone": "703-292-4261",
+        "agencyDetails": {
+          "agencyCode": "NSF",
+          "agencyName": "U.S. National Science Foundation",
+          "code": "NSF",
+          "seed": "NSF",
+          "topAgencyCode": "NSF"
+        },
+        "applicantEligibilityDesc": "*Who May Submit Proposals: Proposals may only be submitted by the following:\n  -Non-profit, non-academic organizations: Independent museums, observatories, research labs, professional societies and similar organizations in the U.S. associated with educational or research activities.\n  -Institutions of Higher Education (IHEs) - Two- and four-year IHEs (including community colleges) accredited in, and having a campus located in the US, acting\n     on behalf of their faculty members.Special Instructions for International Branch Campuses of US IHEs: If the proposal includes funding to be provided to an\n     international branch campus of a US institution of higher education (including through use of subawards and consultant arrangements), the proposer must explain\n     the benefit(s) to the project of performance at the international branch campus, and justify why the project activities cannot be performed at the US campus.",
+        "applicantTypes": [
+          {
+            "description": "Others (see text field entitled \"Additional Information on Eligibility\" for clarification)",
+            "id": "25"
+          }
+        ],
+        "awardCeiling": "600000",
+        "awardCeilingFormatted": "600,000",
+        "awardFloor": "none",
+        "costSharing": false,
+        "createTimeStamp": "Dec 10, 2020 01:01:12 AM EST",
+        "createTimeStampStr": "2020-12-10-01-01-12",
+        "createdDate": "Dec 10, 2020 01:01:12 AM EST",
+        "estimatedFunding": "6000000",
+        "estimatedFundingFormatted": "6,000,000",
+        "fundingActivityCategories": [
+          {
+            "description": "Science and Technology and other Research and Development",
+            "id": "ST"
+          }
+        ],
+        "fundingDescLinkDesc": "NSF Publication 21-544",
+        "fundingDescLinkUrl": "http://www.nsf.gov/publications/pub_summ.jsp?ods_key=nsf21544",
+        "fundingInstruments": [
+          {
+            "description": "Grant",
+            "id": "G"
+          }
+        ],
+        "id": {
+          "opportunityId": 330296,
+          "revision": 0
+        },
+        "lastUpdatedDate": "Dec 10, 2020 01:01:12 AM EST",
+        "opportunityId": 330296,
+        "postingDate": "Dec 10, 2020 12:00:00 AM EST",
+        "postingDateStr": "2020-12-10-00-00-00",
+        "responseDateDesc": "Proposals accepted anytime",
+        "revision": 0,
+        "synopsisDesc": "The Long Term Research in Environmental Biology (LTREB) Program supports the generation of extended time series of data to address important questions in evolutionary biology, ecology, and ecosystem science. Research areas include, but are not limited to, the effects of natural selection or other evolutionary processes on populations, communities, or ecosystems; the effects of interspecific interactions that vary over time and space; population or community dynamics for organisms that have extended life spans and long turnover times; feedbacks between ecological and evolutionary processes; pools of materials such as nutrients in soils that turn over at intermediate to longer time scales; and external forcing functions such as climatic cycles that operate over long return intervals.\n\r\n\nAll proposals submitted through the LTREB solicitation are processed by 1 of the 3 clusters in the Division of Environmental Biology: Ecosystem Science, Population and Community Ecology, and Evolutionary Processes. Proposals must address topics supported by these clusters. Researchers who are uncertain about the suitability of their project for the LTREB Program are encouraged to contact the cognizant Program Officer.\n\r\n\nEcological research on marine populations, communities and ecosystems is not supported by LTREB and should be directed to the Biological Oceanography Program: (<a href=\"https://www.nsf.gov/funding/pgm_summ.jsp?pims_id=11696&amp;org=OCE\">https://www.nsf.gov/funding/pgm_summ.jsp?pims_id=11696&amp;org=OCE</a>). However, research that examines the evolutionary dynamics of marine populations or communities will be accepted. Investigators who are uncertain about the suitability of their research for LTREB are strongly encouraged to contact the managing Program Officers listed in this solicitation.\n\r\n\nExamples of current LTREB awards can be viewed at <a href=\"https://www.nsf.gov/awardsearch/\">https://www.nsf.gov/awardsearch/</a> by including 'LTREB' in a title search.\n\r\n\nThe Program intends to support decadal projects. Funding for an initial, 5-year period requires submission of a proposal that includes a 15-page project description containingtwo essential components: a decadal research plan and a description of core data. Proposals for the second five years of support (renewal proposals) are limited to a ten-page project description.\n\r\n\nContinuation of an LTREB project beyond an initial ten-year award will require submission of a new proposal that presents a new decadal research plan.\n\r\n\nSpecific review criteria for LTREB proposals and renewals are explained within this solicitation. Prospective proposers are advised to read this solicitation carefully.",
+        "version": 1
+      },
+      "synopsisModifiedFields": []
+    },
+    {
+      "cfdas": [
+        {
+          "cfdaNumber": "47.074",
+          "id": 386880,
+          "opportunityId": 330296,
+          "programTitle": "Biological Sciences",
+          "revision": 5
+        },
+        {
+          "id": 386862,
+          "opportunityId": 330296,
+          "revision": 5
+        }
+      ],
+      "forecastModifiedFields": [],
+      "listed": "L",
+      "oppHistId": {
+        "opportunityId": 330296,
+        "revision": 1
+      },
+      "opportunityCategory": {
+        "category": "D",
+        "description": "Discretionary"
+      },
+      "opportunityId": 330296,
+      "opportunityNumber": "21-544",
+      "opportunityTitle": "Long Term Research in Environmental Biology",
+      "owningAgencyCode": "NSF",
+      "publisherUid": "NSFServices",
+      "revision": 1,
+      "synopsis": {
+        "actionDate": "May 19, 2023 11:45:10 PM EDT",
+        "actionType": "U",
+        "agencyAddressDesc": "If you have any problems linking to this funding announcement, please contact the email address above.",
+        "agencyCode": "NSF",
+        "agencyContactDesc": "NSF grants.gov support\ngrantsgovsupport@nsf.gov",
+        "agencyContactEmail": "grantsgovsupport@nsf.gov",
+        "agencyContactEmailDesc": "If you have any problems linking to this funding announcement, please contact the email address above.",
+        "agencyContactName": "National Science Foundation",
+        "agencyContactPhone": "703-292-4261",
+        "agencyDetails": {
+          "agencyCode": "NSF",
+          "agencyName": "U.S. National Science Foundation",
+          "code": "NSF",
+          "seed": "NSF",
+          "topAgencyCode": "NSF"
+        },
+        "applicantEligibilityDesc": "*Who May Submit Proposals: Proposals may only be submitted by the following:\n  -Non-profit, non-academic organizations: Independent museums, observatories, research laboratories, professional societies and similar organizations located in the U.S. that are directly associated with educational or research activities.\n  -Institutions of Higher Education (IHEs) - Two- and four-year IHEs (including community colleges) accredited in, and having a campus located in the US, acting\n     on behalf of their faculty members.Special Instructions for International Branch Campuses of US IHEs: If the proposal includes funding to be provided to an\n     international branch campus of a US institution of higher education (including through use of subawards and consultant arrangements), the proposer must explain\n     the benefit(s) to the project of performance at the international branch campus, and justify why the project activities cannot be performed at the US campus.",
+        "applicantTypes": [
+          {
+            "description": "Others (see text field entitled \"Additional Information on Eligibility\" for clarification)",
+            "id": "25"
+          }
+        ],
+        "awardCeiling": "600000",
+        "awardCeilingFormatted": "600,000",
+        "awardFloor": "none",
+        "costSharing": false,
+        "createTimeStamp": "Jan 28, 2023 02:00:19 AM EST",
+        "createTimeStampStr": "2023-01-28-02-00-19",
+        "createdDate": "Dec 10, 2020 01:01:12 AM EST",
+        "estimatedFunding": "6000000",
+        "estimatedFundingFormatted": "6,000,000",
+        "fundingActivityCategories": [
+          {
+            "description": "Science and Technology and other Research and Development",
+            "id": "ST"
+          }
+        ],
+        "fundingDescLinkDesc": "NSF Publication 21-544",
+        "fundingDescLinkUrl": "http://www.nsf.gov/publications/pub_summ.jsp?ods_key=nsf21544",
+        "fundingInstruments": [
+          {
+            "description": "Grant",
+            "id": "G"
+          }
+        ],
+        "id": {
+          "opportunityId": 330296,
+          "revision": 1
+        },
+        "lastUpdatedDate": "Jan 28, 2023 02:00:19 AM EST",
+        "modComments": ".",
+        "opportunityId": 330296,
+        "postingDate": "Dec 10, 2020 12:00:00 AM EST",
+        "postingDateStr": "2020-12-10-00-00-00",
+        "responseDateDesc": "Proposals accepted anytime",
+        "revision": 1,
+        "sendEmail": "N",
+        "synopsisDesc": "The Long Term Research in Environmental Biology (LTREB) Program supports the generation of extended time series of data to address important questions in evolutionary biology, ecology, and ecosystem science. Research areas include, but are not limited to, the effects of natural selection or other evolutionary processes on populations, communities, or ecosystems; the effects of interspecific interactions that vary over time and space; population or community dynamics for organisms that have extended life spans and long turnover times; feedbacks between ecological and evolutionary processes; pools of materials such as nutrients in soils that turn over at intermediate to longer time scales; and external forcing functions such as climatic cycles that operate over long return intervals.\n\r\n\nAll proposals submitted through the LTREB solicitation are processed by 1 of the 3 clusters in the Division of Environmental Biology: Ecosystem Science, Population and Community Ecology, and Evolutionary Processes. Proposals must address topics supported by these clusters. Researchers who are uncertain about the suitability of their project for the LTREB Program are encouraged to contact the cognizant Program Officer.\n\r\n\nEcological research on marine populations, communities and ecosystems is not supported by LTREB and should be directed to the Biological Oceanography Program: (<a href=\"https://www.nsf.gov/funding/pgm_summ.jsp?pims_id=11696&amp;org=OCE\">https://www.nsf.gov/funding/pgm_summ.jsp?pims_id=11696&amp;org=OCE</a>). However, research that examines the evolutionary dynamics of marine populations or communities will be accepted. Investigators who are uncertain about the suitability of their research for LTREB are strongly encouraged to contact the managing Program Officers listed in this solicitation.\n\r\n\nExamples of current LTREB awards can be viewed at <a href=\"https://www.nsf.gov/awardsearch/\">https://www.nsf.gov/awardsearch/</a> by including 'LTREB' in a title search.\n\r\n\nThe Program intends to support decadal projects. Funding for an initial, 5-year period requires submission of a proposal that includes a 15-page project description containingtwo essential components: a decadal research plan and a description of core data. Proposals for the second five years of support (renewal proposals) are limited to a ten-page project description.\n\r\n\nContinuation of an LTREB project beyond an initial ten-year award will require submission of a new proposal that presents a new decadal research plan.\n\r\n\nSpecific review criteria for LTREB proposals and renewals are explained within this solicitation. Prospective proposers are advised to read this solicitation carefully.",
+        "version": 2
+      },
+      "synopsisModifiedFields": [
+        "revision",
+        "version",
+        "applicantEligibilityDesc",
+        "createTimeStamp"
+      ]
+    },
+    {
+      "cfdas": [
+        {
+          "cfdaNumber": "47.074",
+          "id": 386880,
+          "opportunityId": 330296,
+          "programTitle": "Biological Sciences",
+          "revision": 5
+        },
+        {
+          "id": 386862,
+          "opportunityId": 330296,
+          "revision": 5
+        }
+      ],
+      "forecastModifiedFields": [],
+      "listed": "L",
+      "oppHistId": {
+        "opportunityId": 330296,
+        "revision": 2
+      },
+      "opportunityCategory": {
+        "category": "D",
+        "description": "Discretionary"
+      },
+      "opportunityId": 330296,
+      "opportunityNumber": "21-544",
+      "opportunityTitle": "Long Term Research in Environmental Biology",
+      "owningAgencyCode": "NSF",
+      "publisherUid": "NSFServices",
+      "revision": 2,
+      "synopsis": {
+        "actionDate": "May 19, 2023 11:48:21 PM EDT",
+        "actionType": "U",
+        "agencyAddressDesc": "If you have any problems linking to this funding announcement, please contact the email address above.",
+        "agencyCode": "NSF",
+        "agencyContactDesc": "NSF grants.gov support\ngrantsgovsupport@nsf.gov",
+        "agencyContactEmail": "grantsgovsupport@nsf.gov",
+        "agencyContactEmailDesc": "If you have any problems linking to this funding announcement, please contact the email address above.",
+        "agencyContactName": "National Science Foundation",
+        "agencyContactPhone": "703-292-4261",
+        "agencyDetails": {
+          "agencyCode": "NSF",
+          "agencyName": "U.S. National Science Foundation",
+          "code": "NSF",
+          "seed": "NSF",
+          "topAgencyCode": "NSF"
+        },
+        "applicantEligibilityDesc": "*Who May Submit Proposals: Proposals may only be submitted by the following:\n  -Non-profit, non-academic organizations: Independent museums, observatories, research laboratories, professional societies and similar organizations located in the U.S. that are directly associated with educational or research activities.\n  -Institutions of Higher Education (IHEs) - Two- and four-year IHEs (including community colleges) accredited in, and having a campus located in the US, acting\n     on behalf of their faculty members.Special Instructions for International Branch Campuses of US IHEs: If the proposal includes funding to be provided to an\n     international branch campus of a US institution of higher education (including through use of subawards and consultant arrangements), the proposer must explain\n     the benefit(s) to the project of performance at the international branch campus, and justify why the project activities cannot be performed at the US campus.",
+        "applicantTypes": [
+          {
+            "description": "Others (see text field entitled \"Additional Information on Eligibility\" for clarification)",
+            "id": "25"
+          }
+        ],
+        "awardCeiling": "600000",
+        "awardCeilingFormatted": "600,000",
+        "awardFloor": "none",
+        "costSharing": false,
+        "createTimeStamp": "May 19, 2023 11:45:10 PM EDT",
+        "createTimeStampStr": "2023-05-19-23-45-10",
+        "createdDate": "Dec 10, 2020 01:01:12 AM EST",
+        "estimatedFunding": "6000000",
+        "estimatedFundingFormatted": "6,000,000",
+        "fundingActivityCategories": [
+          {
+            "description": "Science and Technology and other Research and Development",
+            "id": "ST"
+          }
+        ],
+        "fundingDescLinkDesc": "NSF Publication 21-544",
+        "fundingDescLinkUrl": "http://www.nsf.gov/publications/pub_summ.jsp?ods_key=nsf21544",
+        "fundingInstruments": [
+          {
+            "description": "Grant",
+            "id": "G"
+          }
+        ],
+        "id": {
+          "opportunityId": 330296,
+          "revision": 2
+        },
+        "lastUpdatedDate": "May 19, 2023 11:45:10 PM EDT",
+        "modComments": ".",
+        "opportunityId": 330296,
+        "postingDate": "Dec 10, 2020 12:00:00 AM EST",
+        "postingDateStr": "2020-12-10-00-00-00",
+        "responseDateDesc": "Proposals accepted anytime",
+        "revision": 2,
+        "sendEmail": "N",
+        "synopsisDesc": "The Long Term Research in Environmental Biology (LTREB) Program supports the generation of extended time series of data to address important questions in evolutionary biology, ecology, and ecosystem science. Research areas include, but are not limited to, the effects of natural selection or other evolutionary processes on populations, communities, or ecosystems; the effects of interspecific interactions that vary over time and space; population or community dynamics for organisms that have extended life spans and long turnover times; feedbacks between ecological and evolutionary processes; pools of materials such as nutrients in soils that turn over at intermediate to longer time scales; and external forcing functions such as climatic cycles that operate over long return intervals.\n\r\n\nAll proposals submitted through the LTREB solicitation are processed by 1 of the 3 clusters in the Division of Environmental Biology: Ecosystem Science, Population and Community Ecology, and Evolutionary Processes. Proposals must address topics supported by these clusters. Researchers who are uncertain about the suitability of their project for the LTREB Program are encouraged to contact the cognizant Program Officer.\n\r\n\nEcological research on marine populations, communities and ecosystems is not supported by LTREB and should be directed to the Biological Oceanography Program: (<a href=\"https://www.nsf.gov/funding/pgm_summ.jsp?pims_id=11696&amp;org=OCE\">https://www.nsf.gov/funding/pgm_summ.jsp?pims_id=11696&amp;org=OCE</a>). However, research that examines the evolutionary dynamics of marine populations or communities will be accepted. Investigators who are uncertain about the suitability of their research for LTREB are strongly encouraged to contact the managing Program Officers listed in this solicitation.\n\r\n\nExamples of current LTREB awards can be viewed at <a href=\"https://www.nsf.gov/awardsearch/\">https://www.nsf.gov/awardsearch/</a> by including 'LTREB' in a title search.\n\r\n\nThe Program intends to support decadal projects. Funding for an initial, 5-year period requires submission of a proposal that includes a 15-page project description containingtwo essential components: a decadal research plan and a description of core data. Proposals for the second five years of support (renewal proposals) are limited to a ten-page project description.\n\r\n\nContinuation of an LTREB project beyond an initial ten-year award will require submission of a new proposal that presents a new decadal research plan.\n\r\n\nSpecific review criteria for LTREB proposals and renewals are explained within this solicitation. Prospective proposers are advised to read this solicitation carefully.",
+        "version": 3
+      },
+      "synopsisModifiedFields": [
+        "revision",
+        "version",
+        "createTimeStamp"
+      ]
+    },
+    {
+      "cfdas": [
+        {
+          "cfdaNumber": "47.074",
+          "id": 386880,
+          "opportunityId": 330296,
+          "programTitle": "Biological Sciences",
+          "revision": 5
+        },
+        {
+          "id": 386862,
+          "opportunityId": 330296,
+          "revision": 5
+        }
+      ],
+      "forecastModifiedFields": [],
+      "listed": "L",
+      "oppHistId": {
+        "opportunityId": 330296,
+        "revision": 3
+      },
+      "opportunityCategory": {
+        "category": "D",
+        "description": "Discretionary"
+      },
+      "opportunityId": 330296,
+      "opportunityNumber": "21-544",
+      "opportunityTitle": "Long Term Research in Environmental Biology",
+      "owningAgencyCode": "NSF",
+      "publisherUid": "NSFServices",
+      "revision": 3,
+      "synopsis": {
+        "actionDate": "Feb 24, 2024 12:12:44 AM EST",
+        "actionType": "U",
+        "agencyAddressDesc": "If you have any problems linking to this funding announcement, please contact the email address above.",
+        "agencyCode": "NSF",
+        "agencyContactDesc": "NSF grants.gov support\ngrantsgovsupport@nsf.gov",
+        "agencyContactEmail": "grantsgovsupport@nsf.gov",
+        "agencyContactEmailDesc": "If you have any problems linking to this funding announcement, please contact the email address above.",
+        "agencyContactName": "National Science Foundation",
+        "agencyContactPhone": "703-292-4261",
+        "agencyDetails": {
+          "agencyCode": "NSF",
+          "agencyName": "U.S. National Science Foundation",
+          "code": "NSF",
+          "seed": "NSF",
+          "topAgencyCode": "NSF"
+        },
+        "applicantEligibilityDesc": "*Who May Submit Proposals: Proposals may only be submitted by the following:\n  -Non-profit, non-academic organizations: Independent museums, observatories, research laboratories, professional societies and similar organizations located in the U.S. that are directly associated with educational or research activities.\n  -Institutions of Higher Education (IHEs) - Two- and four-year IHEs (including community colleges) accredited in, and having a campus located in the US, acting\n     on behalf of their faculty members.Special Instructions for International Branch Campuses of US IHEs: If the proposal includes funding to be provided to an\n     international branch campus of a US institution of higher education (including through use of subawards and consultant arrangements), the proposer must explain\n     the benefit(s) to the project of performance at the international branch campus, and justify why the project activities cannot be performed at the US campus.",
+        "applicantTypes": [
+          {
+            "description": "Others (see text field entitled \"Additional Information on Eligibility\" for clarification)",
+            "id": "25"
+          }
+        ],
+        "awardCeiling": "600000",
+        "awardCeilingFormatted": "600,000",
+        "awardFloor": "none",
+        "costSharing": false,
+        "createTimeStamp": "May 19, 2023 11:48:21 PM EDT",
+        "createTimeStampStr": "2023-05-19-23-48-21",
+        "createdDate": "Dec 10, 2020 01:01:12 AM EST",
+        "estimatedFunding": "6000000",
+        "estimatedFundingFormatted": "6,000,000",
+        "fundingActivityCategories": [
+          {
+            "description": "Science and Technology and other Research and Development",
+            "id": "ST"
+          }
+        ],
+        "fundingDescLinkDesc": "NSF Publication 21-544",
+        "fundingDescLinkUrl": "http://www.nsf.gov/publications/pub_summ.jsp?ods_key=nsf21544",
+        "fundingInstruments": [
+          {
+            "description": "Grant",
+            "id": "G"
+          }
+        ],
+        "id": {
+          "opportunityId": 330296,
+          "revision": 3
+        },
+        "lastUpdatedDate": "May 19, 2023 11:48:21 PM EDT",
+        "modComments": ".",
+        "opportunityId": 330296,
+        "postingDate": "Dec 10, 2020 12:00:00 AM EST",
+        "postingDateStr": "2020-12-10-00-00-00",
+        "responseDateDesc": "Proposals accepted anytime",
+        "revision": 3,
+        "sendEmail": "N",
+        "synopsisDesc": "The Long Term Research in Environmental Biology (LTREB) Program supports the generation of extended time series of data to address important questions in evolutionary biology, ecology, and ecosystem science. Research areas include, but are not limited to, the effects of natural selection or other evolutionary processes on populations, communities, or ecosystems; the effects of interspecific interactions that vary over time and space; population or community dynamics for organisms that have extended life spans and long turnover times; feedbacks between ecological and evolutionary processes; pools of materials such as nutrients in soils that turn over at intermediate to longer time scales; and external forcing functions such as climatic cycles that operate over long return intervals.\n\r\n\nAll proposals submitted through the LTREB solicitation are processed by 1 of the 3 clusters in the Division of Environmental Biology: Ecosystem Science, Population and Community Ecology, and Evolutionary Processes. Proposals must address topics supported by these clusters. Researchers who are uncertain about the suitability of their project for the LTREB Program are encouraged to contact the cognizant Program Officer.\n\r\n\nEcological research on marine populations, communities and ecosystems is not supported by LTREB and should be directed to the Biological Oceanography Program: (<a href=\"https://www.nsf.gov/funding/pgm_summ.jsp?pims_id=11696&amp;org=OCE\">https://www.nsf.gov/funding/pgm_summ.jsp?pims_id=11696&amp;org=OCE</a>). However, research that examines the evolutionary dynamics of marine populations or communities will be accepted. Investigators who are uncertain about the suitability of their research for LTREB are strongly encouraged to contact the managing Program Officers listed in this solicitation.\n\r\n\nExamples of current LTREB awards can be viewed at <a href=\"https://www.nsf.gov/awardsearch/\">https://www.nsf.gov/awardsearch/</a> by including 'LTREB' in a title search.\n\r\n\nThe Program intends to support decadal projects. Funding for an initial, 5-year period requires submission of a proposal that includes a 15-page project description containingtwo essential components: a decadal research plan and a description of core data. Proposals for the second five years of support (renewal proposals) are limited to a ten-page project description.\n\r\n\nContinuation of an LTREB project beyond an initial ten-year award will require submission of a new proposal that presents a new decadal research plan.\n\r\n\nSpecific review criteria for LTREB proposals and renewals are explained within this solicitation. Prospective proposers are advised to read this solicitation carefully.",
+        "version": 4
+      },
+      "synopsisModifiedFields": [
+        "revision",
+        "version"
+      ]
+    },
+    {
+      "cfdas": [
+        {
+          "cfdaNumber": "47.074",
+          "id": 386880,
+          "opportunityId": 330296,
+          "programTitle": "Biological Sciences",
+          "revision": 5
+        },
+        {
+          "id": 386862,
+          "opportunityId": 330296,
+          "revision": 5
+        }
+      ],
+      "forecastModifiedFields": [],
+      "listed": "L",
+      "oppHistId": {
+        "opportunityId": 330296,
+        "revision": 4
+      },
+      "opportunityCategory": {
+        "category": "D",
+        "description": "Discretionary"
+      },
+      "opportunityId": 330296,
+      "opportunityNumber": "21-544",
+      "opportunityTitle": "Long Term Research in Environmental Biology",
+      "owningAgencyCode": "NSF",
+      "publisherUid": "NSFServices",
+      "revision": 4,
+      "synopsis": {
+        "actionDate": "May 23, 2025 01:00:06 AM EDT",
+        "actionType": "U",
+        "agencyAddressDesc": "If you have any problems linking to this funding announcement, please contact the email address above.",
+        "agencyCode": "NSF",
+        "agencyContactDesc": "NSF grants.gov support\ngrantsgovsupport@nsf.gov",
+        "agencyContactEmail": "grantsgovsupport@nsf.gov",
+        "agencyContactEmailDesc": "If you have any problems linking to this funding announcement, please contact the email address above.",
+        "agencyContactName": "National Science Foundation",
+        "agencyContactPhone": "703-292-4261",
+        "agencyDetails": {
+          "agencyCode": "NSF",
+          "agencyName": "U.S. National Science Foundation",
+          "code": "NSF",
+          "seed": "NSF",
+          "topAgencyCode": "NSF"
+        },
+        "applicantEligibilityDesc": "*Who May Submit Proposals: Proposals may only be submitted by the following:\n  -Non-profit, non-academic organizations: Independent museums, observatories, research laboratories, professional societies and similar organizations located in the U.S. that are directly associated with educational or research activities.\n  -Institutions of Higher Education (IHEs) - Two- and four-year IHEs (including community colleges) accredited in, and having a campus located in the US, acting\n     on behalf of their faculty members.Special Instructions for International Branch Campuses of US IHEs: If the proposal includes funding to be provided to an\n     international branch campus of a US institution of higher education (including through use of subawards and consultant arrangements), the proposer must explain\n     the benefit(s) to the project of performance at the international branch campus, and justify why the project activities cannot be performed at the US campus.",
+        "applicantTypes": [
+          {
+            "description": "Others (see text field entitled \"Additional Information on Eligibility\" for clarification)",
+            "id": "25"
+          }
+        ],
+        "awardCeiling": "600000",
+        "awardCeilingFormatted": "600,000",
+        "awardFloor": "none",
+        "costSharing": false,
+        "createTimeStamp": "Feb 24, 2024 12:12:44 AM EST",
+        "createTimeStampStr": "2024-02-24-00-12-44",
+        "createdDate": "Dec 10, 2020 01:01:12 AM EST",
+        "estimatedFunding": "6000000",
+        "estimatedFundingFormatted": "6,000,000",
+        "fundingActivityCategories": [
+          {
+            "description": "Science and Technology and other Research and Development",
+            "id": "ST"
+          }
+        ],
+        "fundingDescLinkDesc": "NSF Publication 21-544",
+        "fundingDescLinkUrl": "http://www.nsf.gov/publications/pub_summ.jsp?ods_key=nsf21544",
+        "fundingInstruments": [
+          {
+            "description": "Grant",
+            "id": "G"
+          }
+        ],
+        "id": {
+          "opportunityId": 330296,
+          "revision": 4
+        },
+        "lastUpdatedDate": "Feb 24, 2024 12:12:44 AM EST",
+        "modComments": ".",
+        "opportunityId": 330296,
+        "postingDate": "Dec 10, 2020 12:00:00 AM EST",
+        "postingDateStr": "2020-12-10-00-00-00",
+        "responseDateDesc": "Proposals accepted anytime",
+        "revision": 4,
+        "sendEmail": "N",
+        "synopsisDesc": "The Long Term Research in Environmental Biology (LTREB) Program supports the generation of extended time series of data to address important questions in evolutionary biology, ecology, and ecosystem science. Research areas include, but are not limited to, the effects of natural selection or other evolutionary processes on populations, communities, or ecosystems; the effects of interspecific interactions that vary over time and space; population or community dynamics for organisms that have extended life spans and long turnover times; feedbacks between ecological and evolutionary processes; pools of materials such as nutrients in soils that turn over at intermediate to longer time scales; and external forcing functions such as climatic cycles that operate over long return intervals.\n\r\n\nAll proposals submitted through the LTREB solicitation are processed by 1 of the 3 clusters in the Division of Environmental Biology: Ecosystem Science, Population and Community Ecology, and Evolutionary Processes. Proposals must address topics supported by these clusters. Researchers who are uncertain about the suitability of their project for the LTREB Program are encouraged to contact the cognizant Program Officer.\n\r\n\nEcological research on marine populations, communities and ecosystems is not supported by LTREB and should be directed to the Biological Oceanography Program: (<a href=\"https://www.nsf.gov/funding/pgm_summ.jsp?pims_id=11696&amp;org=OCE\">https://www.nsf.gov/funding/pgm_summ.jsp?pims_id=11696&amp;org=OCE</a>). However, research that examines the evolutionary dynamics of marine populations or communities will be accepted. Investigators who are uncertain about the suitability of their research for LTREB are strongly encouraged to contact the managing Program Officers listed in this solicitation.\n\r\n\nExamples of current LTREB awards can be viewed at <a href=\"https://www.nsf.gov/awardsearch/\">https://www.nsf.gov/awardsearch/</a> by including 'LTREB' in a title search.\n\r\n\nThe Program intends to support decadal projects. Funding for an initial, 5-year period requires submission of a proposal that includes a 15-page project description containingtwo essential components: a decadal research plan and a description of core data. Proposals for the second five years of support (renewal proposals) are limited to a ten-page project description.\n\r\n\nContinuation of an LTREB project beyond an initial ten-year award will require submission of a new proposal that presents a new decadal research plan.\n\r\n\nSpecific review criteria for LTREB proposals and renewals are explained within this solicitation. Prospective proposers are advised to read this solicitation carefully.",
+        "version": 5
+      },
+      "synopsisModifiedFields": [
+        "revision",
+        "version",
+        "createTimeStamp"
+      ]
+    },
+    {
+      "cfdas": [
+        {
+          "cfdaNumber": "47.074",
+          "id": 386880,
+          "opportunityId": 330296,
+          "programTitle": "Biological Sciences",
+          "revision": 5
+        },
+        {
+          "id": 386862,
+          "opportunityId": 330296,
+          "revision": 5
+        }
+      ],
+      "forecastModifiedFields": [],
+      "listed": "L",
+      "oppHistId": {
+        "opportunityId": 330296,
+        "revision": 5
+      },
+      "opportunityCategory": {
+        "category": "D",
+        "description": "Discretionary"
+      },
+      "opportunityId": 330296,
+      "opportunityNumber": "21-544",
+      "opportunityTitle": "Long Term Research in Environmental Biology",
+      "owningAgencyCode": "NSF",
+      "publisherUid": "NSFServices",
+      "revision": 5,
+      "synopsis": {
+        "actionDate": "Aug 01, 2025 11:00:09 PM EDT",
+        "actionType": "U",
+        "agencyAddressDesc": "If you have any problems linking to this funding announcement, please contact the email address above.",
+        "agencyCode": "NSF",
+        "agencyContactDesc": "NSF grants.gov support\ngrantsgovsupport@nsf.gov",
+        "agencyContactEmail": "grantsgovsupport@nsf.gov",
+        "agencyContactEmailDesc": "If you have any problems linking to this funding announcement, please contact the email address above.",
+        "agencyContactName": "U.S. National Science Foundation",
+        "agencyContactPhone": "703-292-4203",
+        "agencyDetails": {
+          "agencyCode": "NSF",
+          "agencyName": "U.S. National Science Foundation",
+          "code": "NSF",
+          "seed": "NSF",
+          "topAgencyCode": "NSF"
+        },
+        "applicantEligibilityDesc": "*Who May Submit Proposals: Proposals may only be submitted by the following:\n  -Non-profit, non-academic organizations: Independent museums, observatories, research laboratories, professional societies and similar organizations located in the U.S. that are directly associated with educational or research activities.\n  -Institutions of Higher Education (IHEs): Two- and four-year IHEs (including community colleges) accredited in, and having a campus located in the US, acting on behalf of their faculty members. Special Instructions for International Branch Campuses of US IHEs: If the proposal includes funding to be provided to an international branch campus of a US institution of higher education (including through use of sub-awards and consultant arrangements), the proposer must explain the benefit(s) to the project of performance at the international branch campus, and justify why the project activities cannot be performed at the US campus.",
+        "applicantTypes": [
+          {
+            "description": "Others (see text field entitled \"Additional Information on Eligibility\" for clarification)",
+            "id": "25"
+          }
+        ],
+        "awardCeiling": "600000",
+        "awardCeilingFormatted": "600,000",
+        "awardFloor": "none",
+        "costSharing": false,
+        "createTimeStamp": "May 23, 2025 01:00:06 AM EDT",
+        "createTimeStampStr": "2025-05-23-01-00-06",
+        "createdDate": "Dec 10, 2020 01:01:12 AM EST",
+        "estimatedFunding": "6000000",
+        "estimatedFundingFormatted": "6,000,000",
+        "fundingActivityCategories": [
+          {
+            "description": "Science and Technology and other Research and Development",
+            "id": "ST"
+          }
+        ],
+        "fundingDescLinkDesc": "NSF Publication 21-544",
+        "fundingDescLinkUrl": "http://www.nsf.gov/publications/pub_summ.jsp?ods_key=nsf21544",
+        "fundingInstruments": [
+          {
+            "description": "Grant",
+            "id": "G"
+          }
+        ],
+        "id": {
+          "opportunityId": 330296,
+          "revision": 5
+        },
+        "lastUpdatedDate": "May 23, 2025 01:00:06 AM EDT",
+        "modComments": ".",
+        "opportunityId": 330296,
+        "postingDate": "Dec 10, 2020 12:00:00 AM EST",
+        "postingDateStr": "2020-12-10-00-00-00",
+        "responseDateDesc": "Proposals accepted anytime",
+        "revision": 5,
+        "sendEmail": "N",
+        "synopsisDesc": "The Long Term Research in Environmental Biology (LTREB) Program supports the generation of extended time series of data to address important questions in evolutionary biology, ecology, and ecosystem science. Research areas include, but are not limited to, the effects of natural selection or other evolutionary processes on populations, communities, or ecosystems; the effects of interspecific interactions that vary over time and space; population or community dynamics for organisms that have extended life spans and long turnover times; feedbacks between ecological and evolutionary processes; pools of materials such as nutrients in soils that turn over at intermediate to longer time scales; and external forcing functions such as climatic cycles that operate over long return intervals.\n\n\nAll proposals submitted through the LTREB solicitation are processed by 1 of the 3 clusters in the Division of Environmental Biology: Ecosystem Science, Population and Community Ecology, and Evolutionary Processes. Proposals must address topics supported by these clusters. Researchers who are uncertain about the suitability of their project for the LTREB Program are encouraged to contact the cognizant Program Officer.\n\n\nEcological research on marine populations, communities and ecosystems is not supported by LTREB and should be directed to the Biological Oceanography Program: (<a class=\"cf0\" href=\"https://www.nsf.gov/funding/opportunities/biooce-biological-oceanography\"><span class=\"cf0\">https://www.nsf.gov/funding/opportunities/biooce-biological-oceanography</span></a>). However, research that examines the evolutionary dynamics of marine populations or communities will be accepted. Investigators who are uncertain about the suitability of their research for LTREB are strongly encouraged to contact the managing Program Officers listed in this solicitation.\n\n\nExamples of current LTREB awards can be viewed at <a href=\"https://www.nsf.gov/awardsearch/\">https://www.nsf.gov/awardsearch/</a> by including 'LTREB' in a title search.\n\n\nThe Program intends to support decadal projects. Funding for an initial, 5-year period requires submission of a proposal that includes a 15-page project description containingtwo essential components: a decadal research plan and a description of core data. Proposals for the second five years of support (renewal proposals) are limited to a ten-page project description.\n\n\nContinuation of an LTREB project beyond an initial ten-year award will require submission of a new proposal that presents a new decadal research plan.\n\n\nSpecific review criteria for LTREB proposals and renewals are explained within this solicitation. Prospective proposers are advised to read this solicitation carefully.",
+        "version": 6
+      },
+      "synopsisModifiedFields": [
+        "revision",
+        "version",
+        "synopsisDesc",
+        "applicantEligibilityDesc",
+        "createTimeStamp"
+      ]
+    }
+  ],
+  "opportunityNumber": "21-544",
+  "opportunityPkgs": [
+    {
+      "agencyDetails": {
+        "agencyCode": "NSF",
+        "agencyName": "U.S. National Science Foundation",
+        "code": "NSF",
+        "seed": "NSF",
+        "topAgencyCode": "NSF"
+      },
+      "closingDate": "2026-09-30",
+      "closingDateStr": "2026-09-30-00-00-00",
+      "contactInfo": "Betsy von Holle\r\nE-mail: mvonholl@nsf.gov\r\nPhone: (703) 292-4974",
+      "dialect": "XFDL2.2",
+      "electronicRequired": "N",
+      "expectedApplicationCount": 35,
+      "extension": "pdf",
+      "familyId": 14,
+      "gracePeriod": 30,
+      "id": 264417,
+      "isMultiProject": "N",
+      "lastUpdate": "Oct 01, 2025 09:24:04 AM EDT",
+      "listed": "L",
+      "mimetype": "application/pdf",
+      "openToApplicantType": 1,
+      "openingDate": "2020-12-10",
+      "openingDateStr": "2020-12-10-00-00-00",
+      "opportunityNumber": "21-544",
+      "opportunityTitle": "Long Term Research in Environmental Biology",
+      "owningAgencyCode": "NSF",
+      "packageId": "PKG00264417",
+      "topAgencyDetails": {
+        "agencyCode": "NSF",
+        "agencyName": "U.S. National Science Foundation",
+        "code": "NSF",
+        "seed": "NSF",
+        "topAgencyCode": "NSF"
+      },
+      "topportunityId": 330296,
+      "workspaceCompatibleFlag": "Y"
+    }
+  ],
+  "opportunityTitle": "Long Term Research in Environmental Biology",
+  "originalDueDateDesc": "Proposals accepted anytime",
+  "ost": "POSTED",
+  "owningAgencyCode": "NSF",
+  "publisherUid": "NSFServices",
+  "relatedOpps": [],
+  "revision": 6,
+  "synAttChangeComments": [],
+  "synPostDateInPast": true,
+  "synopsis": {
+    "agencyAddressDesc": "If you have any problems linking to this funding announcement, please contact the email address above.",
+    "agencyCode": "NSF",
+    "agencyContactDesc": "NSF grants.gov support\ngrantsgovsupport@nsf.gov",
+    "agencyContactEmail": "grantsgovsupport@nsf.gov",
+    "agencyContactEmailDesc": "If you have any problems linking to this funding announcement, please contact the email address above.",
+    "agencyContactName": "U.S. National Science Foundation",
+    "agencyContactPhone": "703-292-4203",
+    "agencyDetails": {
+      "agencyCode": "NSF",
+      "agencyName": "U.S. National Science Foundation",
+      "code": "NSF",
+      "seed": "NSF",
+      "topAgencyCode": "NSF"
+    },
+    "agencyName": "U.S. National Science Foundation",
+    "agencyPhone": "703-292-4203",
+    "applicantEligibilityDesc": "*Who May Submit Proposals: Proposals may only be submitted by the following:\n  -Non-profit, non-academic organizations: Independent museums, observatories, research laboratories, professional societies and similar organizations located in the U.S. that are directly associated with educational or research activities.\n  -Institutions of Higher Education (IHEs): Two- and four-year IHEs (including community colleges) accredited in, and having a campus located in the US, acting on behalf of their faculty members. Special Instructions for International Branch Campuses of US IHEs: If the proposal includes funding to be provided to an international branch campus of a US institution of higher education (including through use of sub-awards and consultant arrangements), the proposer must explain the benefit(s) to the project of performance at the international branch campus, and justify why the project activities cannot be performed at the US campus.",
+    "applicantTypes": [
+      {
+        "description": "Others (see text field entitled \"Additional Information on Eligibility\" for clarification)",
+        "id": "25"
+      }
+    ],
+    "awardCeiling": "600000",
+    "awardCeilingFormatted": "600,000",
+    "awardFloor": "none",
+    "costSharing": false,
+    "createTimeStamp": "Aug 01, 2025 11:00:09 PM EDT",
+    "createTimeStampStr": "2025-08-01-23-00-09",
+    "createdDate": "Dec 10, 2020 01:01:12 AM EST",
+    "estimatedFunding": "6000000",
+    "estimatedFundingFormatted": "6,000,000",
+    "fundingActivityCategories": [
+      {
+        "description": "Science and Technology and other Research and Development",
+        "id": "ST"
+      }
+    ],
+    "fundingDescLinkDesc": "NSF Publication 21-544",
+    "fundingDescLinkUrl": "http://www.nsf.gov/publications/pub_summ.jsp?ods_key=nsf21544",
+    "fundingInstruments": [
+      {
+        "description": "Grant",
+        "id": "G"
+      }
+    ],
+    "lastUpdatedDate": "Aug 01, 2025 11:00:09 PM EDT",
+    "modComments": ".",
+    "opportunityId": 330296,
+    "postingDate": "Dec 10, 2020 12:00:00 AM EST",
+    "postingDateStr": "2020-12-10-00-00-00",
+    "responseDateDesc": "Proposals accepted anytime",
+    "sendEmail": "N",
+    "synopsisDesc": "The Long Term Research in Environmental Biology (LTREB) Program supports the generation of extended time series of data to address important questions in evolutionary biology, ecology, and ecosystem science. Research areas include, but are not limited to, the effects of natural selection or other evolutionary processes on populations, communities, or ecosystems; the effects of interspecific interactions that vary over time and space; population or community dynamics for organisms that have extended life spans and long turnover times; feedbacks between ecological and evolutionary processes; pools of materials such as nutrients in soils that turn over at intermediate to longer time scales; and external forcing functions such as climatic cycles that operate over long return intervals.\n\n\nAll proposals submitted through the LTREB solicitation are processed by 1 of the 3 clusters in the Division of Environmental Biology: Ecosystem Science, Population and Community Ecology, and Evolutionary Processes. Proposals must address topics supported by these clusters. Researchers who are uncertain about the suitability of their project for the LTREB Program are encouraged to contact the cognizant Program Officer.\n\n\nEcological research on marine populations, communities and ecosystems is not supported by LTREB and should be directed to the Biological Oceanography Program: (<a class=\"cf0\" href=\"https://www.nsf.gov/funding/opportunities/biooce-biological-oceanography\"><span class=\"cf0\">https://www.nsf.gov/funding/opportunities/biooce-biological-oceanography</span></a>). However, research that examines the evolutionary dynamics of marine populations or communities will be accepted. Investigators who are uncertain about the suitability of their research for LTREB are strongly encouraged to contact the managing Program Officers listed in this solicitation.\n\n\nExamples of current LTREB awards can be viewed at <a href=\"https://www.nsf.gov/awardsearch/\">https://www.nsf.gov/awardsearch/</a> by including 'LTREB' in a title search.\n\n\nThe Program intends to support decadal projects. Funding for an initial, 5-year period requires submission of a proposal that includes a 15-page project description containingtwo essential components: a decadal research plan and a description of core data. Proposals for the second five years of support (renewal proposals) are limited to a ten-page project description.\n\n\nContinuation of an LTREB project beyond an initial ten-year award will require submission of a new proposal that presents a new decadal research plan.\n\n\nSpecific review criteria for LTREB proposals and renewals are explained within this solicitation. Prospective proposers are advised to read this solicitation carefully.",
+    "topAgencyDetails": {
+      "agencyCode": "NSF",
+      "agencyName": "U.S. National Science Foundation",
+      "code": "NSF",
+      "seed": "NSF",
+      "topAgencyCode": "NSF"
+    },
+    "version": 7
+  },
+  "synopsisAttachmentFolders": [],
+  "synopsisDocumentURLs": [],
+  "synopsisHistCount": 6,
+  "synopsisModifiedFields": [
+    "revision",
+    "version",
+    "createTimeStamp"
+  ],
+  "topAgencyDetails": {
+    "agencyCode": "NSF",
+    "agencyName": "U.S. National Science Foundation",
+    "code": "NSF",
+    "seed": "NSF",
+    "topAgencyCode": "NSF"
+  }
+}
