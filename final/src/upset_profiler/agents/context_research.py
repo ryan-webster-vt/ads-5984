@@ -26,6 +26,20 @@ class ContextResearchProvider(Protocol):
         ...
 
 
+class NullContextResearchProvider:
+    """Context-Research provider that returns no documents.
+
+    Used by ``ingest --context-provider none`` for statistics-only runs and
+    offline smoke tests. It keeps the provider protocol and pipeline shape.
+    """
+
+    source = "none"
+
+    def get_documents(self, game_id: str, season: str) -> list[SourceDocument]:
+        """Return no documents."""
+        return []
+
+
 class ContextResearchAgent(BaseAgent):
     """Collect cited pregame documents for one batch of game ids."""
 

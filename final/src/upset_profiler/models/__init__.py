@@ -56,12 +56,14 @@ from upset_profiler.models.preconditions import (
 )
 from upset_profiler.models.progress import ProgressEvent, ProgressStage, ProgressStatus
 from upset_profiler.models.research import (
+    CachedSearchResponse,
     ContextResearchResult,
     HistoricalStatsResult,
     IngestionResult,
     ResearchAggregate,
     ResearchBatch,
     ResearchRecord,
+    SearchHitRecord,
     SourceDocument,
 )
 from upset_profiler.models.scoring import ScoringRequest, UpsetRanking, UpsetScore
@@ -77,6 +79,7 @@ __all__ = [
     "AgentError",
     "BacktestPrediction",
     "BacktestReport",
+    "CachedSearchResponse",
     "CalibrationBin",
     "CandidatePrecondition",
     "Citation",
@@ -114,6 +117,7 @@ __all__ = [
     "RetrievedEvidence",
     "RunContext",
     "ScoringRequest",
+    "SearchHitRecord",
     "SeasonStr",
     "SignalMatch",
     "SourceDocument",

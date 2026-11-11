@@ -17,6 +17,7 @@
           "title": "Agent"
         },
         "context": {
+          "additionalProperties": true,
           "title": "Context",
           "type": "object"
         },

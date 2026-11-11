@@ -5,7 +5,7 @@
     "assists_per_game": {
       "anyOf": [
         {
-          "minimum": 0.0,
+          "minimum": 0,
           "type": "number"
         },
         {
@@ -36,7 +36,7 @@
     "minutes_per_game": {
       "anyOf": [
         {
-          "minimum": 0.0,
+          "minimum": 0,
           "type": "number"
         },
         {
@@ -59,7 +59,7 @@
     "points_per_game": {
       "anyOf": [
         {
-          "minimum": 0.0,
+          "minimum": 0,
           "type": "number"
         },
         {
@@ -84,7 +84,7 @@
     "rebounds_per_game": {
       "anyOf": [
         {
-          "minimum": 0.0,
+          "minimum": 0,
           "type": "number"
         },
         {

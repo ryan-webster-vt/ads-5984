@@ -7,6 +7,7 @@ storage stays free of pipeline logic.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
 from collections.abc import Sequence
@@ -22,10 +23,14 @@ from upset_profiler.models.common import ValidationIssue
 from upset_profiler.models.games import DailyGame, HistoricalGame
 from upset_profiler.models.monitoring import GameFlag, MonitorAggregate
 from upset_profiler.models.preconditions import CandidatePrecondition, ValidatedPrecondition
-from upset_profiler.models.research import SourceDocument
+from upset_profiler.models.research import (
+    CachedSearchResponse,
+    SearchHitRecord,
+    SourceDocument,
+)
 from upset_profiler.models.scoring import UpsetRanking, UpsetScore
 from upset_profiler.models.validation import BacktestPrediction
-from upset_profiler.storage.sqlite import initialize_database
+from upset_profiler.storage.sqlite import database_lock, initialize_database, transaction
 
 ModelT = TypeVar("ModelT", bound=BaseModel)
 
@@ -65,7 +70,8 @@ class _Repository:
         params: Sequence[Any] = (),
     ) -> sqlite3.Cursor:
         try:
-            return self._connection.execute(sql, params)
+            with database_lock():
+                return self._connection.execute(sql, params)
         except sqlite3.Error as exc:
             operation = sql.split(maxsplit=1)[0].upper() if sql.strip() else "UNKNOWN"
             raise StorageError(
@@ -74,13 +80,15 @@ class _Repository:
             ) from exc
 
     def _fetch_one(self, sql: str, params: Sequence[Any] = ()) -> sqlite3.Row | None:
-        cursor = self._execute(sql, params)
-        row = cursor.fetchone()
+        with database_lock():
+            cursor = self._execute(sql, params)
+            row = cursor.fetchone()
         return row if isinstance(row, sqlite3.Row) else None
 
     def _fetch_all(self, sql: str, params: Sequence[Any] = ()) -> list[sqlite3.Row]:
-        cursor = self._execute(sql, params)
-        return list(cursor.fetchall())
+        with database_lock():
+            cursor = self._execute(sql, params)
+            return list(cursor.fetchall())
 
 
 class GameRepository(_Repository):
@@ -661,6 +669,215 @@ class CacheRepository(_Repository):
         return int(row["count"]) if row is not None else 0
 
 
+class SearchCacheRepository(_Repository):
+    """Persistence for normalized search queries and their returned hits.
+
+    The cache is keyed by a deterministic hash of the normalized query, the
+    provider, and a parameters fingerprint, so identical requests replay without
+    a network call. Historical rows have ``expires_at = NULL``; live rows expire
+    after the configured TTL (ADR-006 Decision 2).
+    """
+
+    _UPSERT_QUERY = """
+        INSERT INTO search_queries (
+            query_id, query_hash, normalized_query, provider, params_hash,
+            game_id, season, created_at, last_used_at, expires_at,
+            result_count, credits_used, payload
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(query_hash) DO UPDATE SET
+            normalized_query = excluded.normalized_query,
+            provider = excluded.provider,
+            params_hash = excluded.params_hash,
+            game_id = excluded.game_id,
+            season = excluded.season,
+            last_used_at = excluded.last_used_at,
+            expires_at = excluded.expires_at,
+            result_count = excluded.result_count,
+            credits_used = excluded.credits_used,
+            payload = excluded.payload
+    """
+
+    _INSERT_HIT = """
+        INSERT INTO search_hits (
+            hit_id, query_hash, url, canonical_url, source_domain, title, score,
+            published_at, retrieved_at, content_hash, content, metadata
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """
+
+    def get(
+        self,
+        query_hash: str,
+        *,
+        now: datetime | None = None,
+    ) -> CachedSearchResponse | None:
+        """Return a cached response, deleting and ignoring it when expired."""
+        row = self._fetch_one(
+            "SELECT * FROM search_queries WHERE query_hash = ?",
+            (query_hash,),
+        )
+        if row is None:
+            return None
+        current = now or utc_now()
+        expires_at = _optional_datetime(row["expires_at"])
+        if expires_at is not None and expires_at <= current:
+            self.delete(query_hash)
+            return None
+        return self._response(row, self._hits(query_hash))
+
+    def upsert(self, response: CachedSearchResponse) -> None:
+        """Insert or replace a cached response and all of its hits."""
+        with transaction(self._connection):
+            self._execute(
+                self._UPSERT_QUERY,
+                (
+                    f"q-{response.query_hash[:24]}",
+                    response.query_hash,
+                    response.normalized_query,
+                    response.provider,
+                    response.params_hash,
+                    response.game_id,
+                    response.season,
+                    response.created_at.isoformat(),
+                    response.last_used_at.isoformat(),
+                    None if response.expires_at is None else response.expires_at.isoformat(),
+                    response.result_count,
+                    response.credits_used,
+                    json.dumps(response.payload, sort_keys=True),
+                ),
+            )
+            self._execute(
+                "DELETE FROM search_hits WHERE query_hash = ?",
+                (response.query_hash,),
+            )
+            for hit in response.hits:
+                self._execute(
+                    self._INSERT_HIT,
+                    (
+                        _hit_id(response.query_hash, hit.canonical_url),
+                        response.query_hash,
+                        str(hit.url),
+                        hit.canonical_url,
+                        hit.source_domain,
+                        hit.title,
+                        hit.score,
+                        None if hit.published_at is None else hit.published_at.isoformat(),
+                        hit.retrieved_at.isoformat(),
+                        hit.content_hash,
+                        hit.content,
+                        json.dumps(hit.metadata, sort_keys=True),
+                    ),
+                )
+
+    def touch(self, query_hash: str, *, now: datetime | None = None) -> None:
+        """Record that a cached query was reused."""
+        self._execute(
+            "UPDATE search_queries SET last_used_at = ? WHERE query_hash = ?",
+            ((now or utc_now()).isoformat(), query_hash),
+        )
+
+    def delete(self, query_hash: str) -> None:
+        """Delete one cached query; its hits cascade."""
+        self._execute("DELETE FROM search_queries WHERE query_hash = ?", (query_hash,))
+
+    def purge_expired(self, *, now: datetime | None = None) -> int:
+        """Delete expired live queries and return how many were removed."""
+        cursor = self._execute(
+            "DELETE FROM search_queries "
+            "WHERE expires_at IS NOT NULL AND expires_at <= ?",
+            ((now or utc_now()).isoformat(),),
+        )
+        return int(cursor.rowcount)
+
+    def count_queries(self) -> int:
+        """Return the number of cached queries, including expired ones."""
+        row = self._fetch_one("SELECT COUNT(*) AS count FROM search_queries")
+        return int(row["count"]) if row is not None else 0
+
+    def total_credits(self) -> float:
+        """Return the total credits recorded across cached queries."""
+        row = self._fetch_one("SELECT COALESCE(SUM(credits_used), 0) AS total FROM search_queries")
+        return float(row["total"]) if row is not None else 0.0
+
+    def list_queries(self, *, game_id: str | None = None) -> list[CachedSearchResponse]:
+        """List cached responses for auditing, optionally for one game."""
+        if game_id is None:
+            rows = self._fetch_all(
+                "SELECT * FROM search_queries ORDER BY created_at, query_hash"
+            )
+        else:
+            rows = self._fetch_all(
+                "SELECT * FROM search_queries WHERE game_id = ? "
+                "ORDER BY created_at, query_hash",
+                (game_id,),
+            )
+        return [
+            self._response(row, self._hits(str(row["query_hash"])))
+            for row in rows
+        ]
+
+    def _hits(self, query_hash: str) -> list[SearchHitRecord]:
+        rows = self._fetch_all(
+            "SELECT * FROM search_hits WHERE query_hash = ? ORDER BY rowid",
+            (query_hash,),
+        )
+        return [
+            SearchHitRecord(
+                url=str(row["url"]),
+                canonical_url=str(row["canonical_url"]),
+                source_domain=str(row["source_domain"]),
+                title=None if row["title"] is None else str(row["title"]),
+                score=None if row["score"] is None else float(row["score"]),
+                published_at=_optional_datetime(row["published_at"]),
+                retrieved_at=_required_datetime(row["retrieved_at"]),
+                content=None if row["content"] is None else str(row["content"]),
+                content_hash=None if row["content_hash"] is None else str(row["content_hash"]),
+                metadata=_metadata(row["metadata"]),
+            )
+            for row in rows
+        ]
+
+    def _response(
+        self,
+        row: sqlite3.Row,
+        hits: Sequence[SearchHitRecord],
+    ) -> CachedSearchResponse:
+        return CachedSearchResponse(
+            query_hash=str(row["query_hash"]),
+            normalized_query=str(row["normalized_query"]),
+            provider=str(row["provider"]),
+            params_hash=str(row["params_hash"]),
+            game_id=None if row["game_id"] is None else str(row["game_id"]),
+            season=None if row["season"] is None else str(row["season"]),
+            created_at=_required_datetime(row["created_at"]),
+            last_used_at=_required_datetime(row["last_used_at"]),
+            expires_at=_optional_datetime(row["expires_at"]),
+            result_count=int(row["result_count"]),
+            credits_used=float(row["credits_used"]),
+            payload=_metadata(row["payload"]),
+            hits=list(hits),
+        )
+
+
+def _hit_id(query_hash: str, canonical_url: str) -> str:
+    digest = hashlib.sha256(f"{query_hash}|{canonical_url}".encode()).hexdigest()
+    return f"hit-{digest[:32]}"
+
+
+def _required_datetime(value: Any) -> datetime:
+    return datetime.fromisoformat(str(value))
+
+
+def _optional_datetime(value: Any) -> datetime | None:
+    return None if value is None else _required_datetime(value)
+
+
+def _metadata(value: Any) -> dict[str, Any]:
+    if value is None:
+        return {}
+    loaded = json.loads(str(value))
+    return loaded if isinstance(loaded, dict) else {}
+
+
 class BacktestPredictionRepository(_Repository):
     """Persistence for leakage-safe backtest predictions."""
 
@@ -716,6 +933,7 @@ class Repositories:
         self.monitor_results = MonitorResultRepository(connection)
         self.upset_scores = UpsetScoreRepository(connection)
         self.cache = CacheRepository(connection)
+        self.search_cache = SearchCacheRepository(connection)
         self.backtest_predictions = BacktestPredictionRepository(connection)
 
     def close(self) -> None:

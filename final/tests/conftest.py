@@ -47,6 +47,14 @@ _ENV_KEYS = (
     "MCP_DEEP_RESEARCH_COMMAND",
     "MCP_DEEP_RESEARCH_URL",
     "MCP_TIMEOUT_SECONDS",
+    "TAVILY_API_KEY",
+    "TAVILY_BASE_URL",
+    "TAVILY_SEARCH_DEPTH",
+    "TAVILY_TOPIC",
+    "TAVILY_MAX_RESULTS",
+    "TAVILY_INCLUDE_RAW_CONTENT",
+    "TAVILY_KEYLESS",
+    "TAVILY_TIMEOUT_SECONDS",
     "SQLITE_PATH",
     "CHROMA_PATH",
     "CHROMA_COLLECTION",
@@ -81,6 +89,14 @@ def clean_environment(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     original_level = root.level
     for key in _ENV_KEYS:
         monkeypatch.delenv(key, raising=False)
+    # The CLI's ``--env-file`` default is the project ``.env``. Point that default
+    # at a path that cannot exist so a developer's real configuration (for
+    # example a live ``TAVILY_API_KEY``) never changes a test outcome. Tests that
+    # want a file pass ``--env-file`` or ``Settings.load(env_file=...)``.
+    monkeypatch.setattr(
+        "upset_profiler.cli.DEFAULT_ENV_FILE",
+        Path("/nonexistent/upset-profiler-tests.env"),
+    )
     reset_settings_cache()
     try:
         yield

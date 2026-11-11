@@ -70,6 +70,7 @@
       "type": "string"
     },
     "metadata": {
+      "additionalProperties": true,
       "title": "Metadata",
       "type": "object"
     },

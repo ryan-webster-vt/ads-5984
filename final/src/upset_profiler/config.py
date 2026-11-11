@@ -113,6 +113,30 @@ class MCPSettings(_EnvSettings):
     mcp_timeout_seconds: float = Field(default=120.0, gt=0.0)
 
 
+class TavilySettings(_EnvSettings):
+    """Tavily Context-Research search backend configuration (ADR-006).
+
+    Tavily is the default web-search backend: one ``/search`` call can return
+    result text (``include_raw_content``) and a publication estimate
+    (``include_published_date``), replacing a search-plus-fetch fanout. The
+    keyless mode works without an account but cannot report credit usage.
+    """
+
+    tavily_api_key: SecretStr | None = None
+    tavily_base_url: str = "https://api.tavily.com"
+    tavily_search_depth: Literal["basic", "advanced", "fast", "ultra-fast"] = "basic"
+    tavily_topic: Literal["general", "news"] = "general"
+    tavily_max_results: int = Field(default=5, ge=1, le=20)
+    tavily_include_raw_content: bool = True
+    tavily_keyless: bool = False
+    tavily_timeout_seconds: float = Field(default=30.0, gt=0.0)
+
+    @field_validator("tavily_base_url", mode="after")
+    @classmethod
+    def _strip_trailing_slash(cls, value: str) -> str:
+        return value.rstrip("/")
+
+
 class StorageSettings(_EnvSettings):
     """SQLite and ChromaDB storage locations."""
 
@@ -235,6 +259,7 @@ class Settings(BaseModel):
         default_factory=CollegeBasketballSettings
     )
     mcp: MCPSettings = Field(default_factory=MCPSettings)
+    tavily: TavilySettings = Field(default_factory=TavilySettings)
     storage: StorageSettings = Field(default_factory=StorageSettings)
     pipeline: PipelineSettings = Field(default_factory=PipelineSettings)
     stats: StatsSettings = Field(default_factory=StatsSettings)
@@ -254,6 +279,7 @@ class Settings(BaseModel):
             espn=ESPNSettings(_env_file=env_file),
             college_basketball=CollegeBasketballSettings(_env_file=env_file),
             mcp=MCPSettings(_env_file=env_file),
+            tavily=TavilySettings(_env_file=env_file),
             storage=StorageSettings(_env_file=env_file),
             pipeline=PipelineSettings(_env_file=env_file),
             stats=StatsSettings(_env_file=env_file),

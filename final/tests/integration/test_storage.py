@@ -70,11 +70,11 @@ def test_migrations_create_expected_tables(repositories: Repositories) -> None:
 def test_migrations_are_idempotent(tmp_path: Path) -> None:
     database = tmp_path / "db.sqlite"
     first = initialize_database(database)
-    assert applied_versions(first) == (1,)
+    assert applied_versions(first) == (1, 2)
     first.close()
 
     second = initialize_database(database)
-    assert applied_versions(second) == (1,)
+    assert applied_versions(second) == (1, 2)
     second.close()
 
 

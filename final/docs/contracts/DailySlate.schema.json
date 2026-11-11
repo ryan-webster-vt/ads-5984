@@ -179,7 +179,7 @@
         "total": {
           "anyOf": [
             {
-              "minimum": 0.0,
+              "minimum": 0,
               "type": "number"
             },
             {
@@ -221,7 +221,7 @@
         "assists_per_game": {
           "anyOf": [
             {
-              "minimum": 0.0,
+              "minimum": 0,
               "type": "number"
             },
             {
@@ -252,7 +252,7 @@
         "minutes_per_game": {
           "anyOf": [
             {
-              "minimum": 0.0,
+              "minimum": 0,
               "type": "number"
             },
             {
@@ -275,7 +275,7 @@
         "points_per_game": {
           "anyOf": [
             {
-              "minimum": 0.0,
+              "minimum": 0,
               "type": "number"
             },
             {
@@ -300,7 +300,7 @@
         "rebounds_per_game": {
           "anyOf": [
             {
-              "minimum": 0.0,
+              "minimum": 0,
               "type": "number"
             },
             {
@@ -346,6 +346,7 @@
           "type": "string"
         },
         "metadata": {
+          "additionalProperties": true,
           "title": "Metadata",
           "type": "object"
         },
@@ -460,7 +461,7 @@
         "assists_per_game": {
           "anyOf": [
             {
-              "minimum": 0.0,
+              "minimum": 0,
               "type": "number"
             },
             {
@@ -478,7 +479,7 @@
         "defensive_efficiency": {
           "anyOf": [
             {
-              "minimum": 0.0,
+              "minimum": 0,
               "type": "number"
             },
             {
@@ -532,7 +533,7 @@
         "offensive_efficiency": {
           "anyOf": [
             {
-              "minimum": 0.0,
+              "minimum": 0,
               "type": "number"
             },
             {
@@ -545,7 +546,7 @@
         "pace": {
           "anyOf": [
             {
-              "minimum": 0.0,
+              "minimum": 0,
               "type": "number"
             },
             {
@@ -558,7 +559,7 @@
         "points_allowed_per_game": {
           "anyOf": [
             {
-              "minimum": 0.0,
+              "minimum": 0,
               "type": "number"
             },
             {
@@ -571,7 +572,7 @@
         "points_per_game": {
           "anyOf": [
             {
-              "minimum": 0.0,
+              "minimum": 0,
               "type": "number"
             },
             {
@@ -584,7 +585,7 @@
         "rebounds_per_game": {
           "anyOf": [
             {
-              "minimum": 0.0,
+              "minimum": 0,
               "type": "number"
             },
             {
@@ -623,7 +624,7 @@
         "turnovers_per_game": {
           "anyOf": [
             {
-              "minimum": 0.0,
+              "minimum": 0,
               "type": "number"
             },
             {

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Self
+from typing import Any, Self
 from uuid import UUID
 
 from pydantic import Field, HttpUrl, model_validator
@@ -12,6 +12,7 @@ from upset_profiler.models.common import (
     AgentError,
     Provenance,
     SeasonStr,
+    StrictModel,
     UtcDatetime,
     ValidationIssue,
     VersionedModel,
@@ -88,6 +89,56 @@ class ContextResearchResult(VersionedModel):
         document_ids = [document.document_id for document in self.documents]
         if len(document_ids) != len(set(document_ids)):
             raise ValueError("context research result contains duplicate document_id values")
+        return self
+
+
+class SearchHitRecord(StrictModel):
+    """One cached search result for a normalized provider query.
+
+    Rows are stored in SQLite, never in Chroma: Chroma answers semantic
+    questions, while this contract exists so an identical query can be replayed
+    without spending another search credit (ADR-006 Decision 2).
+    """
+
+    url: HttpUrl
+    canonical_url: str = Field(min_length=1)
+    source_domain: str = Field(min_length=1)
+    title: str | None = None
+    score: float | None = None
+    published_at: UtcDatetime | None = None
+    retrieved_at: UtcDatetime = Field(default_factory=utc_now)
+    content: str | None = None
+    content_hash: str | None = None
+    metadata: dict[str, str | int | float | bool | None] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def _hit_has_content_or_hash(self) -> Self:
+        if not self.content and not self.content_hash:
+            raise ValueError("search hit requires content or content_hash")
+        return self
+
+
+class CachedSearchResponse(VersionedModel):
+    """A provider search response reused through a deterministic query key."""
+
+    query_hash: str = Field(min_length=1)
+    normalized_query: str = Field(min_length=1)
+    provider: str = Field(min_length=1)
+    params_hash: str = Field(min_length=1)
+    game_id: str | None = None
+    season: SeasonStr | None = None
+    created_at: UtcDatetime = Field(default_factory=utc_now)
+    last_used_at: UtcDatetime = Field(default_factory=utc_now)
+    expires_at: UtcDatetime | None = None
+    result_count: int = Field(default=0, ge=0)
+    credits_used: float = Field(default=0.0, ge=0.0)
+    payload: dict[str, Any] = Field(default_factory=dict)
+    hits: list[SearchHitRecord] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _result_count_matches_hits(self) -> Self:
+        if self.result_count != len(self.hits):
+            raise ValueError("result_count must match the number of cached hits")
         return self
 
 

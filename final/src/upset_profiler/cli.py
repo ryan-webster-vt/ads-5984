@@ -18,6 +18,10 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from upset_profiler import __version__
+from upset_profiler.agents.context_research import (
+    ContextResearchProvider,
+    NullContextResearchProvider,
+)
 from upset_profiler.agents.research_orchestrator import ResearchOrchestrator
 from upset_profiler.agents.upset_scorer import UpsetScorer
 from upset_profiler.config import DEFAULT_ENV_FILE, Settings, reset_settings_cache
@@ -41,6 +45,7 @@ from upset_profiler.integrations.fakes import (
     FixtureSlateProvider,
 )
 from upset_profiler.integrations.mcp import build_mcp_context_provider
+from upset_profiler.integrations.tavily import build_tavily_context_provider
 from upset_profiler.logging_config import setup_logging
 from upset_profiler.models.preconditions import ValidatedPrecondition
 from upset_profiler.models.progress import ProgressEvent, ProgressStage
@@ -60,6 +65,7 @@ from upset_profiler.rag.chunking import ChunkingConfig, RecursiveChunker
 from upset_profiler.security.leakage import LeakageFilter
 from upset_profiler.security.source_whitelist import SourceWhitelist
 from upset_profiler.services.scoring import ScoringService
+from upset_profiler.services.search_cache import SearchCache
 from upset_profiler.services.slate import SlateService
 from upset_profiler.storage.chroma import (
     DocumentVectorStore,
@@ -171,9 +177,12 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     ingest.add_argument(
         "--context-provider",
-        choices=["auto", "fixture", "mcp"],
+        choices=["auto", "fixture", "tavily", "mcp", "none"],
         default="auto",
-        help="Contextual research provider (default: fixture for fixture stats)",
+        help=(
+            "Contextual research provider (default: fixture with fixture stats, "
+            "Tavily with live stats)"
+        ),
     )
     ingest.add_argument(
         "--limit",
@@ -390,6 +399,36 @@ def _build_embedding_provider(args: argparse.Namespace, settings: Settings) -> E
     )
 
 
+def _build_context_provider(
+    kind: str,
+    *,
+    settings: Settings,
+    whitelist: SourceWhitelist,
+    repositories: Repositories,
+) -> ContextResearchProvider:
+    if kind == "none":
+        return NullContextResearchProvider()
+    if kind == "fixture":
+        return FixtureContextResearchProvider()
+    if kind == "mcp":
+        return build_mcp_context_provider(settings, whitelist=whitelist)
+    if kind == "tavily":
+        cache = SearchCache(
+            repositories.search_cache,
+            ttl_seconds=settings.storage.cache_ttl_seconds,
+        )
+        return build_tavily_context_provider(
+            settings,
+            whitelist=whitelist,
+            cache=cache,
+            game_lookup=lambda game_id, season: repositories.games.get_historical(game_id),
+        )
+    raise ConfigurationError(
+        "unsupported context provider",
+        context={"provider": kind},
+    )
+
+
 def _run_ingest(args: argparse.Namespace) -> int:
     if args.fixture_root is not None:
         os.environ[FIXTURE_ROOT_ENV] = str(args.fixture_root.expanduser().resolve())
@@ -413,48 +452,49 @@ def _run_ingest(args: argparse.Namespace) -> int:
     if not game_ids:
         raise ConfigurationError("historical ingestion requires at least one game id")
 
-    context_kind = args.context_provider
-    if context_kind == "auto":
-        context_kind = "fixture" if args.provider == "fixture" else "mcp"
-    context_provider = (
-        FixtureContextResearchProvider()
-        if context_kind == "fixture"
-        else build_mcp_context_provider(settings, whitelist=whitelist)
-    )
-
     repositories: Repositories = bootstrap(args.database or settings.storage.sqlite_path)
-    store = _build_vector_store(args.vector_store, settings)
-    embeddings = _build_embedding_provider(args, settings)
-    chunker = RecursiveChunker(
-        ChunkingConfig(
-            chunk_size_tokens=settings.pipeline.chunk_size_tokens,
-            overlap_tokens=settings.pipeline.chunk_overlap_tokens,
-        )
-    )
-    run_context = RunContext.create(actor="ingest")
-    sink: ProgressSink = (
-        CallbackProgressSink(_print_progress) if args.progress else NullProgressSink()
-    )
-    reporter = ProgressReporter(
-        run_id=run_context.run_id,
-        sink=sink,
-        stage=ProgressStage.INGEST,
-        agent="research-orchestrator",
-        total=len(game_ids),
-    )
-    orchestrator = ResearchOrchestrator(
-        historical_provider=historical_provider,
-        context_provider=context_provider,
-        source_whitelist=whitelist,
-        leakage_filter=LeakageFilter(strict=settings.pipeline.leakage_strict),
-        repositories=repositories,
-        vector_store=store,
-        embedding_provider=embeddings,
-        chunker=chunker,
-        batch_size=args.batch_size or settings.pipeline.research_batch_size,
-        progress=reporter,
-    )
+    context_provider: ContextResearchProvider | None = None
     try:
+        context_kind = args.context_provider
+        if context_kind == "auto":
+            context_kind = "fixture" if args.provider == "fixture" else "tavily"
+        context_provider = _build_context_provider(
+            context_kind,
+            settings=settings,
+            whitelist=whitelist,
+            repositories=repositories,
+        )
+        store = _build_vector_store(args.vector_store, settings)
+        embeddings = _build_embedding_provider(args, settings)
+        chunker = RecursiveChunker(
+            ChunkingConfig(
+                chunk_size_tokens=settings.pipeline.chunk_size_tokens,
+                overlap_tokens=settings.pipeline.chunk_overlap_tokens,
+            )
+        )
+        run_context = RunContext.create(actor="ingest")
+        sink: ProgressSink = (
+            CallbackProgressSink(_print_progress) if args.progress else NullProgressSink()
+        )
+        reporter = ProgressReporter(
+            run_id=run_context.run_id,
+            sink=sink,
+            stage=ProgressStage.INGEST,
+            agent="research-orchestrator",
+            total=len(game_ids),
+        )
+        orchestrator = ResearchOrchestrator(
+            historical_provider=historical_provider,
+            context_provider=context_provider,
+            source_whitelist=whitelist,
+            leakage_filter=LeakageFilter(strict=settings.pipeline.leakage_strict),
+            repositories=repositories,
+            vector_store=store,
+            embedding_provider=embeddings,
+            chunker=chunker,
+            batch_size=args.batch_size or settings.pipeline.research_batch_size,
+            progress=reporter,
+        )
         result = run_historical_ingestion_pipeline(
             orchestrator=orchestrator,
             season=args.season,
@@ -462,10 +502,11 @@ def _run_ingest(args: argparse.Namespace) -> int:
             run_context=run_context,
         )
     finally:
+        for provider in (context_provider, historical_provider):
+            close = getattr(provider, "close", None)
+            if callable(close):
+                close()
         repositories.close()
-        close = getattr(historical_provider, "close", None)
-        if callable(close):
-            close()
 
     text = json.dumps(result.model_dump(mode="json"), indent=2, sort_keys=True)
     print(text)

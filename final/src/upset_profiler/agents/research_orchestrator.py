@@ -186,9 +186,16 @@ class ResearchOrchestrator(BaseAgent):
                 status=ProgressStatus.STARTED,
                 total=len(unique_ids),
             )
+            prefetched_games, prefetch_errors = self._prefetch_games(batch)
+            for error in prefetch_errors:
+                issues.append(self._issue_from_agent_error(error))
+                failed_id = error.context.get("game_id")
+                if isinstance(failed_id, str):
+                    historical_error_ids.add(failed_id)
             historical_worker = HistoricalStatsAgent(
                 self._historical_provider,
                 progress=self.progress,
+                prefetched=prefetched_games,
             )
             context_worker = ContextResearchAgent(
                 self._context_provider,
@@ -196,8 +203,23 @@ class ResearchOrchestrator(BaseAgent):
             )
             tasks: dict[str, Callable[[], Any]] = {
                 "historical-stats": partial(historical_worker.run, batch),
-                "context-research": partial(context_worker.run, batch),
             }
+            research_ids = [
+                game_id for game_id in batch.game_ids if game_id in prefetched_games
+            ]
+            if len(research_ids) != len(batch.game_ids):
+                self._report(
+                    f"skipping context research for "
+                    f"{len(batch.game_ids) - len(research_ids)} unresolved games in "
+                    f"{batch.batch_id}"
+                )
+            if research_ids:
+                context_batch = (
+                    batch
+                    if len(research_ids) == len(batch.game_ids)
+                    else batch.model_copy(update={"game_ids": research_ids})
+                )
+                tasks["context-research"] = partial(context_worker.run, context_batch)
             for outcome in run_parallel(tasks, max_workers=len(tasks)):
                 if outcome.error is not None:
                     issues.append(
@@ -276,6 +298,52 @@ class ResearchOrchestrator(BaseAgent):
             documents_stored=documents_stored,
             chunks_indexed=chunks_indexed,
         )
+
+    def _prefetch_games(
+        self, batch: ResearchBatch
+    ) -> tuple[dict[str, HistoricalGame], list[AgentErrorRecord]]:
+        """Resolve and persist a batch's games before research starts.
+
+        Context-Research stamps every search with the game's tip-off: it bounds
+        the search window (``end_date``) and it is part of the search-cache key
+        (ADR-006). The ``games`` table is only written after both workers join,
+        so on a cold run the tip-off was unknown, the response was cached under a
+        different key with a TTL instead of a permanent row, and re-running the
+        same season spent a second Tavily credit per game.
+
+        Resolving the games here keeps the tip-off known *before* any search is
+        issued. The retrieved games are passed to Historical-Stats so the
+        provider is called exactly once, and the parallel worker fan-out is
+        unchanged. Games that cannot be resolved are reported here and are
+        excluded from Context-Research: a game with no statistics is dropped
+        later as ``missing_historical_game``, so searching for it would spend a
+        credit on a record that never lands.
+        """
+        season = batch.season
+        if season is None:
+            return {}, []
+        games: dict[str, HistoricalGame] = {}
+        errors: list[AgentErrorRecord] = []
+        for game_id in batch.game_ids:
+            try:
+                game = self._historical_provider.get_game(game_id, season)
+            except Exception as exc:
+                errors.append(
+                    AgentErrorRecord.from_exception(
+                        exc,
+                        agent="historical-stats",
+                        stage="research",
+                        context={"game_id": game_id, "batch_id": batch.batch_id},
+                    )
+                )
+                continue
+            self._repositories.games.save_historical(game)
+            games[game_id] = game
+        self._report(
+            f"resolved tip-off dates for {len(games)}/{len(batch.game_ids)} games "
+            f"in {batch.batch_id}"
+        )
+        return games, errors
 
     def _apply_document_policy(
         self,

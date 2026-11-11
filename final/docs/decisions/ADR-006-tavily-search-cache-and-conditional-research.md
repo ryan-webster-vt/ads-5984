@@ -1,6 +1,7 @@
 # ADR-006: Tavily search, a SQLite search cache, and conditional live research
 
-- **Status:** Accepted (implementation staged; see "Staging" below)
+- **Status:** Accepted; stages A and B implemented in Phase 4.5 (2026-11-10);
+  stages C and D remain gated to Phases 5–7
 - **Date:** 2026-11-10
 - **Deciders:** Project author
 - **Related requirements:** R4–R8, R22, R24, R25
@@ -154,15 +155,47 @@ Consequences:
 
 ## Staging
 
-| Stage | Scope | Phase |
-|---|---|---|
-| A | `TavilyContextResearchProvider`, settings, `--context-provider tavily`, tests | 4.5 (now) |
-| B | SQLite search cache (normalization, keys, TTL), cache-first reads, tests | 4.5 (now) |
-| C | Chroma semantic retrieval over cached documents | 5 |
-| D | `ContextGap` contract and gap-driven orchestration | 6/7 |
+| Stage | Scope | Phase | Status |
+|---|---|---|---|
+| A | `TavilyContextResearchProvider`, settings, `--context-provider tavily`, tests | 4.5 (now) | Implemented |
+| B | SQLite search cache (normalization, keys, TTL), cache-first reads, tests | 4.5 (now) | Implemented |
+| C | Chroma semantic retrieval over cached documents | 5 | Gated |
+| D | `ContextGap` contract and gap-driven orchestration | 6/7 | Gated |
 
 Stage D is the only part that changes pipeline ordering; A and B are additive and
 can ship without touching agent flow.
+
+### Stage A/B implementation notes
+
+- `integrations/tavily.py` implements `TavilyContextResearchProvider` over the
+  shared HTTP client. `--context-provider` now accepts
+  `auto`/`fixture`/`tavily`/`mcp`/`none`; `auto` resolves to `fixture` with
+  fixture stats and `tavily` with live stats. The MCP adapters stay selectable.
+- `config.py` exposes `TavilySettings`; `.env.example` documents the placeholders.
+- `storage/schema_v2.sql` adds `search_queries` and `search_hits`.
+  `services/search_cache.py` owns normalization, parameter fingerprints, query
+  hashes, and the TTL policy; `SearchCacheRepository` owns SQL.
+- Both providers and cache rows are typed contracts (`SearchHitRecord`,
+  `CachedSearchResponse`) and are exported to `docs/contracts/`.
+- Because the Context-Research worker runs in a thread, the shared SQLite
+  connection uses `check_same_thread=False` and a re-entrant lock serializes
+  statement/transaction access.
+- The Context-Research protocol receives only `game_id`/`season`, so tip-off
+  comes from an injected lookup over the `games` table. The orchestrator now
+  resolves and persists each batch's games *before* dispatching the workers
+  (`ResearchOrchestrator._prefetch_games`), and hands the same games to
+  Historical-Stats so the provider is called exactly once. Without that, a cold
+  run searched before the `games` row existed: the request omitted `end_date`, the
+  response was cached under a different `params_hash` with a 24h TTL instead of a
+  permanent row, and re-running the season spent a second credit per game. The
+  prefetch keeps the tip-off known before any search is issued, so the cache key
+  is stable from the first run; the deterministic client-side leakage filter
+  still applies when a game genuinely cannot be resolved.
+- A game whose statistics cannot be resolved is **not searched for**. Such a
+  record is quarantined as `missing_historical_game`, so a search would spend a
+  credit on a document set that is never persisted; Context-Research is scoped to
+  the resolved ids of the batch instead. The e2e cache test therefore expects
+  three Tavily calls for four requested games.
 
 ## Consequences
 

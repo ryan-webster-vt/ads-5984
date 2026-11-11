@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+import threading
 from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -12,6 +13,19 @@ from pathlib import Path
 from upset_profiler.errors import StorageError
 
 SCHEMA_PATH = Path(__file__).with_name("schema.sql")
+SCHEMA_V2_PATH = Path(__file__).with_name("schema_v2.sql")
+
+# Workers run in threads while sharing one SQLite connection (ADR-006 cache
+# reads happen inside the Context-Research worker). A single re-entrant lock
+# serializes statement and transaction access across threads.
+_DATABASE_LOCK = threading.RLock()
+
+
+@contextmanager
+def database_lock() -> Iterator[None]:
+    """Serialize access to the shared SQLite connection across threads."""
+    with _DATABASE_LOCK:
+        yield
 
 
 @dataclass(frozen=True)
@@ -26,7 +40,14 @@ class Migration:
 @lru_cache(maxsize=1)
 def load_migrations() -> tuple[Migration, ...]:
     """Return the ordered migrations shipped with the package."""
-    return (Migration(version=1, name="initial_schema", sql=SCHEMA_PATH.read_text("utf-8")),)
+    return (
+        Migration(version=1, name="initial_schema", sql=SCHEMA_PATH.read_text("utf-8")),
+        Migration(
+            version=2,
+            name="search_response_cache",
+            sql=SCHEMA_V2_PATH.read_text("utf-8"),
+        ),
+    )
 
 
 def connect(
@@ -40,12 +61,22 @@ def connect(
     ``database`` may be a filesystem path or ``":memory:"`` for tests.
     """
     if str(database) == ":memory:":
-        connection = sqlite3.connect(":memory:", timeout=timeout, isolation_level=None)
+        connection = sqlite3.connect(
+            ":memory:",
+            timeout=timeout,
+            isolation_level=None,
+            check_same_thread=False,
+        )
     else:
         path = Path(database)
         if create_parent:
             path.parent.mkdir(parents=True, exist_ok=True)
-        connection = sqlite3.connect(str(path), timeout=timeout, isolation_level=None)
+        connection = sqlite3.connect(
+            str(path),
+            timeout=timeout,
+            isolation_level=None,
+            check_same_thread=False,
+        )
 
     connection.row_factory = sqlite3.Row
     try:
@@ -128,11 +159,12 @@ def initialize_database(
 @contextmanager
 def transaction(connection: sqlite3.Connection) -> Iterator[sqlite3.Connection]:
     """Run a block inside an explicit SQLite transaction."""
-    try:
-        connection.execute("BEGIN")
-        yield connection
-    except BaseException:
-        connection.rollback()
-        raise
-    else:
-        connection.commit()
+    with database_lock():
+        try:
+            connection.execute("BEGIN")
+            yield connection
+        except BaseException:
+            connection.rollback()
+            raise
+        else:
+            connection.commit()

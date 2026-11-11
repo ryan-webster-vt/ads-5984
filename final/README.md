@@ -11,20 +11,23 @@ Streamlit front end.
 
 ## Status
 
-**Phase 4: historical research ingestion complete.** The repository contains
-strict Pydantic contracts for every agent handoff, checked-in JSON Schemas under
-`docs/contracts/`, a migrated SQLite schema with typed repositories, a shared
-HTTP client base with timeouts/retries/rate limiting, thread-safe progress
-events, fixture loaders, and a working daily pipeline. Phase 2 delivered the
-fixture-backed Monitor/Scorer slice; Phase 3 added the live ESPN scoreboard,
-SQLite caching, and the Streamlit UI. Phase 4 adds the Research-Orchestrator
-with parallel Historical-Stats and Context-Research workers, fixture and ESPN
-historical providers, optional MCP search/fetch/deep-research adapters,
-deterministic source whitelisting and tip-off leakage filtering, recursive
-document chunking, embeddings, SQLite/Chroma persistence, quarantine handling,
-and the `ingest` admin command. The live Extractor/statistical validation, RAG
-reranking, real Upset-Scorer, and backtesting remain later phases per
-`IMPLEMENTATION_PLAN.md`.
+**Phase 4.5: Tavily search backend and SQLite search cache complete.** The
+repository contains strict Pydantic contracts for every agent handoff,
+checked-in JSON Schemas under `docs/contracts/`, a migrated SQLite schema with
+typed repositories, a shared HTTP client base with
+timeouts/retries/rate limiting, thread-safe progress events, fixture loaders,
+and a working daily pipeline. Phase 2 delivered the fixture-backed
+Monitor/Scorer slice; Phase 3 added the live ESPN scoreboard, SQLite caching,
+and the Streamlit UI. Phase 4 adds the Research-Orchestrator with parallel
+Historical-Stats and Context-Research workers, fixture and ESPN historical
+providers, optional MCP search/fetch/deep-research adapters, deterministic
+source whitelisting and tip-off leakage filtering, recursive document chunking,
+embeddings, SQLite/Chroma persistence, quarantine handling, and the `ingest`
+admin command. Phase 4.5 (ADR-006 stages A/B) makes Tavily the default
+Context-Research search backend and caches normalized search responses in
+SQLite so repeated queries spend no credits; the MCP adapters remain selectable.
+The live Extractor/statistical validation, RAG reranking, real Upset-Scorer, and
+backtesting remain later phases per `IMPLEMENTATION_PLAN.md`.
 
 ## Problem
 
@@ -66,7 +69,7 @@ and 5. The approved sequence diagrams are in `docs/uml/`.
 
 | Phase | Main components |
 |---|---|
-| A. Historical research ingestion | Research-Orchestrator, Historical-Stats, Context-Research, College Basketball API, MCP (Brave/Fetch/Deep Research), Pydantic, SQLite, ChromaDB, `qwen3-embedding:8b` |
+| A. Historical research ingestion | Research-Orchestrator, Historical-Stats, Context-Research, College Basketball API, Tavily search (default) with MCP (Brave/Fetch/Deep Research) still selectable, SQLite search cache, Pydantic, SQLite, ChromaDB, `qwen3-embedding:8b` |
 | B. Precondition extraction | Extractor, ChromaDB retrieval, `d3-mini` reranker, statistical validation tools, `validated_preconditions` table |
 | C. Daily monitoring and scoring | Streamlit UI, ESPN API, Monitor-Orchestrator, parallel Monitor workers, Upset-Scorer, `d3-mini` |
 | D. Offline validation | Backtesting, log loss, Brier score, calibration plot, held-out test season |
@@ -157,9 +160,13 @@ python3 -m upset_profiler ingest --season 2024-2025
 python3 -m upset_profiler ingest --season 2024-2025 --vector-store chroma \
   --embedding-provider http --database data/db/upset_profiler.db
 
-# Ingest selected live ESPN game ids (requires MCP configuration for context)
+# Ingest selected live ESPN game ids (auto uses Tavily for context research)
 python3 -m upset_profiler ingest --season 2024-2025 --provider espn \
   --game-id 401000001 --game-id 401000002
+
+# Use Tavily explicitly (requires TAVILY_API_KEY) or skip context research
+python3 -m upset_profiler ingest --season 2024-2025 --context-provider tavily
+python3 -m upset_profiler ingest --season 2024-2025 --context-provider none
 
 # Ingest a whole live season: ESPN cannot enumerate, so collect ids first
 python3 scripts/collect_espn_game_ids.py --season 2021-2022 \
@@ -188,12 +195,14 @@ python3 scripts/export_contracts.py --check
 ```
 
 `ingest` is implemented for the fixture-backed historical path; it also supports
-the live ESPN summary provider, optional MCP context research, Chroma when the
-`rag` extra is installed, and HTTP embeddings when credentials are configured.
-`demo` is implemented for the fixture-backed daily slice, and the daily live path
-is available through the Streamlit UI. `extract`, `monitor`, and `backtest`
-remain registered but intentionally exit with a "not implemented" message until
-their phases land.
+the live ESPN summary provider, Tavily (default) or MCP context research,
+`--context-provider none` for statistics-only runs, Chroma when the `rag` extra
+is installed, and HTTP embeddings when credentials are configured. Search
+responses are replayed from the SQLite `search_queries`/`search_hits` cache when
+the normalized query and parameters match. `demo` is implemented for the
+fixture-backed daily slice, and the daily live path is available through the
+Streamlit UI. `extract`, `monitor`, and `backtest` remain registered but
+intentionally exit with a "not implemented" message until their phases land.
 
 ## Testing
 
@@ -216,6 +225,7 @@ python3 -m pytest --cov=upset_profiler --cov-report=term-missing
 | 2 | Fixture-backed end-to-end multi-agent slice and `demo` CLI | ✅ Complete |
 | 3 | Real ESPN slate, Streamlit UI, cache | ✅ Complete |
 | 4 | Historical research ingestion | ✅ Complete |
+| 4.5 | Tavily Context-Research provider and SQLite search cache (ADR-006 A/B) | ✅ Complete |
 | 5 | RAG retrieval and reranking | ⬜ Not started |
 | 6 | Extractor and statistical validation | ⬜ Not started |
 | 7 | Real Upset-Scorer | ⬜ Not started |

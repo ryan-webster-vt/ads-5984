@@ -23,20 +23,23 @@ it, and document any such change in `IMPLEMENTATION_PLAN.md` Sections 12–13.
 
 ## Current status
 
-**Phase 4 complete.** The repository contains the Phase 1 contracts and core
+**Phase 4.5 complete.** The repository contains the Phase 1 contracts and core
 infrastructure, the Phase 2 fixture-backed multi-agent slice, the Phase 3 daily
-path, and the Phase 4 historical ingestion path. Phase 4 adds fixture/ESPN
-historical providers, optional MCP context research, source whitelisting,
-tip-off leakage filtering, recursive chunking, embeddings, SQLite/Chroma
-persistence, quarantine handling, the Research-Orchestrator with parallel
-Historical-Stats and Context-Research workers, and the `ingest` CLI. All
-quality gates pass offline; live adapters use captured fixtures and optional
-extras.
+path, the Phase 4 historical ingestion path, and ADR-006 stages A and B. Phase 4
+adds fixture/ESPN historical providers, optional MCP context research, source
+whitelisting, tip-off leakage filtering, recursive chunking, embeddings,
+SQLite/Chroma persistence, quarantine handling, the Research-Orchestrator with
+parallel Historical-Stats and Context-Research workers, and the `ingest` CLI.
+Phase 4.5 adds the Tavily Context-Research provider (default search backend),
+typed `TAVILY_*` settings, `--context-provider tavily|none`, migration v2
+(`search_queries`/`search_hits`), normalized query keys/TTLs, cache-first reads,
+and thread-safe SQLite access for the parallel worker. All quality gates pass
+offline; live adapters use captured fixtures and optional extras.
 
 Do not implement RAG retrieval/reranking, statistical precondition extraction,
 the real Upset-Scorer, or backtesting until the user explicitly approves Phase
-5. The next approved task is ADR-006 stages A and B (Tavily Context-Research
-provider plus the SQLite search cache); Phase 5 is stage C and remains gated.
+5. ADR-006 stages C (Chroma retrieval) and D (`ContextGap`, gap-driven
+orchestration) remain gated; Phase 5 is stage C.
 
 ## Hard constraints
 

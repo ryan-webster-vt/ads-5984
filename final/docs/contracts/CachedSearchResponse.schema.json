@@ -1,0 +1,232 @@
+{
+  "$defs": {
+    "SearchHitRecord": {
+      "additionalProperties": false,
+      "description": "One cached search result for a normalized provider query.\n\nRows are stored in SQLite, never in Chroma: Chroma answers semantic\nquestions, while this contract exists so an identical query can be replayed\nwithout spending another search credit (ADR-006 Decision 2).",
+      "properties": {
+        "canonical_url": {
+          "minLength": 1,
+          "title": "Canonical Url",
+          "type": "string"
+        },
+        "content": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Content"
+        },
+        "content_hash": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Content Hash"
+        },
+        "metadata": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "Metadata",
+          "type": "object"
+        },
+        "published_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Published At"
+        },
+        "retrieved_at": {
+          "format": "date-time",
+          "title": "Retrieved At",
+          "type": "string"
+        },
+        "score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Score"
+        },
+        "source_domain": {
+          "minLength": 1,
+          "title": "Source Domain",
+          "type": "string"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url",
+        "canonical_url",
+        "source_domain"
+      ],
+      "title": "SearchHitRecord",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A provider search response reused through a deterministic query key.",
+  "properties": {
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "credits_used": {
+      "default": 0.0,
+      "minimum": 0.0,
+      "title": "Credits Used",
+      "type": "number"
+    },
+    "expires_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Expires At"
+    },
+    "game_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Game Id"
+    },
+    "hits": {
+      "items": {
+        "$ref": "#/$defs/SearchHitRecord"
+      },
+      "title": "Hits",
+      "type": "array"
+    },
+    "last_used_at": {
+      "format": "date-time",
+      "title": "Last Used At",
+      "type": "string"
+    },
+    "normalized_query": {
+      "minLength": 1,
+      "title": "Normalized Query",
+      "type": "string"
+    },
+    "params_hash": {
+      "minLength": 1,
+      "title": "Params Hash",
+      "type": "string"
+    },
+    "payload": {
+      "additionalProperties": true,
+      "title": "Payload",
+      "type": "object"
+    },
+    "provider": {
+      "minLength": 1,
+      "title": "Provider",
+      "type": "string"
+    },
+    "query_hash": {
+      "minLength": 1,
+      "title": "Query Hash",
+      "type": "string"
+    },
+    "result_count": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Result Count",
+      "type": "integer"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "season": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Season"
+    }
+  },
+  "required": [
+    "query_hash",
+    "normalized_query",
+    "provider",
+    "params_hash"
+  ],
+  "title": "CachedSearchResponse",
+  "type": "object"
+}

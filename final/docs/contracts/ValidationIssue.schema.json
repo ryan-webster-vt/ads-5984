@@ -8,6 +8,7 @@
       "type": "string"
     },
     "context": {
+      "additionalProperties": true,
       "title": "Context",
       "type": "object"
     },

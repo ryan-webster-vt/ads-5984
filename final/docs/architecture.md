@@ -18,9 +18,11 @@ research with a **sequential pipeline** for extraction, monitoring, and scoring,
 plus **parallel Monitor workers** for independent per-game evaluation. The
 Research-Orchestrator fans historical work out to Historical-Stats (structured
 box scores from a sports API) and Context-Research (cited documents through
-MCP tools), joins results by `game_id`, and validates every record with
-Pydantic. Structured data goes to SQLite; documents are chunked, embedded with
-`qwen3-embedding:8b`, and stored in ChromaDB. The Extractor tests candidate
+Tavily search, with MCP tools still selectable), joins results by `game_id`, and
+validates every record with Pydantic. Structured data goes to SQLite; normalized
+search responses are cached in SQLite for exact-query replay; documents are
+chunked, embedded with `qwen3-embedding:8b`, and stored in ChromaDB for semantic
+retrieval only. The Extractor tests candidate
 preconditions with deterministic statistics and persists accepted signals in a
 separate table. At runtime, the Monitor-Orchestrator partitions the selected
 slate across workers, which compare evidence to validated preconditions and
@@ -34,10 +36,10 @@ Streamlit displays the slate, progress, rankings, and citations.
 | UI | Streamlit app and components | Slate display, filters/sorting/selection, run control, progress, results, citations |
 | Agents | Research-Orchestrator, Historical-Stats, Context-Research, Extractor, Monitor-Orchestrator, Monitor workers, Upset-Scorer | Role-specific work with typed handoffs |
 | Orchestration | Runtime, progress, pipelines | Batching, thread pools, cancellation, per-game isolation, progress events |
-| Services | Slate, ingestion, extraction, monitoring, scoring, caching, backtesting | Use cases composed from agents and integrations |
+| Services | Slate, ingestion, extraction, monitoring, scoring, caching, search cache, backtesting | Use cases composed from agents and integrations |
 | Contracts | `models/*` Pydantic modules | Strict schemas for every boundary and stored record |
-| Storage | SQLite, ChromaDB | Structured records, research, preconditions, runs, cache, quarantine; cited documents |
-| Integrations | LLM, embeddings, decision model, ESPN (`espn.py`), College Basketball API, MCP | All network access with timeouts, retries, and rate limiting |
+| Storage | SQLite, ChromaDB | Structured records, research, preconditions, runs, caches, quarantine; cited documents |
+| Integrations | LLM, embeddings, decision model, ESPN (`espn.py`), College Basketball API, Tavily, MCP | All network access with timeouts, retries, and rate limiting |
 | RAG | Chunking, retrieval, reranking | Recursive chunking, filtered retrieval, `d3-mini` reranking |
 | Security | Whitelist, leakage filter, citation verifier | Prompt-injection resistance, no post-tip-off data, supported claims |
 | Statistics | Validation, metrics, backtesting | Effect sizes, confidence intervals, significance, FDR, out-of-sample tests, log loss, Brier score |
@@ -96,13 +98,35 @@ chunks/embeds documents into the vector store. `services/ingestion.py` and
 CLI exercises it offline by default. RAG retrieval/reranking, the extractor,
 the real Upset-Scorer, and backtesting remain later phases.
 
+## Phase 4.5 implementation status (ADR-006 stages A/B)
+
+`integrations/tavily.py` adds `TavilyContextResearchProvider`, the default
+Context-Research search backend. One `/search` request sends
+`include_raw_content` and `include_published_date`, restricts `include_domains`
+to `config/sources.yaml`, and adds `end_date` plus `filter_by_published_date`
+when the game's tip-off is known. The deterministic `SourceWhitelist` and
+`LeakageFilter` still run client-side and remain authoritative; MCP adapters
+remain present, tested, and selectable.
+
+Migration v2 adds `search_queries` and `search_hits`. `services/search_cache.py`
+owns the pure query normalization (NFKC, casefold, whitespace collapse,
+surrounding-punctuation strip, token order preserved), parameter fingerprint,
+query hash, and TTL policy (historical rows never expire, live rows use
+`CACHE_TTL_SECONDS`). The provider reads the cache before any network call and
+stores every parsed hit for auditing, including non-whitelisted domains.
+`storage/sqlite.py` opens the shared connection with thread support and
+serializes statement/transaction access with a re-entrant lock because cache
+reads run inside the parallel Context-Research worker. Chroma is not involved.
+
 ## Phase flow
 
 ### A. Historical research ingestion (one-time, admin)
 
 Research-Orchestrator → batches of game IDs → parallel Historical-Stats and
-Context-Research → join by `game_id` → Pydantic validation → valid records to
-SQLite, cited documents to ChromaDB, invalid records to quarantine.
+Context-Research (Tavily default, MCP optional, cache-first) → join by `game_id`
+→ Pydantic validation → valid records to SQLite, cited documents to ChromaDB,
+normalized search responses to the SQLite search cache, invalid records to
+quarantine.
 
 ### B. Statistical precondition extraction (one-time, admin)
 

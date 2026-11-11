@@ -524,6 +524,16 @@ MCP_DEEP_RESEARCH_COMMAND=
 MCP_DEEP_RESEARCH_URL=
 MCP_TIMEOUT_SECONDS=120
 
+# Tavily (default Context-Research search backend, ADR-006)
+TAVILY_API_KEY=
+TAVILY_BASE_URL=https://api.tavily.com
+TAVILY_SEARCH_DEPTH=basic
+TAVILY_TOPIC=general
+TAVILY_MAX_RESULTS=5
+TAVILY_INCLUDE_RAW_CONTENT=true
+TAVILY_KEYLESS=false
+TAVILY_TIMEOUT_SECONDS=30
+
 # Storage
 SQLITE_PATH=./data/db/upset_profiler.db
 CHROMA_PATH=./data/chroma
@@ -570,9 +580,19 @@ Core tables:
 - `monitor_results`
 - `upset_scores`
 - `cache_entries`
+- `search_queries`
+- `search_hits`
 - `backtest_predictions`
 
 Use normalized core fields plus JSON payload columns for provider-specific statistics. Store JSON booleans/dates consistently and keep timestamps in UTC.
+
+`search_queries` stores one row per normalized provider request (`query_hash`,
+normalized text, provider, parameter fingerprint, game/season, timestamps,
+nullable `expires_at`, result/credit counts, diagnostics payload).
+`search_hits` stores one row per returned URL with canonical URL, domain, title,
+score, publication/retrieval timestamps, content/hash, and JSON metadata,
+cascading from `search_queries`. Both are populated by the SQLite search cache
+(ADR-006); Chroma holds only chunked `SourceDocument` text for semantic recall.
 
 ### 8.4 ChromaDB collections
 
@@ -602,7 +622,7 @@ All models inherit a strict base with `extra="forbid"`. Aggregate models include
 |---|---|
 | `common.py` | `TeamRef`, `Citation`, `Provenance`, `ValidationIssue`, `AgentError`, `RunContext` |
 | `games.py` | `GameOdds`, `TeamStatistics`, `PlayerStatistics`, `HistoricalGame`, `DailyGame`, `DailySlate` |
-| `research.py` | `ResearchBatch`, `HistoricalStatsResult`, `SourceDocument`, `ContextResearchResult`, `ResearchRecord`, `ResearchAggregate` |
+| `research.py` | `ResearchBatch`, `HistoricalStatsResult`, `SourceDocument`, `ContextResearchResult`, `SearchHitRecord`, `CachedSearchResponse`, `ResearchRecord`, `ResearchAggregate` |
 | `evidence.py` | `DocumentChunk`, `RetrievedEvidence`, `RerankedEvidence`, `Claim` |
 | `preconditions.py` | `CandidatePrecondition`, `EffectSize`, `StatisticalTest`, `OutOfSampleResult`, `PreconditionDecision`, `ValidatedPrecondition`, `ExtractionResult` |
 | `monitoring.py` | `MonitorRequest`, `GameContext`, `SignalMatch`, `GameFlag`, `MonitorWorkerResult`, `MonitorAggregate` |
@@ -691,7 +711,7 @@ the fixture path end-to-end, and reruns upsert the same deterministic document
 and chunk ids. RAG retrieval/reranking, statistical precondition extraction, the
 real Upset-Scorer, and backtesting remain later phases.
 
-**Phase 4.5 status: approved, not yet implemented** (see
+**Phase 4.5 status: complete** (see
 `docs/decisions/ADR-006-tavily-search-cache-and-conditional-research.md`). Three
 approved changes to the research path: Tavily's free tier becomes the default
 Context-Research search backend; search responses are cached in SQLite behind
@@ -700,6 +720,18 @@ caching); and live research becomes conditional — compute structured
 preconditions first, retrieve existing evidence second, search only for genuine
 gaps. Stages A (Tavily provider) and B (SQLite search cache) are additive and do
 not change agent flow; Stage C belongs to Phase 5 and Stage D to Phases 6–7.
+
+Stage A adds `TavilyContextResearchProvider` (`integrations/tavily.py`), typed
+`TAVILY_*` settings, and CLI choices `--context-provider tavily|none` alongside
+the existing `fixture`/`mcp` adapters. One `/search` request sends
+`include_raw_content`, `include_published_date`, restricted `include_domains`,
+and — when the game's tip-off is known from the `games` table — `end_date` plus
+`filter_by_published_date`. The deterministic `SourceWhitelist` and
+`LeakageFilter` still run client-side and remain authoritative. Stage B adds
+migration v2 (`search_queries`, `search_hits`), a pure normalization/key/TTL
+service (`services/search_cache.py`), a typed repository, and cache-first reads
+so a repeated query makes zero network calls. SQLite access is serialized across
+worker threads with a re-entrant database lock; Chroma is untouched.
 
 ### 10.1 Parallel work tracks
 
@@ -794,7 +826,7 @@ Build the minimal working end-to-end multi-agent system with fixtures first (Pha
 | R2 | `ui/components/slate_table.py`, `services/slate.py` | UI filter/selection tests |
 | R3 | `services/monitoring.py`, `ui/state.py` | E2E rerun test |
 | R4 | `agents/research_orchestrator.py`, `historical_stats.py`, `context_research.py` | Integration fixture test |
-| R5 | `integrations/mcp.py`, `college_basketball.py` | Stub MCP/API tests; `pickcenter` odds precedence tests; stdio command/argv and `BRAVE_API_KEY` environment tests |
+| R5 | `integrations/tavily.py`, `integrations/mcp.py`, `college_basketball.py` | Stub Tavily/MCP/API tests (`tests/unit/test_tavily.py`, `test_mcp.py`); `pickcenter` odds precedence tests; stdio command/argv and `BRAVE_API_KEY` environment tests; MCP adapters remain selectable |
 | R6 | `orchestration/runtime.py` | `tests/unit/test_runtime.py`; parallel monitor integration test |
 | R7 | `services/ingestion.py`, `models/research.py` | Join and schema validation tests |
 | R8 | `storage/sqlite.py`, `storage/chroma.py`, `rag/rerank.py`, `integrations/embeddings.py` | Storage/RAG integration tests |
@@ -812,8 +844,8 @@ Build the minimal working end-to-end multi-agent system with fixtures first (Pha
 | R20 | `config.py`, `.env.example`, `.gitignore` | Config/secrets tests |
 | R21 | `models/*` | Contract tests |
 | R22 | `errors.py`, `integrations/base.py`, partial-result handling | Failure-injection tests |
-| R23 | `services/cache.py`, SQLite `cache_entries` table | Cache hit/TTL tests |
-| R24 | `security/leakage.py`, `SourceDocument.published_at` | Timestamp leakage tests |
+| R23 | `services/cache.py`, `services/search_cache.py`, SQLite `cache_entries`/`search_queries` tables | Cache hit/TTL tests; `tests/unit/test_search_cache_keys.py`, `tests/integration/test_search_cache.py`, CLI Tavily replay test |
+| R24 | `security/leakage.py`, `integrations/tavily.py`, `SourceDocument.published_at` | Timestamp leakage tests; Tavily `end_date`/`filter_by_published_date` request test plus client-side filter test |
 | R25 | `stats/backtest.py`, `stats/metrics.py` | Season-split/calibration tests |
 
 ---
@@ -881,6 +913,20 @@ Build the minimal working end-to-end multi-agent system with fixtures first (Pha
     updated") and is treated as a hint; the deterministic client-side leakage
     filter remains authoritative, and strict mode still rejects undated
     documents.
+23. The Context-Research protocol carries only `game_id` and `season`, so the
+    Tavily provider resolves tip-off through an injected `game_lookup` backed by
+    the `games` table. When the game is not yet stored (first ingestion run), the
+    request omits `end_date` and `filter_by_published_date`, and the
+    deterministic client-side leakage filter remains the only timestamp gate.
+    Subsequent runs add the server-side bounds. Changing the provider protocol
+    was rejected by ADR-006, and pre-fetching every game summary just to learn
+    tip-off would double network traffic.
+24. The shared SQLite connection is opened with `check_same_thread=False` and
+    statement/transaction access is serialized by a re-entrant database lock,
+    because ADR-006 cache reads and writes happen inside the parallel
+    Context-Research worker while the Historical-Stats worker reads provider
+    data. Persistence of joined records still runs on the orchestrator thread
+    after each batch joins.
 
 ---
 

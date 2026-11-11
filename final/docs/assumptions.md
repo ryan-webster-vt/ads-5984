@@ -44,6 +44,21 @@ dependent phase begins.
     stdio/HTTP/SSE transports. Fixture documents are used for offline runs.
 19. Chunk sizing counts whitespace-delimited tokens, an intentionally simple
     deterministic approximation of model tokens.
+20. Tavily is the default Context-Research search backend (ADR-006). The MCP
+    Brave/Fetch/Deep Research adapters remain present, tested, and selectable.
+21. Search responses are cached in SQLite behind a normalized query key
+    (normalized text + provider + parameter fingerprint). ChromaDB is used only
+    for semantic retrieval over chunked documents, never as a response cache.
+    Historical rows never expire; live rows expire after `CACHE_TTL_SECONDS`.
+22. Tavily's `published_date` is a beta best-estimate and is treated as a hint;
+    strict leakage mode still rejects documents without a usable timestamp.
+23. Tip-off is resolved through an injected `game_lookup` backed by the `games`
+    table. On a first ingestion run the game may not yet be stored, so the
+    provider omits `end_date`/`filter_by_published_date` and relies on the
+    deterministic client-side leakage filter; later runs add server-side bounds.
+24. The shared SQLite connection uses `check_same_thread=False` with a
+    re-entrant database lock because cache reads/writes run in the parallel
+    Context-Research worker.
 
 ## Naming
 
