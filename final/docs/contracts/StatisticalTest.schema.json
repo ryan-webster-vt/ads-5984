@@ -1,0 +1,71 @@
+{
+  "additionalProperties": false,
+  "description": "Result of a hypothesis test for a candidate precondition.",
+  "properties": {
+    "adjusted_p_value": {
+      "anyOf": [
+        {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Adjusted P Value"
+    },
+    "alpha": {
+      "exclusiveMaximum": 1.0,
+      "exclusiveMinimum": 0.0,
+      "title": "Alpha",
+      "type": "number"
+    },
+    "multiple_testing_corrected": {
+      "default": false,
+      "title": "Multiple Testing Corrected",
+      "type": "boolean"
+    },
+    "notes": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Notes"
+    },
+    "p_value": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "P Value",
+      "type": "number"
+    },
+    "significant": {
+      "title": "Significant",
+      "type": "boolean"
+    },
+    "statistic": {
+      "title": "Statistic",
+      "type": "number"
+    },
+    "test_name": {
+      "minLength": 1,
+      "title": "Test Name",
+      "type": "string"
+    }
+  },
+  "required": [
+    "test_name",
+    "statistic",
+    "p_value",
+    "alpha",
+    "significant"
+  ],
+  "title": "StatisticalTest",
+  "type": "object"
+}

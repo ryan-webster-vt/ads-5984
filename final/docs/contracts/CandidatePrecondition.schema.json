@@ -1,0 +1,135 @@
+{
+  "$defs": {
+    "Comparison": {
+      "description": "Supported comparison operators for precondition thresholds.",
+      "enum": [
+        "equals",
+        "not_equals",
+        "greater_than",
+        "greater_than_or_equal",
+        "less_than",
+        "less_than_or_equal",
+        "in",
+        "not_in"
+      ],
+      "title": "Comparison",
+      "type": "string"
+    },
+    "Direction": {
+      "description": "Expected direction of a precondition's effect on upset risk.",
+      "enum": [
+        "higher_increases_upset_risk",
+        "lower_increases_upset_risk",
+        "non_directional"
+      ],
+      "title": "Direction",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A hypothesis that must pass deterministic statistical validation.",
+  "properties": {
+    "comparison": {
+      "$ref": "#/$defs/Comparison"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "description": {
+      "minLength": 1,
+      "title": "Description",
+      "type": "string"
+    },
+    "direction": {
+      "$ref": "#/$defs/Direction",
+      "default": "higher_increases_upset_risk"
+    },
+    "feature": {
+      "minLength": 1,
+      "title": "Feature",
+      "type": "string"
+    },
+    "min_sample_size": {
+      "anyOf": [
+        {
+          "minimum": 2,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Min Sample Size"
+    },
+    "name": {
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+    },
+    "precondition_id": {
+      "minLength": 1,
+      "title": "Precondition Id",
+      "type": "string"
+    },
+    "rationale": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Rationale"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source": {
+      "default": "seed",
+      "title": "Source",
+      "type": "string"
+    },
+    "tags": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Tags",
+      "type": "array"
+    },
+    "threshold": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "integer"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "title": "Threshold"
+    }
+  },
+  "required": [
+    "precondition_id",
+    "name",
+    "description",
+    "feature",
+    "comparison",
+    "threshold"
+  ],
+  "title": "CandidatePrecondition",
+  "type": "object"
+}

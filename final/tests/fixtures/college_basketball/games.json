@@ -1,0 +1,143 @@
+[
+  {
+    "schema_version": 1,
+    "game_id": "401000001",
+    "season": "2024-2025",
+    "game_date": "2024-12-10",
+    "tipoff_at": "2024-12-10T00:00:00Z",
+    "home_team": {
+      "team_id": "team-duke",
+      "name": "Duke Blue Devils",
+      "abbreviation": "DUKE",
+      "conference": "ACC",
+      "division": "D1"
+    },
+    "away_team": {
+      "team_id": "team-clemson",
+      "name": "Clemson Tigers",
+      "abbreviation": "CLEM",
+      "conference": "ACC",
+      "division": "D1"
+    },
+    "neutral_site": false,
+    "venue": "Cameron Indoor Stadium",
+    "completed": true,
+    "home_score": 78,
+    "away_score": 70,
+    "winner_team_id": "team-duke",
+    "odds": {
+      "provider": "fixture",
+      "favorite_team_id": "team-duke",
+      "underdog_team_id": "team-clemson",
+      "favorite_moneyline": -220,
+      "underdog_moneyline": 180,
+      "spread": -5.5,
+      "total": 145.5,
+      "captured_at": "2024-12-09T12:00:00Z"
+    },
+    "team_statistics": [],
+    "player_statistics": []
+  },
+  {
+    "schema_version": 1,
+    "game_id": "401000002",
+    "season": "2024-2025",
+    "game_date": "2025-01-05",
+    "tipoff_at": "2025-01-05T00:00:00Z",
+    "home_team": {
+      "team_id": "team-kansas",
+      "name": "Kansas Jayhawks",
+      "abbreviation": "KU",
+      "conference": "Big 12",
+      "division": "D1"
+    },
+    "away_team": {
+      "team_id": "team-tcu",
+      "name": "TCU Horned Frogs",
+      "abbreviation": "TCU",
+      "conference": "Big 12",
+      "division": "D1"
+    },
+    "neutral_site": false,
+    "venue": "Allen Fieldhouse",
+    "completed": true,
+    "home_score": 65,
+    "away_score": 70,
+    "winner_team_id": "team-tcu",
+    "odds": {
+      "provider": "fixture",
+      "favorite_team_id": "team-kansas",
+      "underdog_team_id": "team-tcu",
+      "favorite_moneyline": -310,
+      "underdog_moneyline": 250,
+      "spread": -7.5,
+      "total": 141.5,
+      "captured_at": "2025-01-04T12:00:00Z"
+    },
+    "team_statistics": [],
+    "player_statistics": []
+  },
+  {
+    "schema_version": 1,
+    "game_id": "401000003",
+    "season": "2024-2025",
+    "game_date": "2025-02-01",
+    "tipoff_at": "2025-02-01T19:00:00Z",
+    "home_team": {
+      "team_id": "team-gonzaga",
+      "name": "Gonzaga Bulldogs",
+      "abbreviation": "GONZ",
+      "conference": "WCC",
+      "division": "D1"
+    },
+    "away_team": {
+      "team_id": "team-saint-marys",
+      "name": "Saint Mary's Gaels",
+      "abbreviation": "SMC",
+      "conference": "WCC",
+      "division": "D1"
+    },
+    "neutral_site": false,
+    "venue": "McCarthey Athletic Center",
+    "completed": true,
+    "home_score": 80,
+    "away_score": 72,
+    "winner_team_id": "team-gonzaga",
+    "odds": {
+      "provider": "fixture",
+      "favorite_team_id": "team-gonzaga",
+      "underdog_team_id": "team-saint-marys",
+      "favorite_moneyline": -180,
+      "underdog_moneyline": 150,
+      "spread": -4.5,
+      "total": 148.5,
+      "captured_at": "2025-01-31T12:00:00Z"
+    },
+    "team_statistics": [],
+    "player_statistics": []
+  },
+  {
+    "schema_version": 1,
+    "game_id": "401000004",
+    "season": "2024-2025",
+    "game_date": "2025-02-15",
+    "tipoff_at": "2025-02-15T20:00:00Z",
+    "home_team": {
+      "team_id": "team-baylor",
+      "name": "Baylor Bears",
+      "abbreviation": "BAY",
+      "conference": "Big 12",
+      "division": "D1"
+    },
+    "away_team": {
+      "team_id": "team-iowa-state",
+      "name": "Iowa State Cyclones",
+      "abbreviation": "ISU",
+      "conference": "Big 12",
+      "division": "D1"
+    },
+    "neutral_site": false,
+    "venue": "Foster Pavilion",
+    "completed": true
+  }
+]

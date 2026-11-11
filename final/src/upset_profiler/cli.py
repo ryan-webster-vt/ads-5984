@@ -18,33 +18,57 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from upset_profiler import __version__
+from upset_profiler.agents.research_orchestrator import ResearchOrchestrator
 from upset_profiler.agents.upset_scorer import UpsetScorer
 from upset_profiler.config import DEFAULT_ENV_FILE, Settings, reset_settings_cache
 from upset_profiler.context import RunContext
 from upset_profiler.errors import ConfigurationError, UpsetProfilerError
 from upset_profiler.fixtures import FIXTURE_ROOT_ENV, load_json
+from upset_profiler.integrations.base import HttpClientConfig, create_http_client
+from upset_profiler.integrations.college_basketball import (
+    FixtureHistoricalStatsProvider,
+    build_espn_historical_provider,
+)
+from upset_profiler.integrations.embeddings import (
+    DeterministicEmbeddingProvider,
+    EmbeddingProvider,
+    OpenAICompatibleEmbeddingProvider,
+)
 from upset_profiler.integrations.fakes import (
     FixtureContextProvider,
+    FixtureContextResearchProvider,
     FixtureDecisionModel,
     FixtureSlateProvider,
 )
+from upset_profiler.integrations.mcp import build_mcp_context_provider
 from upset_profiler.logging_config import setup_logging
 from upset_profiler.models.preconditions import ValidatedPrecondition
-from upset_profiler.models.progress import ProgressEvent
+from upset_profiler.models.progress import ProgressEvent, ProgressStage
+from upset_profiler.orchestration.pipelines.ingestion import (
+    run_historical_ingestion_pipeline,
+)
 from upset_profiler.orchestration.pipelines.monitoring import (
     run_daily_monitoring_pipeline,
 )
 from upset_profiler.orchestration.progress import (
     CallbackProgressSink,
     NullProgressSink,
+    ProgressReporter,
     ProgressSink,
 )
+from upset_profiler.rag.chunking import ChunkingConfig, RecursiveChunker
+from upset_profiler.security.leakage import LeakageFilter
+from upset_profiler.security.source_whitelist import SourceWhitelist
 from upset_profiler.services.scoring import ScoringService
 from upset_profiler.services.slate import SlateService
-from upset_profiler.storage.repositories import bootstrap
+from upset_profiler.storage.chroma import (
+    DocumentVectorStore,
+    InMemoryVectorStore,
+    build_chroma_store,
+)
+from upset_profiler.storage.repositories import Repositories, bootstrap
 
 _NOT_IMPLEMENTED = {
-    "ingest": "Phase 4 (historical research ingestion)",
     "extract": "Phase 6 (extractor and statistical validation)",
     "monitor": "Phase 3/7 (daily monitoring and upset scoring)",
     "backtest": "Phase 8 (backtesting and validation)",
@@ -118,6 +142,81 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Write the ranked JSON to this path in addition to stdout",
     )
     demo.add_argument(
+        "--progress",
+        action="store_true",
+        help="Write agent progress events to stderr",
+    )
+
+    ingest = subparsers.add_parser(
+        "ingest",
+        help="Ingest a historical season for RAG-backed precondition research",
+    )
+    ingest.add_argument(
+        "--season",
+        default="2024-2025",
+        help="Season to ingest, e.g. 2024-2025 (default: 2024-2025)",
+    )
+    ingest.add_argument(
+        "--game-id",
+        action="append",
+        dest="game_ids",
+        metavar="GAME_ID",
+        help="Ingest only the given game id; may be repeated",
+    )
+    ingest.add_argument(
+        "--provider",
+        choices=["fixture", "espn"],
+        default="fixture",
+        help="Historical statistics provider (default: fixture)",
+    )
+    ingest.add_argument(
+        "--context-provider",
+        choices=["auto", "fixture", "mcp"],
+        default="auto",
+        help="Contextual research provider (default: fixture for fixture stats)",
+    )
+    ingest.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Limit the number of discovered games",
+    )
+    ingest.add_argument(
+        "--batch-size",
+        type=int,
+        default=None,
+        help="Games per research batch (default: RESEARCH_BATCH_SIZE)",
+    )
+    ingest.add_argument(
+        "--database",
+        default=None,
+        help="SQLite path (default: SQLITE_PATH; use :memory: for a dry run)",
+    )
+    ingest.add_argument(
+        "--vector-store",
+        choices=["auto", "memory", "chroma"],
+        default="auto",
+        help="Vector store backend (default: Chroma when installed, else memory)",
+    )
+    ingest.add_argument(
+        "--embedding-provider",
+        choices=["fixture", "http"],
+        default="fixture",
+        help="Embedding backend (default: deterministic fixture)",
+    )
+    ingest.add_argument(
+        "--fixture-root",
+        type=Path,
+        default=None,
+        help="Alternate fixture root (default: tests/fixtures)",
+    )
+    ingest.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help="Write the ingestion summary JSON to this path in addition to stdout",
+    )
+    ingest.add_argument(
         "--progress",
         action="store_true",
         help="Write agent progress events to stderr",
@@ -242,6 +341,141 @@ def _run_demo(args: argparse.Namespace) -> int:
     return 0
 
 
+def _load_settings(args: argparse.Namespace) -> Settings:
+    env_file = args.env_file if args.env_file and args.env_file.exists() else None
+    reset_settings_cache()
+    return Settings.load(env_file=env_file)
+
+
+def _build_vector_store(kind: str, settings: Settings) -> DocumentVectorStore:
+    if kind == "memory":
+        return InMemoryVectorStore()
+    if kind == "chroma":
+        return build_chroma_store(settings)
+    try:
+        return build_chroma_store(settings)
+    except ConfigurationError:
+        print(
+            "note: chromadb is not installed; using the in-memory vector store",
+            file=sys.stderr,
+        )
+        return InMemoryVectorStore()
+
+
+def _build_embedding_provider(args: argparse.Namespace, settings: Settings) -> EmbeddingProvider:
+    if args.embedding_provider == "fixture":
+        return DeterministicEmbeddingProvider()
+    base_url = settings.embeddings.embedding_base_url or settings.llm.base_url
+    if base_url is None:
+        raise ConfigurationError(
+            "EMBEDDING_BASE_URL or OPEN_AI_ENDPOINT is required for HTTP embeddings"
+        )
+    api_key = settings.embeddings.embedding_api_key or settings.llm.api_key
+    headers = (
+        {"Authorization": f"Bearer {api_key.get_secret_value()}"}
+        if api_key is not None
+        else {}
+    )
+    client = create_http_client(
+        HttpClientConfig(
+            base_url=base_url,
+            timeout_seconds=settings.llm.llm_timeout_seconds,
+            headers=headers,
+        )
+    )
+    return OpenAICompatibleEmbeddingProvider(
+        client,
+        model_name=settings.embeddings.embedding_model,
+        batch_size=settings.embeddings.embedding_batch_size,
+    )
+
+
+def _run_ingest(args: argparse.Namespace) -> int:
+    if args.fixture_root is not None:
+        os.environ[FIXTURE_ROOT_ENV] = str(args.fixture_root.expanduser().resolve())
+    if args.limit is not None and args.limit < 1:
+        raise ConfigurationError("--limit must be at least 1")
+    if args.batch_size is not None and args.batch_size < 1:
+        raise ConfigurationError("--batch-size must be at least 1")
+
+    settings = _load_settings(args)
+    setup_logging(settings, force=True)
+    whitelist = SourceWhitelist.from_path(settings.pipeline.source_whitelist_path)
+
+    historical_provider = (
+        FixtureHistoricalStatsProvider()
+        if args.provider == "fixture"
+        else build_espn_historical_provider(settings)
+    )
+    game_ids = list(args.game_ids or historical_provider.list_game_ids(args.season))
+    if args.limit is not None:
+        game_ids = game_ids[: args.limit]
+    if not game_ids:
+        raise ConfigurationError("historical ingestion requires at least one game id")
+
+    context_kind = args.context_provider
+    if context_kind == "auto":
+        context_kind = "fixture" if args.provider == "fixture" else "mcp"
+    context_provider = (
+        FixtureContextResearchProvider()
+        if context_kind == "fixture"
+        else build_mcp_context_provider(settings, whitelist=whitelist)
+    )
+
+    repositories: Repositories = bootstrap(args.database or settings.storage.sqlite_path)
+    store = _build_vector_store(args.vector_store, settings)
+    embeddings = _build_embedding_provider(args, settings)
+    chunker = RecursiveChunker(
+        ChunkingConfig(
+            chunk_size_tokens=settings.pipeline.chunk_size_tokens,
+            overlap_tokens=settings.pipeline.chunk_overlap_tokens,
+        )
+    )
+    run_context = RunContext.create(actor="ingest")
+    sink: ProgressSink = (
+        CallbackProgressSink(_print_progress) if args.progress else NullProgressSink()
+    )
+    reporter = ProgressReporter(
+        run_id=run_context.run_id,
+        sink=sink,
+        stage=ProgressStage.INGEST,
+        agent="research-orchestrator",
+        total=len(game_ids),
+    )
+    orchestrator = ResearchOrchestrator(
+        historical_provider=historical_provider,
+        context_provider=context_provider,
+        source_whitelist=whitelist,
+        leakage_filter=LeakageFilter(strict=settings.pipeline.leakage_strict),
+        repositories=repositories,
+        vector_store=store,
+        embedding_provider=embeddings,
+        chunker=chunker,
+        batch_size=args.batch_size or settings.pipeline.research_batch_size,
+        progress=reporter,
+    )
+    try:
+        result = run_historical_ingestion_pipeline(
+            orchestrator=orchestrator,
+            season=args.season,
+            game_ids=game_ids,
+            run_context=run_context,
+        )
+    finally:
+        repositories.close()
+        close = getattr(historical_provider, "close", None)
+        if callable(close):
+            close()
+
+    text = json.dumps(result.model_dump(mode="json"), indent=2, sort_keys=True)
+    print(text)
+    if args.output is not None:
+        output = args.output.expanduser()
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(text + "\n", encoding="utf-8")
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the CLI and return a process exit code."""
     parser = _build_parser()
@@ -252,8 +486,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _validate_config(args)
         if args.command == "demo":
             return _run_demo(args)
+        if args.command == "ingest":
+            return _run_ingest(args)
     except UpsetProfilerError as exc:
         print(f"error: {exc}", file=sys.stderr)
+        return 1
+    except ValidationError as exc:
+        print(f"error: invalid input: {exc}", file=sys.stderr)
         return 1
 
     print(

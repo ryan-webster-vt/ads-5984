@@ -58,6 +58,7 @@ from upset_profiler.models.progress import ProgressEvent, ProgressStage, Progres
 from upset_profiler.models.research import (
     ContextResearchResult,
     HistoricalStatsResult,
+    IngestionResult,
     ResearchAggregate,
     ResearchBatch,
     ResearchRecord,
@@ -94,6 +95,7 @@ __all__ = [
     "GameOdds",
     "HistoricalGame",
     "HistoricalStatsResult",
+    "IngestionResult",
     "MonitorAggregate",
     "MonitorAssignment",
     "MonitorRequest",

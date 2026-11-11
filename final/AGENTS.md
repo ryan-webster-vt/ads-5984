@@ -15,6 +15,7 @@ detailed planning in `IMPLEMENTATION_PLAN.md`.
 3. `reference_documents/final_project_specifications.md`
 4. `reference_documents/final_project_reqs_and_arch.qmd`
 5. `reference_documents/10 Principles for Reliable Multi-Agent Systems.pdf`
+6. `docs/decisions/ADR-006-tavily-search-cache-and-conditional-research.md`
 
 Do not edit anything under `reference_documents/`. Preserve the architecture in
 the reference documents unless there is a compelling technical reason to change
@@ -22,20 +23,20 @@ it, and document any such change in `IMPLEMENTATION_PLAN.md` Sections 12–13.
 
 ## Current status
 
-**Phase 3 complete.** The repository contains the Phase 1 contracts and core
-infrastructure, the Phase 2 fixture-backed multi-agent slice, and the Phase 3
-daily path: deterministic fixture adapters in `integrations/fakes.py`, the
-parallel runtime and Monitor-Orchestrator with two Monitor workers,
-Upset-Scorer, slate/scoring/monitoring services, the daily monitoring pipeline,
-the `demo` CLI, live ESPN scoreboard/schedule adapters in
-`integrations/espn.py`, typed SQLite slate/analysis caching in
-`services/cache.py`, and the Streamlit app under `ui/`. All quality gates pass
-offline; ESPN adapter tests use captured fixtures.
+**Phase 4 complete.** The repository contains the Phase 1 contracts and core
+infrastructure, the Phase 2 fixture-backed multi-agent slice, the Phase 3 daily
+path, and the Phase 4 historical ingestion path. Phase 4 adds fixture/ESPN
+historical providers, optional MCP context research, source whitelisting,
+tip-off leakage filtering, recursive chunking, embeddings, SQLite/Chroma
+persistence, quarantine handling, the Research-Orchestrator with parallel
+Historical-Stats and Context-Research workers, and the `ingest` CLI. All
+quality gates pass offline; live adapters use captured fixtures and optional
+extras.
 
-Do not implement MCP/LLM integrations, historical research ingestion, RAG,
-statistical precondition extraction, the real Upset-Scorer, or backtesting
-until the user explicitly approves Phase 4. The next approved task is Phase 4
-(historical research ingestion) per `IMPLEMENTATION_PLAN.md` Sections 10 and 17.
+Do not implement RAG retrieval/reranking, statistical precondition extraction,
+the real Upset-Scorer, or backtesting until the user explicitly approves Phase
+5. The next approved task is ADR-006 stages A and B (Tavily Context-Research
+provider plus the SQLite search cache); Phase 5 is stage C and remains gated.
 
 ## Hard constraints
 
@@ -44,6 +45,14 @@ until the user explicitly approves Phase 4. The next approved task is Phase 4
 - Build the minimal fixture-backed end-to-end multi-agent slice (Phase 2) before
   expensive historical research, embedding, or statistical validation work.
 - Prefer deterministic Python for anything that does not need LLM reasoning.
+- Tavily is the default Context-Research search backend (ADR-006). Keep the MCP
+  Brave/Fetch/Deep Research adapters present, tested, and selectable so
+  requirement R5 stays covered; do not remove them.
+- Cache search responses in SQLite behind normalized query keys. ChromaDB is for
+  semantic retrieval only — never use it as the search-response cache.
+- Live research is conditional (ADR-006 Decision 3): compute structured
+  preconditions first, retrieve existing evidence second, search only for gaps.
+  Do not reintroduce unconditional per-game web search.
 - Do not invent requirements absent from the reference documents. Record
   assumptions and open questions instead.
 - Every agent handoff is a Pydantic model; no ad-hoc dicts between stages.
@@ -77,7 +86,9 @@ python3 scripts/export_contracts.py --check
 CLI entry point: `python3 -m upset_profiler <command>` with admin commands
 `ingest`, `extract`, `monitor`, `backtest`, `demo`, `validate-config`. The
 Phase 2 offline demo runs with
-`python3 -m upset_profiler demo --date 2025-01-15`.
+`python3 -m upset_profiler demo --date 2025-01-15`; the Phase 4 offline
+historical ingestion runs with
+`python3 -m upset_profiler ingest --season 2024-2025`.
 
 ## Repo conventions
 

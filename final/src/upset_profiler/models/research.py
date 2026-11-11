@@ -115,6 +115,8 @@ class ResearchAggregate(VersionedModel):
     run_id: UUID
     records: list[ResearchRecord] = Field(default_factory=list)
     quarantined: list[ValidationIssue] = Field(default_factory=list)
+    documents_stored: int = Field(default=0, ge=0)
+    chunks_indexed: int = Field(default=0, ge=0)
     completed_at: UtcDatetime = Field(default_factory=utc_now)
 
     @model_validator(mode="after")
@@ -123,3 +125,32 @@ class ResearchAggregate(VersionedModel):
         if len(game_ids) != len(set(game_ids)):
             raise ValueError("research aggregate contains duplicate game_id values")
         return self
+
+
+class IngestionResult(VersionedModel):
+    """Summary of one historical ingestion run for the admin CLI and logs."""
+
+    run_id: UUID
+    season: SeasonStr
+    aggregate: ResearchAggregate
+    source: str = Field(min_length=1)
+    started_at: UtcDatetime
+    completed_at: UtcDatetime = Field(default_factory=utc_now)
+
+    @model_validator(mode="after")
+    def _run_ids_match(self) -> Self:
+        if self.run_id != self.aggregate.run_id:
+            raise ValueError("run_id must match aggregate.run_id")
+        if self.completed_at < self.started_at:
+            raise ValueError("completed_at must not precede started_at")
+        return self
+
+    @property
+    def record_count(self) -> int:
+        """Return the number of validated research records."""
+        return len(self.aggregate.records)
+
+    @property
+    def quarantine_count(self) -> int:
+        """Return the number of quarantined issues."""
+        return len(self.aggregate.quarantined)

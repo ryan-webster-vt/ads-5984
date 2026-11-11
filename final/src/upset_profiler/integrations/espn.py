@@ -159,7 +159,13 @@ def _moneyline_close(odds: dict[str, Any], side: str) -> int | None:
     moneyline = _as_mapping(odds.get("moneyline")) or {}
     side_mapping = _as_mapping(moneyline.get(side)) or {}
     close = _as_mapping(side_mapping.get("close")) or {}
-    return _parse_moneyline(close.get("odds"))
+    value = _parse_moneyline(close.get("odds"))
+    if value is not None:
+        return value
+    # ESPN summary payloads carry the line on the team-odds object instead of
+    # ``moneyline.<side>.close``.
+    team_odds = _as_mapping(odds.get(f"{side}TeamOdds")) or {}
+    return _parse_moneyline(team_odds.get("moneyLine"))
 
 
 def _favorite_from_moneyline(

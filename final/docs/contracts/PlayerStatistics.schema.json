@@ -1,0 +1,117 @@
+{
+  "additionalProperties": false,
+  "description": "Structured player statistics retained for completeness and context.",
+  "properties": {
+    "assists_per_game": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Assists Per Game"
+    },
+    "captured_at": {
+      "format": "date-time",
+      "title": "Captured At",
+      "type": "string"
+    },
+    "games_played": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Games Played"
+    },
+    "minutes_per_game": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Minutes Per Game"
+    },
+    "name": {
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+    },
+    "player_id": {
+      "minLength": 1,
+      "title": "Player Id",
+      "type": "string"
+    },
+    "points_per_game": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Points Per Game"
+    },
+    "position": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Position"
+    },
+    "rebounds_per_game": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Rebounds Per Game"
+    },
+    "stats": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "title": "Stats",
+      "type": "object"
+    },
+    "team_id": {
+      "minLength": 1,
+      "title": "Team Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "player_id",
+    "name",
+    "team_id"
+  ],
+  "title": "PlayerStatistics",
+  "type": "object"
+}

@@ -3,7 +3,7 @@
 **Course:** ADS 5984 — Agentic AI in Practice  
 **Project:** Final Project, idea 34.4.13 — Sports: Upset Condition Profiler  
 **Author:** Ryan Webster  
-**Status:** Phase 3 complete (real ESPN slate, Streamlit UI, and cache). Phase 0 delivered the plan and scaffold; Phase 1 delivered strict Pydantic contracts with checked-in JSON Schemas, the SQLite schema/migrations/repositories, the shared HTTP client base, progress events, fixture loaders, and offline tests; Phase 2 delivered deterministic fixture adapters, the Agent base/runtime, Monitor-Orchestrator with parallel Monitor workers, Upset-Scorer, slate/scoring/monitoring services, the daily pipeline, and the `demo` CLI; Phase 3 delivered the ESPN scoreboard/schedule adapters, slate filtering/sorting/selection in Streamlit, agent-activity and ranked-result rendering, graceful API-failure display, and SQLite-backed slate/analysis caching. Historical research, MCP context, RAG, statistical validation, the real Upset-Scorer, and backtesting remain later phases.
+**Status:** Phase 4 complete (historical research ingestion). Phase 0 delivered the plan and scaffold; Phase 1 delivered strict Pydantic contracts with checked-in JSON Schemas, the SQLite schema/migrations/repositories, the shared HTTP client base, progress events, fixture loaders, and offline tests; Phase 2 delivered deterministic fixture adapters, the Agent base/runtime, Monitor-Orchestrator with parallel Monitor workers, Upset-Scorer, slate/scoring/monitoring services, the daily pipeline, and the `demo` CLI; Phase 3 delivered the ESPN scoreboard/schedule adapters, slate filtering/sorting/selection in Streamlit, agent-activity and ranked-result rendering, graceful API-failure display, and SQLite-backed slate/analysis caching; Phase 4 delivered fixture/ESPN historical providers, optional MCP context research, source whitelisting, tip-off leakage filtering, recursive chunking, embeddings, SQLite/Chroma persistence, quarantine handling, the Research-Orchestrator with parallel workers, and the `ingest` CLI. RAG reranking, statistical validation, the real Upset-Scorer, and backtesting remain later phases.
 
 ---
 
@@ -676,6 +676,31 @@ caches slate payloads and exact analysis requests (date, selected ids, worker
 count, and precondition fingerprint) in SQLite with TTL expiry. The fixture
 daily path and CLI remain unchanged and all quality gates pass.
 
+**Phase 4 status: complete.** The historical path now exposes a
+`CollegeBasketballProvider` interface with a fixture implementation and an ESPN
+game-summary implementation. The Research-Orchestrator splits a season into
+deterministic batches, runs Historical-Stats and Context-Research in parallel
+per batch, joins records by `game_id`, and validates every handoff. Contextual
+documents pass deterministic source-domain allowlisting and UTC tip-off leakage
+filters before persistence; violations and invalid game records are written to
+quarantine. Valid documents are chunked recursively, embedded with the
+configured `qwen3-embedding:8b` adapter (or deterministic fixtures in tests),
+and upserted into Chroma when the `rag` extra is installed or an in-memory
+store otherwise. `python3 -m upset_profiler ingest --season 2024-2025` exercises
+the fixture path end-to-end, and reruns upsert the same deterministic document
+and chunk ids. RAG retrieval/reranking, statistical precondition extraction, the
+real Upset-Scorer, and backtesting remain later phases.
+
+**Phase 4.5 status: approved, not yet implemented** (see
+`docs/decisions/ADR-006-tavily-search-cache-and-conditional-research.md`). Three
+approved changes to the research path: Tavily's free tier becomes the default
+Context-Research search backend; search responses are cached in SQLite behind
+normalized query keys (with Chroma reserved for semantic retrieval, not response
+caching); and live research becomes conditional — compute structured
+preconditions first, retrieve existing evidence second, search only for genuine
+gaps. Stages A (Tavily provider) and B (SQLite search cache) are additive and do
+not change agent flow; Stage C belongs to Phase 5 and Stage D to Phases 6–7.
+
 ### 10.1 Parallel work tracks
 
 After Phases 1–2:
@@ -769,7 +794,7 @@ Build the minimal working end-to-end multi-agent system with fixtures first (Pha
 | R2 | `ui/components/slate_table.py`, `services/slate.py` | UI filter/selection tests |
 | R3 | `services/monitoring.py`, `ui/state.py` | E2E rerun test |
 | R4 | `agents/research_orchestrator.py`, `historical_stats.py`, `context_research.py` | Integration fixture test |
-| R5 | `integrations/mcp.py`, `college_basketball.py` | Stub MCP/API tests |
+| R5 | `integrations/mcp.py`, `college_basketball.py` | Stub MCP/API tests; `pickcenter` odds precedence tests; stdio command/argv and `BRAVE_API_KEY` environment tests |
 | R6 | `orchestration/runtime.py` | `tests/unit/test_runtime.py`; parallel monitor integration test |
 | R7 | `services/ingestion.py`, `models/research.py` | Join and schema validation tests |
 | R8 | `storage/sqlite.py`, `storage/chroma.py`, `rag/rerank.py`, `integrations/embeddings.py` | Storage/RAG integration tests |
@@ -827,6 +852,35 @@ Build the minimal working end-to-end multi-agent system with fixtures first (Pha
 13. In strict leakage mode, documents with missing or unparseable publication timestamps are excluded.
 14. Tests and demos use fixtures or recorded responses; they do not make paid or live API calls by default.
 15. The existing `.env` is preserved and never committed.
+16. ESPN summary payloads carry betting lines in a top-level `pickcenter` (or
+    `odds`) list rather than on the header competition, so the summary parser
+    attaches the first usable entry before handing the game to the shared
+    scoreboard parser. A competition that already carries odds wins.
+17. A configured stdio MCP server command is parsed as a command line
+    (`executable` plus arguments) and receives the parent process environment,
+    with `BRAVE_API_KEY` injected from settings; the SDK's default allowlist is
+    too narrow to carry provider credentials.
+18. Live ingestion requires explicit game ids because the ESPN historical
+    provider cannot enumerate a season; `scripts/collect_espn_game_ids.py`
+    sweeps the public scoreboard endpoint to produce them.
+19. Tavily is the default Context-Research search backend, chosen for its 1,000
+    free credits/month (no card) and because one `/search` call with
+    `include_raw_content` replaces a search plus up to 25 fetches. The MCP
+    Brave/Fetch/Deep Research adapters remain present, tested, and selectable so
+    requirement R5 stays covered. See ADR-006.
+20. Search responses are cached in SQLite behind a normalized query key that
+    includes the game id, provider, and a parameters fingerprint; ChromaDB is
+    reserved for semantic retrieval over chunked documents and is never used as
+    the search-response cache. Historical (past tip-off) entries do not expire;
+    live entries expire after `CACHE_TTL_SECONDS`.
+21. Live research is conditional: structured preconditions are computed first,
+    existing evidence is retrieved second (SQLite exact, Chroma semantic), and
+    web search runs last, only for gaps. Spend therefore scales with gaps rather
+    than games.
+22. Tavily's `published_date` is a beta best-estimate ("published or last
+    updated") and is treated as a hint; the deterministic client-side leakage
+    filter remains authoritative, and strict mode still rejects undated
+    documents.
 
 ---
 
@@ -837,7 +891,7 @@ These do not block scaffolding, but they block later phases.
 1. **Historical sports API:** Which College Basketball API/provider and credentials will be used? Recommendation: implement a provider interface and start with free ESPN historical box scores unless a paid provider is already available.
 2. **`d3-mini` and `qwen3-embedding:8b` access:** What are the base URLs, model IDs, authentication method, embedding dimension, rate limits, and response schema?
 3. **Upset definition:** Confirm outright underdog win versus spread cover. Recommendation: outright winner based on pregame moneyline.
-4. **MCP servers:** Which Brave/Fetch/Deep Research MCP implementations and transports will be used? Is a Brave API key available?
+4. **MCP servers:** ~~Which Brave/Fetch/Deep Research MCP implementations and transports will be used? Is a Brave API key available?~~ **Superseded by ADR-006.** Tavily is the default search backend; the MCP adapters remain selectable. Still open: whether the showcase must exercise MCP *live* (ADR-006 open question 1), which is the only thing that would require a Brave key.
 5. **Candidate preconditions:** Should candidates come from a curated seed list, LLM proposals, or both? Recommendation: curated seed list plus LLM proposals that must pass statistical validation.
 6. **Season and data scope:** Confirm season splits, D1-vs-D1 filtering, and whether conference tournaments are included.
 7. **Reproducibility policy:** Confirm whether rerunning the same analysis should reuse an evidence snapshot while a new run fetches fresh data.

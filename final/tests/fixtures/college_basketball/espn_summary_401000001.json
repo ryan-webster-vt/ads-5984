@@ -1,0 +1,171 @@
+{
+  "header": {
+    "id": "401000001",
+    "date": "2024-12-10T00:00:00Z",
+    "competitions": [
+      {
+        "date": "2024-12-10T00:00:00Z",
+        "neutralSite": false,
+        "venue": {
+          "fullName": "Cameron Indoor Stadium"
+        },
+        "status": {
+          "type": {
+            "name": "STATUS_FINAL",
+            "state": "post",
+            "completed": true
+          }
+        },
+        "competitors": [
+          {
+            "homeAway": "home",
+            "score": "78",
+            "winner": true,
+            "team": {
+              "id": "team-duke",
+              "displayName": "Duke Blue Devils",
+              "abbreviation": "DUKE"
+            }
+          },
+          {
+            "homeAway": "away",
+            "score": "70",
+            "winner": false,
+            "team": {
+              "id": "team-clemson",
+              "displayName": "Clemson Tigers",
+              "abbreviation": "CLEM"
+            }
+          }
+        ],
+        "odds": [
+          {
+            "provider": {
+              "name": "ESPN BET"
+            },
+            "homeTeamOdds": {
+              "favorite": true
+            },
+            "awayTeamOdds": {
+              "favorite": false
+            },
+            "spread": -5.5,
+            "overUnder": 145.5,
+            "moneyline": {
+              "home": {
+                "close": {
+                  "odds": "-220"
+                }
+              },
+              "away": {
+                "close": {
+                  "odds": "180"
+                }
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "boxscore": {
+    "teams": [
+      {
+        "team": {
+          "id": "team-duke",
+          "displayName": "Duke Blue Devils"
+        },
+        "statistics": [
+          {
+            "name": "points",
+            "displayValue": "78"
+          },
+          {
+            "name": "fieldGoalPct",
+            "displayValue": "47.5"
+          },
+          {
+            "name": "threePointFieldGoalPct",
+            "displayValue": "38.1"
+          },
+          {
+            "name": "freeThrowPct",
+            "displayValue": "75.0"
+          },
+          {
+            "name": "totalRebounds",
+            "displayValue": "36"
+          },
+          {
+            "name": "assists",
+            "displayValue": "15"
+          }
+        ]
+      },
+      {
+        "team": {
+          "id": "team-clemson",
+          "displayName": "Clemson Tigers"
+        },
+        "statistics": [
+          {
+            "name": "points",
+            "displayValue": "70"
+          },
+          {
+            "name": "fieldGoalPct",
+            "displayValue": "41.2"
+          },
+          {
+            "name": "threePointFieldGoalPct",
+            "displayValue": "31.8"
+          },
+          {
+            "name": "freeThrowPct",
+            "displayValue": "68.0"
+          },
+          {
+            "name": "totalRebounds",
+            "displayValue": "31"
+          },
+          {
+            "name": "assists",
+            "displayValue": "12"
+          }
+        ]
+      }
+    ],
+    "players": [
+      {
+        "team": {
+          "id": "team-duke",
+          "displayName": "Duke Blue Devils"
+        },
+        "statistics": [
+          {
+            "name": "points",
+            "keys": [
+              "points",
+              "rebounds",
+              "assists"
+            ],
+            "athletes": [
+              {
+                "athlete": {
+                  "id": "player-duke-1",
+                  "displayName": "Fixture Guard",
+                  "position": "G"
+                },
+                "stats": [
+                  "21",
+                  "4",
+                  "6"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

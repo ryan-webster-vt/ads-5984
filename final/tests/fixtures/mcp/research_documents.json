@@ -1,0 +1,118 @@
+{
+  "401000001": [
+    {
+      "schema_version": 1,
+      "document_id": "doc-401000001-rest",
+      "game_id": "401000001",
+      "url": "https://www.espn.com/mens-college-basketball/story/_/id/clemson-rest",
+      "title": "Clemson enters Durham on short rest",
+      "author": "Fixture Reporter",
+      "source_domain": "espn.com",
+      "published_at": "2024-12-09T15:00:00Z",
+      "retrieved_at": "2024-12-09T18:00:00Z",
+      "content": "Clemson played on Saturday night and traveled to Durham on Sunday before facing Duke. The Tigers have logged heavy minutes from their starting five over the last two weeks. Duke has been at home for five consecutive days and has had a full practice cycle. Historically, short-turnaround road teams in conference play convert a lower share of close games.",
+      "content_hash": "fixture-doc-401000001-rest",
+      "metadata": {
+        "kind": "pregame-report"
+      }
+    },
+    {
+      "schema_version": 1,
+      "document_id": "doc-401000001-form",
+      "game_id": "401000001",
+      "url": "https://www.sports-reference.com/cbb/blog/duke-clemson-form",
+      "title": "Recent form favors Duke at home",
+      "author": "Fixture Reporter",
+      "source_domain": "sports-reference.com",
+      "published_at": "2024-12-08T12:00:00Z",
+      "retrieved_at": "2024-12-09T18:00:00Z",
+      "content": "Duke's adjusted efficiency margin has climbed over its last four games. Clemson's offense has slowed in true road environments, and its turnover rate rises against top-40 defenses. The matchup profile points to a slower game with fewer transition opportunities for the underdog.",
+      "content_hash": "fixture-doc-401000001-form",
+      "metadata": {
+        "kind": "pregame-analysis"
+      }
+    }
+  ],
+  "401000002": [
+    {
+      "schema_version": 1,
+      "document_id": "doc-401000002-pregame",
+      "game_id": "401000002",
+      "url": "https://www.cbssports.com/college-basketball/news/kansas-tcu-preview",
+      "title": "Kansas hosts TCU after quick turnaround",
+      "author": "Fixture Reporter",
+      "source_domain": "cbssports.com",
+      "published_at": "2025-01-04T14:00:00Z",
+      "retrieved_at": "2025-01-04T20:00:00Z",
+      "content": "Kansas returns home after a road trip and faces a TCU team that has been effective in transition. The Jayhawks are favored, but the pregame report notes a short preparation window and a possible look-ahead spot before a weekend rivalry game.",
+      "content_hash": "fixture-doc-401000002-pregame",
+      "metadata": {
+        "kind": "pregame-report"
+      }
+    },
+    {
+      "schema_version": 1,
+      "document_id": "doc-401000002-posttipoff",
+      "game_id": "401000002",
+      "url": "https://www.espn.com/mens-college-basketball/recap/_/gameId/401000002",
+      "title": "TCU stuns Kansas in Lawrence",
+      "author": "Fixture Reporter",
+      "source_domain": "espn.com",
+      "published_at": "2025-01-05T03:00:00Z",
+      "retrieved_at": "2025-01-05T04:00:00Z",
+      "content": "TCU closed the game on a decisive run and handed Kansas a home loss. This recap describes the final possession and postgame comments from both coaches.",
+      "content_hash": "fixture-doc-401000002-posttipoff",
+      "metadata": {
+        "kind": "recap"
+      }
+    },
+    {
+      "schema_version": 1,
+      "document_id": "doc-401000002-undated",
+      "game_id": "401000002",
+      "url": "https://apnews.com/hub/college-basketball",
+      "title": "College basketball notebook",
+      "source_domain": "apnews.com",
+      "published_at": null,
+      "retrieved_at": "2025-01-04T20:00:00Z",
+      "content": "A general notebook that may contain information from an unknown publication time and therefore cannot be admitted under strict leakage rules.",
+      "content_hash": "fixture-doc-401000002-undated",
+      "metadata": {
+        "kind": "notebook"
+      }
+    }
+  ],
+  "401000003": [
+    {
+      "schema_version": 1,
+      "document_id": "doc-401000003-allowed",
+      "game_id": "401000003",
+      "url": "https://www.ncaa.com/news/basketball-men/article/gonzaga-saint-marys-preview",
+      "title": "Gonzaga and Saint Mary's meet in conference showdown",
+      "author": "Fixture Reporter",
+      "source_domain": "ncaa.com",
+      "published_at": "2025-01-31T17:00:00Z",
+      "retrieved_at": "2025-01-31T21:00:00Z",
+      "content": "Gonzaga has protected home court all season, while Saint Mary's enters with a slower pace and a strong defensive rebounding profile. The preview notes that the Gaels have covered in several recent meetings but have not won in Spokane since a prior season.",
+      "content_hash": "fixture-doc-401000003-allowed",
+      "metadata": {
+        "kind": "pregame-report"
+      }
+    },
+    {
+      "schema_version": 1,
+      "document_id": "doc-401000003-blocked",
+      "game_id": "401000003",
+      "url": "https://example.com/unverified/gonzaga-rumor",
+      "title": "Unverified Gonzaga rumor",
+      "source_domain": "example.com",
+      "published_at": "2025-01-31T17:00:00Z",
+      "retrieved_at": "2025-01-31T21:00:00Z",
+      "content": "This source is not on the approved list and must never reach the research pipeline, regardless of its apparent publication time.",
+      "content_hash": "fixture-doc-401000003-blocked",
+      "metadata": {
+        "kind": "unverified"
+      }
+    }
+  ]
+}

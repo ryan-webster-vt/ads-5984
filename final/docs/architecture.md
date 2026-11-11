@@ -75,6 +75,27 @@ the offline default; live mode fetches ESPN and uses schedule-derived features.
 MCP context, travel features, RAG, the extractor, the real Upset-Scorer, and
 backtesting remain later phases.
 
+## Phase 4 implementation status
+
+`integrations/college_basketball.py` defines the `CollegeBasketballProvider`
+interface with a deterministic fixture provider and an ESPN game-summary
+provider. `integrations/mcp.py` defines the search/fetch/deep-research tool
+interfaces, an optional lazy SDK client, and a provider that returns validated
+`SourceDocument` records. `security/source_whitelist.py` canonicalizes URLs and
+enforces `config/sources.yaml`; `security/leakage.py` excludes documents that
+were not knowable before tip-off. `rag/chunking.py` performs structure-aware,
+deterministic chunking, and `storage/chroma.py` exposes an in-memory and a
+lazy-imported Chroma store behind one interface.
+
+`agents/historical_stats.py` and `agents/context_research.py` isolate per-game
+failures. `agents/research_orchestrator.py` batches game ids, runs both workers
+in parallel, joins records, applies policy and leakage filters, persists valid
+records to SQLite, quarantines invalid records and policy violations, and
+chunks/embeds documents into the vector store. `services/ingestion.py` and
+`orchestration/pipelines/ingestion.py` compose the use case, and the `ingest`
+CLI exercises it offline by default. RAG retrieval/reranking, the extractor,
+the real Upset-Scorer, and backtesting remain later phases.
+
 ## Phase flow
 
 ### A. Historical research ingestion (one-time, admin)

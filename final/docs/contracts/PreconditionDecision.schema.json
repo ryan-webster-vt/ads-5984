@@ -1,0 +1,336 @@
+{
+  "$defs": {
+    "Citation": {
+      "additionalProperties": false,
+      "description": "A citable source attached to a claim, flag, or validated precondition.",
+      "properties": {
+        "citation_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Citation Id"
+        },
+        "published_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Published At"
+        },
+        "quote": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Quote"
+        },
+        "retrieved_at": {
+          "format": "date-time",
+          "title": "Retrieved At",
+          "type": "string"
+        },
+        "source_domain": {
+          "minLength": 1,
+          "title": "Source Domain",
+          "type": "string"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url",
+        "source_domain",
+        "retrieved_at"
+      ],
+      "title": "Citation",
+      "type": "object"
+    },
+    "EffectSize": {
+      "additionalProperties": false,
+      "description": "Estimated effect size with a confidence interval.",
+      "properties": {
+        "ci_lower": {
+          "title": "Ci Lower",
+          "type": "number"
+        },
+        "ci_upper": {
+          "title": "Ci Upper",
+          "type": "number"
+        },
+        "control_sample_size": {
+          "minimum": 0,
+          "title": "Control Sample Size",
+          "type": "integer"
+        },
+        "method": {
+          "minLength": 1,
+          "title": "Method",
+          "type": "string"
+        },
+        "metric": {
+          "minLength": 1,
+          "title": "Metric",
+          "type": "string"
+        },
+        "treatment_sample_size": {
+          "minimum": 0,
+          "title": "Treatment Sample Size",
+          "type": "integer"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "metric",
+        "value",
+        "ci_lower",
+        "ci_upper",
+        "method",
+        "treatment_sample_size",
+        "control_sample_size"
+      ],
+      "title": "EffectSize",
+      "type": "object"
+    },
+    "OutOfSampleResult": {
+      "additionalProperties": false,
+      "description": "Out-of-sample predictive check for a candidate precondition.",
+      "properties": {
+        "baseline_value": {
+          "title": "Baseline Value",
+          "type": "number"
+        },
+        "metric_name": {
+          "minLength": 1,
+          "title": "Metric Name",
+          "type": "string"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "boolean"
+        },
+        "train_seasons": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Train Seasons",
+          "type": "array"
+        },
+        "validation_season": {
+          "title": "Validation Season",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "train_seasons",
+        "validation_season",
+        "metric_name",
+        "value",
+        "baseline_value",
+        "passed"
+      ],
+      "title": "OutOfSampleResult",
+      "type": "object"
+    },
+    "StatisticalTest": {
+      "additionalProperties": false,
+      "description": "Result of a hypothesis test for a candidate precondition.",
+      "properties": {
+        "adjusted_p_value": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adjusted P Value"
+        },
+        "alpha": {
+          "exclusiveMaximum": 1.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Alpha",
+          "type": "number"
+        },
+        "multiple_testing_corrected": {
+          "default": false,
+          "title": "Multiple Testing Corrected",
+          "type": "boolean"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        },
+        "p_value": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "P Value",
+          "type": "number"
+        },
+        "significant": {
+          "title": "Significant",
+          "type": "boolean"
+        },
+        "statistic": {
+          "title": "Statistic",
+          "type": "number"
+        },
+        "test_name": {
+          "minLength": 1,
+          "title": "Test Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "test_name",
+        "statistic",
+        "p_value",
+        "alpha",
+        "significant"
+      ],
+      "title": "StatisticalTest",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "The Extractor's accept/reject decision with statistical justification.",
+  "properties": {
+    "accepted": {
+      "title": "Accepted",
+      "type": "boolean"
+    },
+    "citations": {
+      "items": {
+        "$ref": "#/$defs/Citation"
+      },
+      "title": "Citations",
+      "type": "array"
+    },
+    "decided_at": {
+      "format": "date-time",
+      "title": "Decided At",
+      "type": "string"
+    },
+    "effect_size": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/EffectSize"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "justification": {
+      "minLength": 1,
+      "title": "Justification",
+      "type": "string"
+    },
+    "out_of_sample": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/OutOfSampleResult"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "precondition_id": {
+      "minLength": 1,
+      "title": "Precondition Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "statistical_test": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/StatisticalTest"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "precondition_id",
+    "accepted",
+    "justification"
+  ],
+  "title": "PreconditionDecision",
+  "type": "object"
+}

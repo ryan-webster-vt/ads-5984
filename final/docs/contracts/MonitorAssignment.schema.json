@@ -1,0 +1,1143 @@
+{
+  "$defs": {
+    "CandidatePrecondition": {
+      "additionalProperties": false,
+      "description": "A hypothesis that must pass deterministic statistical validation.",
+      "properties": {
+        "comparison": {
+          "$ref": "#/$defs/Comparison"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "direction": {
+          "$ref": "#/$defs/Direction",
+          "default": "higher_increases_upset_risk"
+        },
+        "feature": {
+          "minLength": 1,
+          "title": "Feature",
+          "type": "string"
+        },
+        "min_sample_size": {
+          "anyOf": [
+            {
+              "minimum": 2,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min Sample Size"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "precondition_id": {
+          "minLength": 1,
+          "title": "Precondition Id",
+          "type": "string"
+        },
+        "rationale": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rationale"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "source": {
+          "default": "seed",
+          "title": "Source",
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        },
+        "threshold": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Threshold"
+        }
+      },
+      "required": [
+        "precondition_id",
+        "name",
+        "description",
+        "feature",
+        "comparison",
+        "threshold"
+      ],
+      "title": "CandidatePrecondition",
+      "type": "object"
+    },
+    "Citation": {
+      "additionalProperties": false,
+      "description": "A citable source attached to a claim, flag, or validated precondition.",
+      "properties": {
+        "citation_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Citation Id"
+        },
+        "published_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Published At"
+        },
+        "quote": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Quote"
+        },
+        "retrieved_at": {
+          "format": "date-time",
+          "title": "Retrieved At",
+          "type": "string"
+        },
+        "source_domain": {
+          "minLength": 1,
+          "title": "Source Domain",
+          "type": "string"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url",
+        "source_domain",
+        "retrieved_at"
+      ],
+      "title": "Citation",
+      "type": "object"
+    },
+    "Comparison": {
+      "description": "Supported comparison operators for precondition thresholds.",
+      "enum": [
+        "equals",
+        "not_equals",
+        "greater_than",
+        "greater_than_or_equal",
+        "less_than",
+        "less_than_or_equal",
+        "in",
+        "not_in"
+      ],
+      "title": "Comparison",
+      "type": "string"
+    },
+    "DailyGame": {
+      "additionalProperties": false,
+      "description": "A game on the current day's slate, including pregame context.",
+      "properties": {
+        "away_score": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Away Score"
+        },
+        "away_team": {
+          "$ref": "#/$defs/TeamRef"
+        },
+        "game_id": {
+          "minLength": 1,
+          "title": "Game Id",
+          "type": "string"
+        },
+        "home_score": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Home Score"
+        },
+        "home_team": {
+          "$ref": "#/$defs/TeamRef"
+        },
+        "neutral_site": {
+          "default": false,
+          "title": "Neutral Site",
+          "type": "boolean"
+        },
+        "odds": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GameOdds"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "player_statistics": {
+          "items": {
+            "$ref": "#/$defs/PlayerStatistics"
+          },
+          "title": "Player Statistics",
+          "type": "array"
+        },
+        "provenance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Provenance"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "slate_date": {
+          "format": "date",
+          "title": "Slate Date",
+          "type": "string"
+        },
+        "status": {
+          "default": "scheduled",
+          "enum": [
+            "scheduled",
+            "in_progress",
+            "final",
+            "postponed",
+            "canceled"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "team_statistics": {
+          "items": {
+            "$ref": "#/$defs/TeamStatistics"
+          },
+          "title": "Team Statistics",
+          "type": "array"
+        },
+        "tipoff_at": {
+          "format": "date-time",
+          "title": "Tipoff At",
+          "type": "string"
+        },
+        "venue": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Venue"
+        }
+      },
+      "required": [
+        "game_id",
+        "slate_date",
+        "tipoff_at",
+        "home_team",
+        "away_team"
+      ],
+      "title": "DailyGame",
+      "type": "object"
+    },
+    "Direction": {
+      "description": "Expected direction of a precondition's effect on upset risk.",
+      "enum": [
+        "higher_increases_upset_risk",
+        "lower_increases_upset_risk",
+        "non_directional"
+      ],
+      "title": "Direction",
+      "type": "string"
+    },
+    "EffectSize": {
+      "additionalProperties": false,
+      "description": "Estimated effect size with a confidence interval.",
+      "properties": {
+        "ci_lower": {
+          "title": "Ci Lower",
+          "type": "number"
+        },
+        "ci_upper": {
+          "title": "Ci Upper",
+          "type": "number"
+        },
+        "control_sample_size": {
+          "minimum": 0,
+          "title": "Control Sample Size",
+          "type": "integer"
+        },
+        "method": {
+          "minLength": 1,
+          "title": "Method",
+          "type": "string"
+        },
+        "metric": {
+          "minLength": 1,
+          "title": "Metric",
+          "type": "string"
+        },
+        "treatment_sample_size": {
+          "minimum": 0,
+          "title": "Treatment Sample Size",
+          "type": "integer"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "metric",
+        "value",
+        "ci_lower",
+        "ci_upper",
+        "method",
+        "treatment_sample_size",
+        "control_sample_size"
+      ],
+      "title": "EffectSize",
+      "type": "object"
+    },
+    "GameOdds": {
+      "additionalProperties": false,
+      "description": "Pregame odds used to define the favorite and the upset label.",
+      "properties": {
+        "captured_at": {
+          "format": "date-time",
+          "title": "Captured At",
+          "type": "string"
+        },
+        "favorite_moneyline": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Favorite Moneyline"
+        },
+        "favorite_team_id": {
+          "minLength": 1,
+          "title": "Favorite Team Id",
+          "type": "string"
+        },
+        "provider": {
+          "default": "espn",
+          "title": "Provider",
+          "type": "string"
+        },
+        "spread": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Spread"
+        },
+        "total": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Total"
+        },
+        "underdog_moneyline": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Underdog Moneyline"
+        },
+        "underdog_team_id": {
+          "minLength": 1,
+          "title": "Underdog Team Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "favorite_team_id",
+        "underdog_team_id"
+      ],
+      "title": "GameOdds",
+      "type": "object"
+    },
+    "OutOfSampleResult": {
+      "additionalProperties": false,
+      "description": "Out-of-sample predictive check for a candidate precondition.",
+      "properties": {
+        "baseline_value": {
+          "title": "Baseline Value",
+          "type": "number"
+        },
+        "metric_name": {
+          "minLength": 1,
+          "title": "Metric Name",
+          "type": "string"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "boolean"
+        },
+        "train_seasons": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Train Seasons",
+          "type": "array"
+        },
+        "validation_season": {
+          "title": "Validation Season",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "train_seasons",
+        "validation_season",
+        "metric_name",
+        "value",
+        "baseline_value",
+        "passed"
+      ],
+      "title": "OutOfSampleResult",
+      "type": "object"
+    },
+    "PlayerStatistics": {
+      "additionalProperties": false,
+      "description": "Structured player statistics retained for completeness and context.",
+      "properties": {
+        "assists_per_game": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Assists Per Game"
+        },
+        "captured_at": {
+          "format": "date-time",
+          "title": "Captured At",
+          "type": "string"
+        },
+        "games_played": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Games Played"
+        },
+        "minutes_per_game": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minutes Per Game"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "player_id": {
+          "minLength": 1,
+          "title": "Player Id",
+          "type": "string"
+        },
+        "points_per_game": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Points Per Game"
+        },
+        "position": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Position"
+        },
+        "rebounds_per_game": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rebounds Per Game"
+        },
+        "stats": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Stats",
+          "type": "object"
+        },
+        "team_id": {
+          "minLength": 1,
+          "title": "Team Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "player_id",
+        "name",
+        "team_id"
+      ],
+      "title": "PlayerStatistics",
+      "type": "object"
+    },
+    "Provenance": {
+      "additionalProperties": false,
+      "description": "Audit metadata describing where an artifact came from.",
+      "properties": {
+        "actor": {
+          "default": "system",
+          "title": "Actor",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "metadata": {
+          "title": "Metadata",
+          "type": "object"
+        },
+        "model_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model Name"
+        },
+        "prompt_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prompt Version"
+        },
+        "run_id": {
+          "format": "uuid",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "source": {
+          "default": "unknown",
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "run_id"
+      ],
+      "title": "Provenance",
+      "type": "object"
+    },
+    "StatisticalTest": {
+      "additionalProperties": false,
+      "description": "Result of a hypothesis test for a candidate precondition.",
+      "properties": {
+        "adjusted_p_value": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adjusted P Value"
+        },
+        "alpha": {
+          "exclusiveMaximum": 1.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Alpha",
+          "type": "number"
+        },
+        "multiple_testing_corrected": {
+          "default": false,
+          "title": "Multiple Testing Corrected",
+          "type": "boolean"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        },
+        "p_value": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "P Value",
+          "type": "number"
+        },
+        "significant": {
+          "title": "Significant",
+          "type": "boolean"
+        },
+        "statistic": {
+          "title": "Statistic",
+          "type": "number"
+        },
+        "test_name": {
+          "minLength": 1,
+          "title": "Test Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "test_name",
+        "statistic",
+        "p_value",
+        "alpha",
+        "significant"
+      ],
+      "title": "StatisticalTest",
+      "type": "object"
+    },
+    "TeamRef": {
+      "additionalProperties": false,
+      "description": "Reference to a team participating in a game.",
+      "properties": {
+        "abbreviation": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Abbreviation"
+        },
+        "conference": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Conference"
+        },
+        "division": {
+          "default": "D1",
+          "title": "Division",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "team_id": {
+          "minLength": 1,
+          "title": "Team Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "team_id",
+        "name"
+      ],
+      "title": "TeamRef",
+      "type": "object"
+    },
+    "TeamStatistics": {
+      "additionalProperties": false,
+      "description": "Structured team statistics with a provider-specific extension mapping.",
+      "properties": {
+        "adjusted_efficiency_margin": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adjusted Efficiency Margin"
+        },
+        "assists_per_game": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Assists Per Game"
+        },
+        "captured_at": {
+          "format": "date-time",
+          "title": "Captured At",
+          "type": "string"
+        },
+        "defensive_efficiency": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Defensive Efficiency"
+        },
+        "field_goal_pct": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Field Goal Pct"
+        },
+        "free_throw_pct": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Free Throw Pct"
+        },
+        "games_played": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Games Played"
+        },
+        "offensive_efficiency": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Offensive Efficiency"
+        },
+        "pace": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pace"
+        },
+        "points_allowed_per_game": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Points Allowed Per Game"
+        },
+        "points_per_game": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Points Per Game"
+        },
+        "rebounds_per_game": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rebounds Per Game"
+        },
+        "stats": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Stats",
+          "type": "object"
+        },
+        "team_id": {
+          "minLength": 1,
+          "title": "Team Id",
+          "type": "string"
+        },
+        "three_point_pct": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Three Point Pct"
+        },
+        "turnovers_per_game": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Turnovers Per Game"
+        }
+      },
+      "required": [
+        "team_id"
+      ],
+      "title": "TeamStatistics",
+      "type": "object"
+    },
+    "ValidatedPrecondition": {
+      "additionalProperties": false,
+      "description": "A precondition accepted by the Extractor and stored for monitoring.",
+      "properties": {
+        "candidate": {
+          "$ref": "#/$defs/CandidatePrecondition"
+        },
+        "citations": {
+          "items": {
+            "$ref": "#/$defs/Citation"
+          },
+          "minItems": 1,
+          "title": "Citations",
+          "type": "array"
+        },
+        "effect_size": {
+          "$ref": "#/$defs/EffectSize"
+        },
+        "justification": {
+          "minLength": 1,
+          "title": "Justification",
+          "type": "string"
+        },
+        "out_of_sample": {
+          "$ref": "#/$defs/OutOfSampleResult"
+        },
+        "precondition_id": {
+          "minLength": 1,
+          "title": "Precondition Id",
+          "type": "string"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "statistical_test": {
+          "$ref": "#/$defs/StatisticalTest"
+        },
+        "validated_at": {
+          "format": "date-time",
+          "title": "Validated At",
+          "type": "string"
+        },
+        "validation_version": {
+          "default": "1",
+          "title": "Validation Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "precondition_id",
+        "candidate",
+        "effect_size",
+        "statistical_test",
+        "out_of_sample",
+        "citations",
+        "justification"
+      ],
+      "title": "ValidatedPrecondition",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A batch of games and validated signals assigned to one Monitor worker.",
+  "properties": {
+    "assigned_at": {
+      "format": "date-time",
+      "title": "Assigned At",
+      "type": "string"
+    },
+    "games": {
+      "items": {
+        "$ref": "#/$defs/DailyGame"
+      },
+      "minItems": 1,
+      "title": "Games",
+      "type": "array"
+    },
+    "preconditions": {
+      "items": {
+        "$ref": "#/$defs/ValidatedPrecondition"
+      },
+      "title": "Preconditions",
+      "type": "array"
+    },
+    "run_id": {
+      "format": "uuid",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "worker_id": {
+      "minLength": 1,
+      "title": "Worker Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "run_id",
+    "worker_id",
+    "games"
+  ],
+  "title": "MonitorAssignment",
+  "type": "object"
+}

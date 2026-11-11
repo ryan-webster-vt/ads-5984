@@ -11,19 +11,19 @@ Streamlit front end.
 
 ## Status
 
-**Phase 3: real ESPN slate, Streamlit UI, and cache complete.** The repository
-contains strict Pydantic contracts for every agent handoff, checked-in JSON
-Schemas under `docs/contracts/`, a migrated SQLite schema with typed
-repositories, a shared HTTP client base with timeouts/retries/rate limiting,
-thread-safe progress events, fixture loaders, and a working daily pipeline. The
-fixture path runs through the Monitor-Orchestrator, two parallel Monitor workers,
-and the Upset-Scorer, then emits ranked JSON from the `demo` CLI. Phase 3 adds
-the live ESPN scoreboard/schedule adapters, D1-vs-D1 slate filtering, SQLite
-slate/analysis caching, and a Streamlit UI with filters, stable sorting, game
-selection, run controls, progress/agent-activity display, ranked results with
-citations, cached-result badges, empty states, and graceful API-error messages.
-It does **not** yet contain MCP context, RAG, the real Extractor or statistical
-validation, the real Upset-Scorer, or backtesting. Those land in later phases per
+**Phase 4: historical research ingestion complete.** The repository contains
+strict Pydantic contracts for every agent handoff, checked-in JSON Schemas under
+`docs/contracts/`, a migrated SQLite schema with typed repositories, a shared
+HTTP client base with timeouts/retries/rate limiting, thread-safe progress
+events, fixture loaders, and a working daily pipeline. Phase 2 delivered the
+fixture-backed Monitor/Scorer slice; Phase 3 added the live ESPN scoreboard,
+SQLite caching, and the Streamlit UI. Phase 4 adds the Research-Orchestrator
+with parallel Historical-Stats and Context-Research workers, fixture and ESPN
+historical providers, optional MCP search/fetch/deep-research adapters,
+deterministic source whitelisting and tip-off leakage filtering, recursive
+document chunking, embeddings, SQLite/Chroma persistence, quarantine handling,
+and the `ingest` admin command. The live Extractor/statistical validation, RAG
+reranking, real Upset-Scorer, and backtesting remain later phases per
 `IMPLEMENTATION_PLAN.md`.
 
 ## Problem
@@ -150,6 +150,24 @@ python3 -m upset_profiler validate-config --strict
 # Fixture-backed end-to-end demo (offline, no live API calls)
 python3 -m upset_profiler demo --date 2025-01-15
 
+# Ingest a fixture historical season into SQLite and the vector store
+python3 -m upset_profiler ingest --season 2024-2025
+
+# Ingest into a persistent Chroma store with HTTP embeddings
+python3 -m upset_profiler ingest --season 2024-2025 --vector-store chroma \
+  --embedding-provider http --database data/db/upset_profiler.db
+
+# Ingest selected live ESPN game ids (requires MCP configuration for context)
+python3 -m upset_profiler ingest --season 2024-2025 --provider espn \
+  --game-id 401000001 --game-id 401000002
+
+# Ingest a whole live season: ESPN cannot enumerate, so collect ids first
+python3 scripts/collect_espn_game_ids.py --season 2021-2022 \
+  --output data/processed/espn_game_ids_2021-2022.txt
+python3 -m upset_profiler ingest --season 2021-2022 --provider espn \
+  --context-provider fixture \
+  $(sed 's/^/--game-id /' data/processed/espn_game_ids_2021-2022.txt)
+
 # Two parallel workers, progress on stderr, and a subset of games
 python3 -m upset_profiler demo --date 2025-01-15 --workers 2 --progress \
   --game-id 401000001 --game-id 401000003
@@ -169,10 +187,13 @@ mypy src
 python3 scripts/export_contracts.py --check
 ```
 
-Administrative commands `ingest`, `extract`, `monitor`, and `backtest` are
-registered but intentionally exit with a "not implemented" message until their
-phases land. `demo` is implemented for the fixture-backed slice, and the daily
-live path is available through the Streamlit UI.
+`ingest` is implemented for the fixture-backed historical path; it also supports
+the live ESPN summary provider, optional MCP context research, Chroma when the
+`rag` extra is installed, and HTTP embeddings when credentials are configured.
+`demo` is implemented for the fixture-backed daily slice, and the daily live path
+is available through the Streamlit UI. `extract`, `monitor`, and `backtest`
+remain registered but intentionally exit with a "not implemented" message until
+their phases land.
 
 ## Testing
 
@@ -194,7 +215,7 @@ python3 -m pytest --cov=upset_profiler --cov-report=term-missing
 | 1 | Pydantic contracts, SQLite schema/repositories, HTTP base, progress events | ✅ Complete |
 | 2 | Fixture-backed end-to-end multi-agent slice and `demo` CLI | ✅ Complete |
 | 3 | Real ESPN slate, Streamlit UI, cache | ✅ Complete |
-| 4 | Historical research ingestion | ⬜ Not started |
+| 4 | Historical research ingestion | ✅ Complete |
 | 5 | RAG retrieval and reranking | ⬜ Not started |
 | 6 | Extractor and statistical validation | ⬜ Not started |
 | 7 | Real Upset-Scorer | ⬜ Not started |

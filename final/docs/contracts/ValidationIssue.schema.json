@@ -1,0 +1,40 @@
+{
+  "additionalProperties": false,
+  "description": "A single validation problem attached to a record or handoff.",
+  "properties": {
+    "code": {
+      "default": "validation_error",
+      "title": "Code",
+      "type": "string"
+    },
+    "context": {
+      "title": "Context",
+      "type": "object"
+    },
+    "location": {
+      "minLength": 1,
+      "title": "Location",
+      "type": "string"
+    },
+    "message": {
+      "minLength": 1,
+      "title": "Message",
+      "type": "string"
+    },
+    "severity": {
+      "default": "error",
+      "enum": [
+        "warning",
+        "error"
+      ],
+      "title": "Severity",
+      "type": "string"
+    }
+  },
+  "required": [
+    "location",
+    "message"
+  ],
+  "title": "ValidationIssue",
+  "type": "object"
+}

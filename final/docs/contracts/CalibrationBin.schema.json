@@ -1,0 +1,44 @@
+{
+  "additionalProperties": false,
+  "description": "One bin of a predicted-probability reliability diagram.",
+  "properties": {
+    "count": {
+      "minimum": 0,
+      "title": "Count",
+      "type": "integer"
+    },
+    "lower": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Lower",
+      "type": "number"
+    },
+    "mean_predicted": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Mean Predicted",
+      "type": "number"
+    },
+    "observed_upset_rate": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Observed Upset Rate",
+      "type": "number"
+    },
+    "upper": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Upper",
+      "type": "number"
+    }
+  },
+  "required": [
+    "lower",
+    "upper",
+    "count",
+    "mean_predicted",
+    "observed_upset_rate"
+  ],
+  "title": "CalibrationBin",
+  "type": "object"
+}

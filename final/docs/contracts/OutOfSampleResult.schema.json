@@ -1,0 +1,57 @@
+{
+  "additionalProperties": false,
+  "description": "Out-of-sample predictive check for a candidate precondition.",
+  "properties": {
+    "baseline_value": {
+      "title": "Baseline Value",
+      "type": "number"
+    },
+    "metric_name": {
+      "minLength": 1,
+      "title": "Metric Name",
+      "type": "string"
+    },
+    "notes": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Notes"
+    },
+    "passed": {
+      "title": "Passed",
+      "type": "boolean"
+    },
+    "train_seasons": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Train Seasons",
+      "type": "array"
+    },
+    "validation_season": {
+      "title": "Validation Season",
+      "type": "string"
+    },
+    "value": {
+      "title": "Value",
+      "type": "number"
+    }
+  },
+  "required": [
+    "train_seasons",
+    "validation_season",
+    "metric_name",
+    "value",
+    "baseline_value",
+    "passed"
+  ],
+  "title": "OutOfSampleResult",
+  "type": "object"
+}

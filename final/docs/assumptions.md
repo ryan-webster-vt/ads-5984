@@ -34,6 +34,16 @@ dependent phase begins.
 14. Tests and demos use fixtures or recorded responses; they do not make paid or
     live API calls by default.
 15. The existing `.env` is preserved and never committed.
+16. The first live historical provider uses ESPN's public game-summary endpoint
+    behind the `CollegeBasketballProvider` interface; the fixture provider is
+    the offline default.
+17. Offline historical ingestion uses a deterministic in-memory vector store.
+    The real Chroma store is used when the optional `rag` extra is installed or
+    when `--vector-store chroma` is requested.
+18. Live MCP context research uses the official MCP SDK through configured
+    stdio/HTTP/SSE transports. Fixture documents are used for offline runs.
+19. Chunk sizing counts whitespace-delimited tokens, an intentionally simple
+    deterministic approximation of model tokens.
 
 ## Naming
 

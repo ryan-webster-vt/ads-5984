@@ -1,0 +1,76 @@
+{
+  "additionalProperties": false,
+  "description": "Aggregate classification metrics for one evaluated season split.",
+  "properties": {
+    "baseline_brier_score": {
+      "anyOf": [
+        {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Baseline Brier Score"
+    },
+    "baseline_log_loss": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Baseline Log Loss"
+    },
+    "brier_score": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Brier Score",
+      "type": "number"
+    },
+    "calibration_error": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Calibration Error"
+    },
+    "log_loss": {
+      "minimum": 0.0,
+      "title": "Log Loss",
+      "type": "number"
+    },
+    "positive_rate": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Positive Rate",
+      "type": "number"
+    },
+    "sample_size": {
+      "minimum": 1,
+      "title": "Sample Size",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "log_loss",
+    "brier_score",
+    "sample_size",
+    "positive_rate"
+  ],
+  "title": "EvaluationMetrics",
+  "type": "object"
+}

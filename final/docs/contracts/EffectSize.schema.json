@@ -1,0 +1,49 @@
+{
+  "additionalProperties": false,
+  "description": "Estimated effect size with a confidence interval.",
+  "properties": {
+    "ci_lower": {
+      "title": "Ci Lower",
+      "type": "number"
+    },
+    "ci_upper": {
+      "title": "Ci Upper",
+      "type": "number"
+    },
+    "control_sample_size": {
+      "minimum": 0,
+      "title": "Control Sample Size",
+      "type": "integer"
+    },
+    "method": {
+      "minLength": 1,
+      "title": "Method",
+      "type": "string"
+    },
+    "metric": {
+      "minLength": 1,
+      "title": "Metric",
+      "type": "string"
+    },
+    "treatment_sample_size": {
+      "minimum": 0,
+      "title": "Treatment Sample Size",
+      "type": "integer"
+    },
+    "value": {
+      "title": "Value",
+      "type": "number"
+    }
+  },
+  "required": [
+    "metric",
+    "value",
+    "ci_lower",
+    "ci_upper",
+    "method",
+    "treatment_sample_size",
+    "control_sample_size"
+  ],
+  "title": "EffectSize",
+  "type": "object"
+}

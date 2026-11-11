@@ -50,6 +50,32 @@ class FixtureContextProvider:
         )
 
 
+class FixtureContextResearchProvider:
+    """Return cited documents stored under ``tests/fixtures/mcp``."""
+
+    source = "fixture"
+
+    def __init__(self, fixture_name: str = "research_documents.json") -> None:
+        payload = load_json("mcp", fixture_name)
+        if not isinstance(payload, dict):
+            raise IntegrationError(
+                "research documents fixture must be a JSON object",
+                retryable=False,
+            )
+        self._documents = payload
+
+    def get_documents(self, game_id: str, season: str) -> list[SourceDocument]:
+        """Validate and return fixture documents for one game."""
+        raw_documents = self._documents.get(game_id, [])
+        if not isinstance(raw_documents, list):
+            raise IntegrationError(
+                "research documents fixture entry must be a list",
+                context={"game_id": game_id},
+                retryable=False,
+            )
+        return [SourceDocument.model_validate(raw) for raw in raw_documents]
+
+
 class FixtureDecisionModel:
     """Deterministic stand-in for the ``d3-mini`` decision model."""
 

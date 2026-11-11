@@ -1,0 +1,219 @@
+{
+  "$defs": {
+    "DocumentChunk": {
+      "additionalProperties": false,
+      "description": "A deterministic chunk of a cited source document.",
+      "properties": {
+        "chunk_id": {
+          "minLength": 1,
+          "title": "Chunk Id",
+          "type": "string"
+        },
+        "chunk_index": {
+          "minimum": 0,
+          "title": "Chunk Index",
+          "type": "integer"
+        },
+        "document_hash": {
+          "minLength": 1,
+          "title": "Document Hash",
+          "type": "string"
+        },
+        "document_id": {
+          "minLength": 1,
+          "title": "Document Id",
+          "type": "string"
+        },
+        "end_char": {
+          "minimum": 0,
+          "title": "End Char",
+          "type": "integer"
+        },
+        "game_id": {
+          "minLength": 1,
+          "title": "Game Id",
+          "type": "string"
+        },
+        "metadata": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "Metadata",
+          "type": "object"
+        },
+        "published_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Published At"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "season": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Season"
+        },
+        "source_domain": {
+          "minLength": 1,
+          "title": "Source Domain",
+          "type": "string"
+        },
+        "source_url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Source Url",
+          "type": "string"
+        },
+        "start_char": {
+          "minimum": 0,
+          "title": "Start Char",
+          "type": "integer"
+        },
+        "text": {
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "token_count": {
+          "minimum": 1,
+          "title": "Token Count",
+          "type": "integer"
+        },
+        "whitelisted": {
+          "default": true,
+          "title": "Whitelisted",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "chunk_id",
+        "document_id",
+        "game_id",
+        "chunk_index",
+        "text",
+        "token_count",
+        "start_char",
+        "end_char",
+        "source_url",
+        "source_domain",
+        "document_hash"
+      ],
+      "title": "DocumentChunk",
+      "type": "object"
+    },
+    "RetrievedEvidence": {
+      "additionalProperties": false,
+      "description": "A chunk returned by vector retrieval for a query.",
+      "properties": {
+        "chunk": {
+          "$ref": "#/$defs/DocumentChunk"
+        },
+        "query": {
+          "minLength": 1,
+          "title": "Query",
+          "type": "string"
+        },
+        "rank": {
+          "minimum": 1,
+          "title": "Rank",
+          "type": "integer"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "score": {
+          "title": "Score",
+          "type": "number"
+        }
+      },
+      "required": [
+        "query",
+        "chunk",
+        "score",
+        "rank"
+      ],
+      "title": "RetrievedEvidence",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A retrieved chunk after decision-model reranking.",
+  "properties": {
+    "evidence": {
+      "$ref": "#/$defs/RetrievedEvidence"
+    },
+    "final_rank": {
+      "minimum": 1,
+      "title": "Final Rank",
+      "type": "integer"
+    },
+    "model_name": {
+      "minLength": 1,
+      "title": "Model Name",
+      "type": "string"
+    },
+    "original_rank": {
+      "minimum": 1,
+      "title": "Original Rank",
+      "type": "integer"
+    },
+    "rerank_score": {
+      "title": "Rerank Score",
+      "type": "number"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "evidence",
+    "rerank_score",
+    "original_rank",
+    "final_rank",
+    "model_name"
+  ],
+  "title": "RerankedEvidence",
+  "type": "object"
+}

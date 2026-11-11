@@ -1,0 +1,51 @@
+{
+  "additionalProperties": false,
+  "description": "Reference to a team participating in a game.",
+  "properties": {
+    "abbreviation": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Abbreviation"
+    },
+    "conference": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Conference"
+    },
+    "division": {
+      "default": "D1",
+      "title": "Division",
+      "type": "string"
+    },
+    "name": {
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+    },
+    "team_id": {
+      "minLength": 1,
+      "title": "Team Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "team_id",
+    "name"
+  ],
+  "title": "TeamRef",
+  "type": "object"
+}

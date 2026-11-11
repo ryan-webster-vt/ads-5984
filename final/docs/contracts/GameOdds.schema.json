@@ -1,0 +1,81 @@
+{
+  "additionalProperties": false,
+  "description": "Pregame odds used to define the favorite and the upset label.",
+  "properties": {
+    "captured_at": {
+      "format": "date-time",
+      "title": "Captured At",
+      "type": "string"
+    },
+    "favorite_moneyline": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Favorite Moneyline"
+    },
+    "favorite_team_id": {
+      "minLength": 1,
+      "title": "Favorite Team Id",
+      "type": "string"
+    },
+    "provider": {
+      "default": "espn",
+      "title": "Provider",
+      "type": "string"
+    },
+    "spread": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Spread"
+    },
+    "total": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Total"
+    },
+    "underdog_moneyline": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Underdog Moneyline"
+    },
+    "underdog_team_id": {
+      "minLength": 1,
+      "title": "Underdog Team Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "favorite_team_id",
+    "underdog_team_id"
+  ],
+  "title": "GameOdds",
+  "type": "object"
+}

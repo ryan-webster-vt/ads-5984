@@ -1,0 +1,55 @@
+{
+  "additionalProperties": false,
+  "description": "Serializable error record carried in agent results.\n\nThis contract is distinct from the ``AgentError`` exception in\n:mod:`upset_profiler.errors`; it is the on-the-wire representation.",
+  "properties": {
+    "agent": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Agent"
+    },
+    "context": {
+      "title": "Context",
+      "type": "object"
+    },
+    "error_type": {
+      "minLength": 1,
+      "title": "Error Type",
+      "type": "string"
+    },
+    "message": {
+      "minLength": 1,
+      "title": "Message",
+      "type": "string"
+    },
+    "retryable": {
+      "default": false,
+      "title": "Retryable",
+      "type": "boolean"
+    },
+    "stage": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Stage"
+    }
+  },
+  "required": [
+    "error_type",
+    "message"
+  ],
+  "title": "AgentError",
+  "type": "object"
+}
