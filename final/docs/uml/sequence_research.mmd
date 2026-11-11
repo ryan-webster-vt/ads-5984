@@ -1,0 +1,51 @@
+sequenceDiagram
+    autonumber
+    participant RO as Research-Orchestrator
+    participant HS as Historical-Stats
+    participant CR as Context-Research
+    participant API as College Basketball API
+    participant MCP as MCP Tools (Brave, Fetch, Deep Research)
+    participant PV as Pydantic Validator
+    participant DB as SQLite
+    participant EMB as qwen3-embedding:8b
+    participant VDB as ChromaDB
+
+    Note over RO,VDB: One-time background ingestion (not user-initiated)
+
+    loop For each batch of historical game IDs
+        RO->>RO: Decompose and assign game IDs
+        par Historical statistical research
+            RO->>HS: Assign game IDs
+            HS->>API: Request box scores and game statistics
+            API-->>HS: Return historical statistics
+            HS-->>RO: Return structured game records
+        and Historical contextual research
+            RO->>CR: Assign game IDs
+            CR->>MCP: Brave Search: find reports and news
+            MCP-->>CR: Return search results
+            CR->>MCP: Fetch: retrieve source documents
+            MCP-->>CR: Return source content
+            CR->>MCP: Deep Research: investigate game context
+            MCP-->>CR: Return research evidence
+            CR-->>RO: Return documents, citations, and context
+        end
+    end
+
+    RO->>RO: Aggregate records and join by game ID
+    RO->>PV: Validate aggregated JSON records
+
+    alt Validation successful
+        PV-->>RO: Validated structured records
+        RO->>DB: Store validated game JSON
+        DB-->>RO: Confirm storage
+        RO->>RO: Chunk cited source documents
+        RO->>EMB: Generate chunk embeddings
+        EMB-->>RO: Return embedding vectors
+        RO->>VDB: Store chunks, vectors, and metadata
+        VDB-->>RO: Confirm ingestion complete
+    else Validation failed
+        PV-->>RO: Return schema and field errors
+        RO->>RO: Log validation failures
+        RO->>DB: Quarantine invalid records and error details
+        DB-->>RO: Confirm quarantine
+    end

@@ -1,0 +1,140 @@
+{
+  "schema_version": 1,
+  "slate_date": "2025-01-15",
+  "source": "fixture",
+  "retrieved_at": "2025-01-15T12:00:00Z",
+  "games": [
+    {
+      "schema_version": 1,
+      "game_id": "401000001",
+      "slate_date": "2025-01-15",
+      "tipoff_at": "2025-01-15T18:30:00Z",
+      "home_team": {
+        "team_id": "team-duke",
+        "name": "Duke Blue Devils",
+        "abbreviation": "DUKE",
+        "conference": "ACC",
+        "division": "D1"
+      },
+      "away_team": {
+        "team_id": "team-clemson",
+        "name": "Clemson Tigers",
+        "abbreviation": "CLEM",
+        "conference": "ACC",
+        "division": "D1"
+      },
+      "neutral_site": false,
+      "venue": "Cameron Indoor Stadium",
+      "status": "scheduled",
+      "odds": {
+        "provider": "fixture",
+        "favorite_team_id": "team-duke",
+        "underdog_team_id": "team-clemson",
+        "favorite_moneyline": -220,
+        "underdog_moneyline": 180,
+        "spread": -5.5,
+        "total": 145.5,
+        "captured_at": "2025-01-15T12:00:00Z"
+      }
+    },
+    {
+      "schema_version": 1,
+      "game_id": "401000002",
+      "slate_date": "2025-01-15",
+      "tipoff_at": "2025-01-15T19:00:00Z",
+      "home_team": {
+        "team_id": "team-kansas",
+        "name": "Kansas Jayhawks",
+        "abbreviation": "KU",
+        "conference": "Big 12",
+        "division": "D1"
+      },
+      "away_team": {
+        "team_id": "team-tcu",
+        "name": "TCU Horned Frogs",
+        "abbreviation": "TCU",
+        "conference": "Big 12",
+        "division": "D1"
+      },
+      "neutral_site": false,
+      "venue": "Allen Fieldhouse",
+      "status": "scheduled",
+      "odds": {
+        "provider": "fixture",
+        "favorite_team_id": "team-kansas",
+        "underdog_team_id": "team-tcu",
+        "favorite_moneyline": -310,
+        "underdog_moneyline": 250,
+        "spread": -7.5,
+        "total": 141.5,
+        "captured_at": "2025-01-15T12:00:00Z"
+      }
+    },
+    {
+      "schema_version": 1,
+      "game_id": "401000003",
+      "slate_date": "2025-01-15",
+      "tipoff_at": "2025-01-15T22:00:00Z",
+      "home_team": {
+        "team_id": "team-gonzaga",
+        "name": "Gonzaga Bulldogs",
+        "abbreviation": "GONZ",
+        "conference": "WCC",
+        "division": "D1"
+      },
+      "away_team": {
+        "team_id": "team-saint-marys",
+        "name": "Saint Mary's Gaels",
+        "abbreviation": "SMC",
+        "conference": "WCC",
+        "division": "D1"
+      },
+      "neutral_site": false,
+      "venue": "McCarthey Athletic Center",
+      "status": "scheduled",
+      "odds": {
+        "provider": "fixture",
+        "favorite_team_id": "team-gonzaga",
+        "underdog_team_id": "team-saint-marys",
+        "favorite_moneyline": -190,
+        "underdog_moneyline": 160,
+        "spread": -4.5,
+        "total": 139.5,
+        "captured_at": "2025-01-15T12:00:00Z"
+      }
+    },
+    {
+      "schema_version": 1,
+      "game_id": "401000004",
+      "slate_date": "2025-01-15",
+      "tipoff_at": "2025-01-15T23:30:00Z",
+      "home_team": {
+        "team_id": "team-purdue",
+        "name": "Purdue Boilermakers",
+        "abbreviation": "PUR",
+        "conference": "Big Ten",
+        "division": "D1"
+      },
+      "away_team": {
+        "team_id": "team-rutgers",
+        "name": "Rutgers Scarlet Knights",
+        "abbreviation": "RUTG",
+        "conference": "Big Ten",
+        "division": "D1"
+      },
+      "neutral_site": false,
+      "venue": "Mackey Arena",
+      "status": "scheduled",
+      "odds": {
+        "provider": "fixture",
+        "favorite_team_id": "team-purdue",
+        "underdog_team_id": "team-rutgers",
+        "favorite_moneyline": -400,
+        "underdog_moneyline": 310,
+        "spread": -9.5,
+        "total": 148.5,
+        "captured_at": "2025-01-15T12:00:00Z"
+      }
+    }
+  ]
+}

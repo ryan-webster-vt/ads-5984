@@ -1,0 +1,68 @@
+{
+  "401000001": {
+    "features": {
+      "rest_days_difference": 3,
+      "underdog_back_to_back": true,
+      "favorite_travel_miles": 2100
+    },
+    "documents": [
+      {
+        "schema_version": 1,
+        "document_id": "doc-401000001-rest",
+        "game_id": "401000001",
+        "url": "https://www.espn.com/mens-college-basketball/story/_/id/clemson-rest",
+        "title": "Clemson enters Durham on short rest",
+        "author": "Fixture Reporter",
+        "source_domain": "espn.com",
+        "published_at": "2025-01-14T15:00:00Z",
+        "retrieved_at": "2025-01-15T12:00:00Z",
+        "content": "Clemson played on Monday night and traveled to Durham on Tuesday before facing Duke.",
+        "content_hash": "fixture-doc-401000001-rest",
+        "metadata": {
+          "kind": "pregame-report"
+        }
+      }
+    ]
+  },
+  "401000002": {
+    "features": {
+      "rest_days_difference": 0,
+      "underdog_back_to_back": false,
+      "favorite_travel_miles": 350
+    },
+    "documents": []
+  },
+  "401000003": {
+    "features": {
+      "rest_days_difference": 2,
+      "underdog_back_to_back": false,
+      "favorite_travel_miles": 1600
+    },
+    "documents": [
+      {
+        "schema_version": 1,
+        "document_id": "doc-401000003-travel",
+        "game_id": "401000003",
+        "url": "https://www.sports-reference.com/cbb/blog/gonzaga-travel.html",
+        "title": "Gonzaga returns from a long road trip",
+        "author": "Fixture Reporter",
+        "source_domain": "sports-reference.com",
+        "published_at": "2025-01-14T18:30:00Z",
+        "retrieved_at": "2025-01-15T12:00:00Z",
+        "content": "Gonzaga traveled more than 1,500 miles before returning home to face Saint Mary's.",
+        "content_hash": "fixture-doc-401000003-travel",
+        "metadata": {
+          "kind": "pregame-report"
+        }
+      }
+    ]
+  },
+  "401000004": {
+    "features": {
+      "rest_days_difference": 1,
+      "underdog_back_to_back": false,
+      "favorite_travel_miles": 120
+    },
+    "documents": []
+  }
+}

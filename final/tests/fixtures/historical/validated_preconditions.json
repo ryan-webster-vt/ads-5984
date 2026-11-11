@@ -1,0 +1,185 @@
+[
+  {
+    "schema_version": 1,
+    "precondition_id": "rest_disadvantage",
+    "candidate": {
+      "schema_version": 1,
+      "precondition_id": "rest_disadvantage",
+      "name": "Rest disadvantage",
+      "description": "The underdog has at least two more days of rest than the favorite.",
+      "feature": "rest_days_difference",
+      "comparison": "greater_than_or_equal",
+      "threshold": 2,
+      "direction": "higher_increases_upset_risk",
+      "tags": ["schedule", "fatigue"],
+      "rationale": "Uneven rest can compound fatigue and travel effects.",
+      "source": "seed",
+      "min_sample_size": 30,
+      "created_at": "2025-01-01T00:00:00Z"
+    },
+    "effect_size": {
+      "metric": "risk_difference",
+      "value": 0.18,
+      "ci_lower": 0.04,
+      "ci_upper": 0.32,
+      "method": "bootstrap",
+      "treatment_sample_size": 48,
+      "control_sample_size": 72
+    },
+    "statistical_test": {
+      "test_name": "chi_square",
+      "statistic": 6.4,
+      "p_value": 0.011,
+      "alpha": 0.05,
+      "significant": true,
+      "multiple_testing_corrected": false,
+      "adjusted_p_value": null,
+      "notes": null
+    },
+    "out_of_sample": {
+      "train_seasons": ["2021-2022", "2022-2023", "2023-2024"],
+      "validation_season": "2024-2025",
+      "metric_name": "log_loss",
+      "value": 0.61,
+      "baseline_value": 0.65,
+      "passed": true,
+      "notes": null
+    },
+    "citations": [
+      {
+        "citation_id": "cit-rest-1",
+        "title": "How rest and travel shape college basketball matchups",
+        "url": "https://www.espn.com/mens-college-basketball/story/_/id/rest-travel",
+        "source_domain": "espn.com",
+        "published_at": "2024-12-01T12:00:00Z",
+        "retrieved_at": "2025-01-01T00:00:00Z",
+        "quote": "Short-turnaround teams consistently underperform relative to their season baseline."
+      }
+    ],
+    "justification": "Rest disparity is associated with upset outcomes and passes out-of-sample validation.",
+    "validated_at": "2025-01-01T00:00:00Z",
+    "validation_version": "1"
+  },
+  {
+    "schema_version": 1,
+    "precondition_id": "back_to_back",
+    "candidate": {
+      "schema_version": 1,
+      "precondition_id": "back_to_back",
+      "name": "Back-to-back underdog",
+      "description": "The underdog played a game on the previous calendar day.",
+      "feature": "underdog_back_to_back",
+      "comparison": "equals",
+      "threshold": true,
+      "direction": "higher_increases_upset_risk",
+      "tags": ["schedule", "fatigue"],
+      "rationale": "Short turnaround reduces preparation and recovery time.",
+      "source": "seed",
+      "min_sample_size": 30,
+      "created_at": "2025-01-01T00:00:00Z"
+    },
+    "effect_size": {
+      "metric": "risk_difference",
+      "value": 0.14,
+      "ci_lower": 0.02,
+      "ci_upper": 0.27,
+      "method": "bootstrap",
+      "treatment_sample_size": 41,
+      "control_sample_size": 79
+    },
+    "statistical_test": {
+      "test_name": "chi_square",
+      "statistic": 4.9,
+      "p_value": 0.027,
+      "alpha": 0.05,
+      "significant": true,
+      "multiple_testing_corrected": false,
+      "adjusted_p_value": null,
+      "notes": null
+    },
+    "out_of_sample": {
+      "train_seasons": ["2021-2022", "2022-2023", "2023-2024"],
+      "validation_season": "2024-2025",
+      "metric_name": "log_loss",
+      "value": 0.62,
+      "baseline_value": 0.65,
+      "passed": true,
+      "notes": null
+    },
+    "citations": [
+      {
+        "citation_id": "cit-b2b-1",
+        "title": "Back-to-back scheduling notes",
+        "url": "https://www.cbssports.com/college-basketball/news/back-to-back-scheduling",
+        "source_domain": "cbssports.com",
+        "published_at": "2024-11-20T09:00:00Z",
+        "retrieved_at": "2025-01-01T00:00:00Z",
+        "quote": "Teams on the second leg of a back-to-back show reduced late-game efficiency."
+      }
+    ],
+    "justification": "Back-to-back scheduling shows a significant association with upsets and validates out of sample.",
+    "validated_at": "2025-01-01T00:00:00Z",
+    "validation_version": "1"
+  },
+  {
+    "schema_version": 1,
+    "precondition_id": "travel_distance",
+    "candidate": {
+      "schema_version": 1,
+      "precondition_id": "travel_distance",
+      "name": "Long travel for favorite",
+      "description": "The favorite travels an unusually long distance relative to the underdog.",
+      "feature": "favorite_travel_miles",
+      "comparison": "greater_than_or_equal",
+      "threshold": 1500,
+      "direction": "higher_increases_upset_risk",
+      "tags": ["travel", "fatigue"],
+      "rationale": "Travel fatigue and circadian disruption are common pregame factors.",
+      "source": "seed",
+      "min_sample_size": 30,
+      "created_at": "2025-01-01T00:00:00Z"
+    },
+    "effect_size": {
+      "metric": "risk_difference",
+      "value": 0.11,
+      "ci_lower": 0.01,
+      "ci_upper": 0.21,
+      "method": "bootstrap",
+      "treatment_sample_size": 55,
+      "control_sample_size": 65
+    },
+    "statistical_test": {
+      "test_name": "chi_square",
+      "statistic": 4.2,
+      "p_value": 0.041,
+      "alpha": 0.05,
+      "significant": true,
+      "multiple_testing_corrected": false,
+      "adjusted_p_value": null,
+      "notes": null
+    },
+    "out_of_sample": {
+      "train_seasons": ["2021-2022", "2022-2023", "2023-2024"],
+      "validation_season": "2024-2025",
+      "metric_name": "log_loss",
+      "value": 0.63,
+      "baseline_value": 0.65,
+      "passed": true,
+      "notes": null
+    },
+    "citations": [
+      {
+        "citation_id": "cit-travel-1",
+        "title": "Travel distance and road performance",
+        "url": "https://www.sports-reference.com/cbb/blog/travel-distance-road-performance.html",
+        "source_domain": "sports-reference.com",
+        "published_at": "2024-10-15T14:00:00Z",
+        "retrieved_at": "2025-01-01T00:00:00Z",
+        "quote": "Long road trips are associated with lower shooting efficiency in the first half."
+      }
+    ],
+    "justification": "Long favorite travel is significant and improves held-out predictive performance.",
+    "validated_at": "2025-01-01T00:00:00Z",
+    "validation_version": "1"
+  }
+]

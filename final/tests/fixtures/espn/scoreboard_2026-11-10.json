@@ -1,0 +1,659 @@
+{
+  "events": [
+    {
+      "id": "401920866",
+      "date": "2026-11-10T23:30Z",
+      "name": "NJIT Highlanders at Rutgers Scarlet Knights",
+      "shortName": "NJIT @ RUTG",
+      "competitions": [
+        {
+          "id": "401920866",
+          "date": "2026-11-10T23:30Z",
+          "neutralSite": false,
+          "venue": {
+            "id": "2008",
+            "fullName": "Jersey Mike\u2019s Arena",
+            "address": {
+              "city": "Piscataway",
+              "state": "NJ"
+            }
+          },
+          "status": {
+            "type": {
+              "id": "1",
+              "name": "STATUS_SCHEDULED",
+              "state": "pre",
+              "completed": false,
+              "description": "Scheduled",
+              "detail": "Tue, November 10th at 6:30 PM EST",
+              "shortDetail": "11/10 - 6:30 PM EST"
+            }
+          },
+          "competitors": [
+            {
+              "id": "164",
+              "homeAway": "home",
+              "winner": null,
+              "score": "0",
+              "records": [
+                {
+                  "name": "overall",
+                  "abbreviation": "Season",
+                  "type": "total",
+                  "summary": "1-0"
+                },
+                {
+                  "name": "Home",
+                  "abbreviation": "Home",
+                  "type": "home",
+                  "summary": "1-0"
+                },
+                {
+                  "name": "Road",
+                  "abbreviation": "AWAY",
+                  "type": "road",
+                  "summary": "0-0"
+                },
+                {
+                  "name": "vs. Conf.",
+                  "abbreviation": "VS CONF",
+                  "type": "vsconf",
+                  "summary": "0-0"
+                }
+              ],
+              "team": {
+                "id": "164",
+                "uid": "s:40~l:41~t:164",
+                "location": "Rutgers",
+                "name": "Scarlet Knights",
+                "abbreviation": "RUTG",
+                "displayName": "Rutgers Scarlet Knights",
+                "conferenceId": "7",
+                "isActive": true
+              }
+            },
+            {
+              "id": "2885",
+              "homeAway": "away",
+              "winner": null,
+              "score": "0",
+              "records": [
+                {
+                  "name": "overall",
+                  "abbreviation": "Season",
+                  "type": "total",
+                  "summary": "1-2"
+                },
+                {
+                  "name": "Home",
+                  "abbreviation": "Home",
+                  "type": "home",
+                  "summary": "1-0"
+                },
+                {
+                  "name": "Road",
+                  "abbreviation": "AWAY",
+                  "type": "road",
+                  "summary": "0-2"
+                },
+                {
+                  "name": "vs. Conf.",
+                  "abbreviation": "VS CONF",
+                  "type": "vsconf",
+                  "summary": "0-0"
+                }
+              ],
+              "team": {
+                "id": "2885",
+                "uid": "s:40~l:41~t:2885",
+                "location": "NJIT",
+                "name": "Highlanders",
+                "abbreviation": "NJIT",
+                "displayName": "NJIT Highlanders",
+                "conferenceId": "1",
+                "isActive": true
+              }
+            }
+          ],
+          "odds": [
+            {
+              "provider": {
+                "name": "DraftKings"
+              },
+              "details": "RUTG -25.5",
+              "overUnder": 143.5,
+              "spread": -25.5,
+              "awayTeamOdds": {
+                "favorite": false,
+                "underdog": true,
+                "team": {
+                  "id": "2885"
+                },
+                "favoriteAtOpen": false
+              },
+              "homeTeamOdds": {
+                "favorite": true,
+                "underdog": false,
+                "team": {
+                  "id": "164"
+                },
+                "favoriteAtOpen": true
+              },
+              "moneyline": {
+                "home": {
+                  "close": {
+                    "odds": "-8000"
+                  }
+                },
+                "away": {
+                  "close": {
+                    "odds": "+2200"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "401909514",
+      "date": "2026-11-10T23:30Z",
+      "name": "Delaware State Hornets at Georgetown Hoyas",
+      "shortName": "DSU @ GTWN",
+      "competitions": [
+        {
+          "id": "401909514",
+          "date": "2026-11-10T23:30Z",
+          "neutralSite": false,
+          "venue": {
+            "id": "1823",
+            "fullName": "Capital One Arena",
+            "address": {
+              "city": "Washington",
+              "state": "DC"
+            }
+          },
+          "status": {
+            "type": {
+              "id": "1",
+              "name": "STATUS_SCHEDULED",
+              "state": "pre",
+              "completed": false,
+              "description": "Scheduled",
+              "detail": "Tue, November 10th at 6:30 PM EST",
+              "shortDetail": "11/10 - 6:30 PM EST"
+            }
+          },
+          "competitors": [
+            {
+              "id": "46",
+              "homeAway": "home",
+              "winner": null,
+              "score": "0",
+              "records": [
+                {
+                  "name": "overall",
+                  "abbreviation": "Season",
+                  "type": "total",
+                  "summary": "2-0"
+                },
+                {
+                  "name": "Home",
+                  "abbreviation": "Home",
+                  "type": "home",
+                  "summary": "2-0"
+                },
+                {
+                  "name": "Road",
+                  "abbreviation": "AWAY",
+                  "type": "road",
+                  "summary": "0-0"
+                },
+                {
+                  "name": "vs. Conf.",
+                  "abbreviation": "VS CONF",
+                  "type": "vsconf",
+                  "summary": "0-0"
+                }
+              ],
+              "team": {
+                "id": "46",
+                "uid": "s:40~l:41~t:46",
+                "location": "Georgetown",
+                "name": "Hoyas",
+                "abbreviation": "GTWN",
+                "displayName": "Georgetown Hoyas",
+                "conferenceId": "4",
+                "isActive": true
+              }
+            },
+            {
+              "id": "2169",
+              "homeAway": "away",
+              "winner": null,
+              "score": "0",
+              "records": [
+                {
+                  "name": "overall",
+                  "abbreviation": "Season",
+                  "type": "total",
+                  "summary": "1-1"
+                },
+                {
+                  "name": "Home",
+                  "abbreviation": "Home",
+                  "type": "home",
+                  "summary": "1-0"
+                },
+                {
+                  "name": "Road",
+                  "abbreviation": "AWAY",
+                  "type": "road",
+                  "summary": "0-1"
+                },
+                {
+                  "name": "vs. Conf.",
+                  "abbreviation": "VS CONF",
+                  "type": "vsconf",
+                  "summary": "0-0"
+                }
+              ],
+              "team": {
+                "id": "2169",
+                "uid": "s:40~l:41~t:2169",
+                "location": "Delaware State",
+                "name": "Hornets",
+                "abbreviation": "DSU",
+                "displayName": "Delaware State Hornets",
+                "conferenceId": "16",
+                "isActive": true
+              }
+            }
+          ],
+          "odds": [
+            {
+              "provider": {
+                "name": "DraftKings"
+              },
+              "details": "GTWN -30.5",
+              "overUnder": 143.5,
+              "spread": -30.5,
+              "awayTeamOdds": {
+                "favorite": false,
+                "underdog": true,
+                "team": {
+                  "id": "2169"
+                },
+                "favoriteAtOpen": false
+              },
+              "homeTeamOdds": {
+                "favorite": true,
+                "underdog": false,
+                "team": {
+                  "id": "46"
+                },
+                "favoriteAtOpen": true
+              },
+              "moneyline": {
+                "home": {
+                  "close": {
+                    "odds": "-100000"
+                  }
+                },
+                "away": {
+                  "close": {
+                    "odds": "+5000"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "401909564",
+      "date": "2026-11-11T00:00Z",
+      "name": "Michigan State Spartans at Duke Blue Devils",
+      "shortName": "MSU VS DUKE",
+      "competitions": [
+        {
+          "id": "401909564",
+          "date": "2026-11-11T00:00Z",
+          "neutralSite": true,
+          "venue": {
+            "id": "1847",
+            "fullName": "United Center",
+            "address": {
+              "city": "Chicago",
+              "state": "IL"
+            }
+          },
+          "status": {
+            "type": {
+              "id": "1",
+              "name": "STATUS_SCHEDULED",
+              "state": "pre",
+              "completed": false,
+              "description": "Scheduled",
+              "detail": "Tue, November 10th at 7:00 PM EST",
+              "shortDetail": "11/10 - 7:00 PM EST"
+            }
+          },
+          "competitors": [
+            {
+              "id": "150",
+              "homeAway": "home",
+              "winner": null,
+              "score": "0",
+              "records": [
+                {
+                  "name": "overall",
+                  "abbreviation": "Season",
+                  "type": "total",
+                  "summary": "2-0"
+                },
+                {
+                  "name": "Home",
+                  "abbreviation": "Home",
+                  "type": "home",
+                  "summary": "2-0"
+                },
+                {
+                  "name": "Road",
+                  "abbreviation": "AWAY",
+                  "type": "road",
+                  "summary": "0-0"
+                },
+                {
+                  "name": "vs. Conf.",
+                  "abbreviation": "VS CONF",
+                  "type": "vsconf",
+                  "summary": "0-0"
+                }
+              ],
+              "team": {
+                "id": "150",
+                "uid": "s:40~l:41~t:150",
+                "location": "Duke",
+                "name": "Blue Devils",
+                "abbreviation": "DUKE",
+                "displayName": "Duke Blue Devils",
+                "conferenceId": "2",
+                "isActive": true
+              }
+            },
+            {
+              "id": "127",
+              "homeAway": "away",
+              "winner": null,
+              "score": "0",
+              "records": [
+                {
+                  "name": "overall",
+                  "abbreviation": "Season",
+                  "type": "total",
+                  "summary": "2-0"
+                },
+                {
+                  "name": "Home",
+                  "abbreviation": "Home",
+                  "type": "home",
+                  "summary": "2-0"
+                },
+                {
+                  "name": "Road",
+                  "abbreviation": "AWAY",
+                  "type": "road",
+                  "summary": "0-0"
+                },
+                {
+                  "name": "vs. Conf.",
+                  "abbreviation": "VS CONF",
+                  "type": "vsconf",
+                  "summary": "0-0"
+                }
+              ],
+              "team": {
+                "id": "127",
+                "uid": "s:40~l:41~t:127",
+                "location": "Michigan State",
+                "name": "Spartans",
+                "abbreviation": "MSU",
+                "displayName": "Michigan State Spartans",
+                "conferenceId": "7",
+                "isActive": true
+              }
+            }
+          ],
+          "odds": [
+            {
+              "provider": {
+                "name": "DraftKings"
+              },
+              "details": "DUKE -7.5",
+              "overUnder": 147.5,
+              "spread": -7.5,
+              "awayTeamOdds": {
+                "favorite": false,
+                "underdog": true,
+                "team": {
+                  "id": "127"
+                },
+                "favoriteAtOpen": false
+              },
+              "homeTeamOdds": {
+                "favorite": true,
+                "underdog": false,
+                "team": {
+                  "id": "150"
+                },
+                "favoriteAtOpen": true
+              },
+              "moneyline": {
+                "home": {
+                  "close": {
+                    "odds": "-340"
+                  }
+                },
+                "away": {
+                  "close": {
+                    "odds": "+270"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "401928828",
+      "date": "2026-11-11T00:00Z",
+      "name": "Wright State Raiders at Toledo Rockets",
+      "shortName": "WRST @ TOL",
+      "competitions": [
+        {
+          "id": "401928828",
+          "date": "2026-11-11T00:00Z",
+          "neutralSite": false,
+          "venue": {
+            "id": "2116",
+            "fullName": "Savage Arena",
+            "address": {
+              "city": "Toledo",
+              "state": "OH"
+            }
+          },
+          "status": {
+            "type": {
+              "id": "1",
+              "name": "STATUS_SCHEDULED",
+              "state": "pre",
+              "completed": false,
+              "description": "Scheduled",
+              "detail": "Tue, November 10th at 7:00 PM EST",
+              "shortDetail": "11/10 - 7:00 PM EST"
+            }
+          },
+          "competitors": [
+            {
+              "id": "2649",
+              "homeAway": "home",
+              "winner": null,
+              "score": "0",
+              "records": [
+                {
+                  "name": "overall",
+                  "abbreviation": "Season",
+                  "type": "total",
+                  "summary": "1-2"
+                },
+                {
+                  "name": "Home",
+                  "abbreviation": "Home",
+                  "type": "home",
+                  "summary": "0-0"
+                },
+                {
+                  "name": "Road",
+                  "abbreviation": "AWAY",
+                  "type": "road",
+                  "summary": "1-2"
+                },
+                {
+                  "name": "vs. Conf.",
+                  "abbreviation": "VS CONF",
+                  "type": "vsconf",
+                  "summary": "0-0"
+                }
+              ],
+              "team": {
+                "id": "2649",
+                "uid": "s:40~l:41~t:2649",
+                "location": "Toledo",
+                "name": "Rockets",
+                "abbreviation": "TOL",
+                "displayName": "Toledo Rockets",
+                "conferenceId": "14",
+                "isActive": true
+              }
+            },
+            {
+              "id": "2750",
+              "homeAway": "away",
+              "winner": null,
+              "score": "0",
+              "records": [
+                {
+                  "name": "overall",
+                  "abbreviation": "Season",
+                  "type": "total",
+                  "summary": "2-0"
+                },
+                {
+                  "name": "Home",
+                  "abbreviation": "Home",
+                  "type": "home",
+                  "summary": "2-0"
+                },
+                {
+                  "name": "Road",
+                  "abbreviation": "AWAY",
+                  "type": "road",
+                  "summary": "0-0"
+                },
+                {
+                  "name": "vs. Conf.",
+                  "abbreviation": "VS CONF",
+                  "type": "vsconf",
+                  "summary": "0-0"
+                }
+              ],
+              "team": {
+                "id": "2750",
+                "uid": "s:40~l:41~t:2750",
+                "location": "Wright State",
+                "name": "Raiders",
+                "abbreviation": "WRST",
+                "displayName": "Wright State Raiders",
+                "conferenceId": "45",
+                "isActive": true
+              }
+            }
+          ],
+          "odds": [
+            {
+              "provider": {
+                "name": "DraftKings"
+              },
+              "details": "WRST -1.5",
+              "overUnder": 156.5,
+              "spread": 1.5,
+              "awayTeamOdds": {
+                "favorite": true,
+                "underdog": false,
+                "team": {
+                  "id": "2750"
+                },
+                "favoriteAtOpen": true
+              },
+              "homeTeamOdds": {
+                "favorite": false,
+                "underdog": true,
+                "team": {
+                  "id": "2649"
+                },
+                "favoriteAtOpen": false
+              },
+              "moneyline": {
+                "home": {
+                  "close": {
+                    "odds": "-105"
+                  }
+                },
+                "away": {
+                  "close": {
+                    "odds": "-115"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "eventsDate": {
+    "date": "2026-11-10T23:00Z",
+    "seasonType": 2
+  },
+  "provider": {
+    "id": "100",
+    "name": "DraftKings",
+    "priority": 1,
+    "logos": [
+      {
+        "href": "https://a.espncdn.com/i/betting/Draftkings_Light.svg",
+        "rel": [
+          "light"
+        ]
+      },
+      {
+        "href": "https://a.espncdn.com/i/betting/Draftkings_Dark.svg",
+        "rel": [
+          "dark"
+        ]
+      }
+    ],
+    "displayName": "DraftKings"
+  },
+  "leagues": [
+    {
+      "id": "41",
+      "name": "NCAA Men's Basketball",
+      "abbreviation": "NCAAM"
+    }
+  ]
+}

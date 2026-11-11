@@ -1,0 +1,125 @@
+# Seed candidate preconditions for historical statistical validation.
+#
+# These are hypotheses, not validated signals. The Extractor agent (Phase 6)
+# must accept or reject each candidate using deterministic statistical tests
+# against historical data. Thresholds below are starting values only.
+
+version: 1
+
+defaults:
+  min_sample_size: 30
+  alpha: 0.05
+  fdr_alpha: 0.05
+  require_out_of_sample: true
+  direction: higher_increases_upset_risk
+
+candidates:
+  - id: rest_disadvantage
+    name: Rest disadvantage
+    description: >
+      The underdog has at least two more days of rest than the favorite going
+      into the matchup.
+    feature: rest_days_difference
+    comparison: greater_than_or_equal
+    threshold: 2
+    tags: [schedule, fatigue]
+    rationale: >
+      Uneven rest can compound fatigue and travel effects, especially for the
+      more heavily used favorite.
+
+  - id: back_to_back
+    name: Back-to-back underdog
+    description: The underdog played a game on the previous calendar day.
+    feature: underdog_back_to_back
+    comparison: equals
+    threshold: true
+    tags: [schedule, fatigue]
+    rationale: Short turnaround reduces preparation and recovery time.
+
+  - id: travel_distance
+    name: Long travel for favorite
+    description: >
+      The favorite travels an unusually long distance or crosses multiple time
+      zones relative to the underdog.
+    feature: favorite_travel_miles
+    comparison: greater_than_or_equal
+    threshold: 1500
+    tags: [travel, fatigue]
+    rationale: Travel fatigue and circadian disruption are common pregame factors.
+
+  - id: altitude_road_spot
+    name: Altitude road spot
+    description: >
+      The favorite is playing on the road at a high-elevation venue without an
+      acclimatization period.
+    feature: venue_altitude_feet
+    comparison: greater_than_or_equal
+    threshold: 4000
+    tags: [environment, travel]
+    rationale: Altitude can affect shooting and endurance for unacclimated teams.
+
+  - id: revenge_game
+    name: Revenge game
+    description: >
+      The underdog lost to the same opponent earlier in the season, particularly
+      in a lopsided or late-game loss.
+    feature: underdog_revenge_game
+    comparison: equals
+    threshold: true
+    tags: [motivation, matchup]
+    rationale: Rematches can carry motivational and schematic adjustments.
+
+  - id: lookahead_spot
+    name: Look-ahead spot
+    description: >
+      The favorite plays a stronger or ranked opponent in its next game,
+      creating a possible focus or effort discount in the current game.
+    feature: favorite_next_opponent_strength
+    comparison: greater_than_or_equal
+    threshold: 0.75
+    tags: [motivation, schedule]
+    rationale: Attention and preparation can shift toward a marquee upcoming game.
+
+  - id: injury_availability
+    name: Favorite availability concern
+    description: >
+      A key favorite contributor is listed as questionable, out, or limited
+      shortly before tip-off.
+    feature: favorite_key_player_availability
+    comparison: less_than
+    threshold: 1.0
+    tags: [roster, availability]
+    rationale: Late-breaking availability news can move the effective matchup.
+
+  - id: recent_form_divergence
+    name: Recent form divergence
+    description: >
+      The underdog's recent performance exceeds the favorite's recent
+      performance by a meaningful margin relative to season baseline.
+    feature: recent_form_difference
+    comparison: greater_than_or_equal
+    threshold: 0.08
+    tags: [form, modeling]
+    rationale: Short-window form may capture changes not yet priced by markets.
+
+  - id: efficiency_mismatch
+    name: Style and efficiency mismatch
+    description: >
+      The underdog's efficiency profile or pace creates a stylistic advantage
+      against the favorite.
+    feature: style_matchup_edge
+    comparison: greater_than_or_equal
+    threshold: 0.05
+    tags: [modeling, matchup]
+    rationale: Matchup-specific traits can compress talent gaps.
+
+  - id: neutral_site_upset
+    name: Neutral-site setting
+    description: >
+      The game is played at a neutral site where home-court advantage is reduced
+      or absent for the favorite.
+    feature: favorite_home_court
+    comparison: equals
+    threshold: false
+    tags: [environment, venue]
+    rationale: Removing home advantage can widen the underdog's path to a win.

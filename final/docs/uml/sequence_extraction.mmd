@@ -1,0 +1,56 @@
+sequenceDiagram
+    autonumber
+    participant EX as Extractor Agent
+    participant DB as SQLite
+    participant EMB as qwen3-embedding:8b
+    participant VDB as ChromaDB
+    participant D3 as d3-mini Reranker
+    participant ST as Statistical Validation Tools
+    participant PV as Pydantic Validator
+
+    Note over EX,PV: One-time extraction and validation phase
+
+    EX->>DB: Retrieve historical games and candidate preconditions
+    DB-->>EX: Return structured game records and candidates
+
+    loop For each candidate precondition
+        EX->>EMB: Embed precondition evidence query
+        EMB-->>EX: Return query embedding
+        EX->>VDB: Retrieve related historical evidence
+        VDB-->>EX: Return relevant source documents
+        EX->>D3: Rerank retrieved evidence
+        D3-->>EX: Return ranked evidence and citations
+
+        EX->>ST: Submit game data and evidence for testing
+        ST->>ST: Estimate effect sizes and confidence intervals
+        ST->>ST: Test statistical significance
+        ST->>ST: Evaluate out-of-sample predictive validity
+        ST-->>EX: Return statistical results and diagnostics
+
+        alt Precondition passes statistical criteria
+            EX->>EX: Accept signal with statistics and citations
+        else Precondition fails statistical criteria
+            EX->>EX: Reject signal and record justification
+        end
+    end
+
+    EX->>EX: Compile accepted signals and supporting evidence
+    EX->>PV: Validate final precondition JSON schema
+
+    alt Schema validation successful
+        PV-->>EX: Return validated preconditions
+        EX->>DB: Store in validated_preconditions table
+        DB-->>EX: Confirm storage
+    else Schema validation failed
+        PV-->>EX: Return validation errors
+        EX->>EX: Attempt correction of invalid entries
+        EX->>PV: Revalidate corrected entries
+        alt Corrections accepted
+            PV-->>EX: Return corrected valid entries
+            EX->>DB: Store corrected validated preconditions
+            DB-->>EX: Confirm storage
+        else Corrections rejected
+            PV-->>EX: Return remaining errors
+            EX->>EX: Invalidate bad entries and log errors
+        end
+    end

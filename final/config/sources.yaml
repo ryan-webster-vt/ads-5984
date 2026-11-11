@@ -1,0 +1,38 @@
+# Source policy for contextual research.
+#
+# Domains are matched case-insensitively against the canonical hostname.
+# Subdomains of an allowed domain are permitted when `allow_subdomains` is true.
+# This list intentionally starts narrow and must be reviewed before broadening it.
+
+version: 1
+
+allow_subdomains: true
+
+allowed_domains:
+  - espn.com
+  - sports-reference.com
+  - basketball-reference.com
+  - ncaa.com
+  - cbssports.com
+  - si.com
+  - theathletic.com
+  - usatoday.com
+  - apnews.com
+  - kenpom.com
+  - barttorvik.com
+  - teamrankings.com
+
+blocked_domains:
+  - bit.ly
+  - t.co
+  - tinyurl.com
+
+rules:
+  # In strict leakage mode a document without a parseable publication time is
+  # excluded rather than treated as pregame evidence.
+  require_published_at: true
+  allow_missing_published_at_when_not_strict: true
+  max_documents_per_game: 25
+  max_document_bytes: 5000000
+  follow_redirects: true
+  max_redirects: 3

@@ -1,0 +1,246 @@
+classDiagram
+    direction LR
+
+    class AgentProtocol {
+        <<protocol>>
+        +name
+        +run(input) output
+    }
+
+    class ResearchOrchestrator {
+        +batch_size
+        +run(batches) ResearchAggregate
+        +join_by_game_id(results) ResearchAggregate
+    }
+    class HistoricalStatsAgent {
+        +run(batch) HistoricalStatsResult
+    }
+    class ContextResearchAgent {
+        +run(batch) ContextResearchResult
+    }
+    class ExtractorAgent {
+        +run(candidates) ExtractionResult
+    }
+    class MonitorOrchestrator {
+        +worker_count
+        +run(request) MonitorAggregate
+        +partition(games) list
+    }
+    class MonitorWorker {
+        +run(assignment) MonitorWorkerResult
+    }
+    class UpsetScorer {
+        +run(request) UpsetRanking
+    }
+
+    AgentProtocol <|.. ResearchOrchestrator
+    AgentProtocol <|.. HistoricalStatsAgent
+    AgentProtocol <|.. ContextResearchAgent
+    AgentProtocol <|.. ExtractorAgent
+    AgentProtocol <|.. MonitorOrchestrator
+    AgentProtocol <|.. MonitorWorker
+    AgentProtocol <|.. UpsetScorer
+
+    ResearchOrchestrator o-- HistoricalStatsAgent
+    ResearchOrchestrator o-- ContextResearchAgent
+    MonitorOrchestrator o-- "1..n" MonitorWorker
+    MonitorOrchestrator --> UpsetScorer
+
+    class Settings {
+        +llm
+        +embeddings
+        +decision_model
+        +espn
+        +college_basketball
+        +mcp
+        +storage
+        +pipeline
+        +stats
+        +logging
+        +safe_summary()
+    }
+    class RunContext {
+        +run_id
+        +created_at
+        +actor
+        +metadata
+    }
+    class ProgressEvent {
+        +run_id
+        +stage
+        +agent
+        +message
+        +current
+        +total
+    }
+
+    class DailySlate {
+        +games
+        +slate_date
+    }
+    class ResearchAggregate {
+        +records
+        +quarantined
+    }
+    class ExtractionResult {
+        +decisions
+        +validated
+    }
+    class MonitorRequest {
+        +games
+        +run_context
+    }
+    class MonitorAggregate {
+        +results
+        +flags
+    }
+    class ScoringRequest {
+        +flags
+    }
+    class UpsetRanking {
+        +scores
+        +ranked_games
+    }
+
+    ResearchOrchestrator ..> ResearchAggregate
+    ExtractorAgent ..> ExtractionResult
+    MonitorOrchestrator ..> MonitorRequest
+    MonitorOrchestrator ..> MonitorAggregate
+    UpsetScorer ..> ScoringRequest
+    UpsetScorer ..> UpsetRanking
+
+    class SlateService {
+        +get_slate(date) DailySlate
+    }
+    class IngestionService {
+        +ingest(seasons) Report
+    }
+    class ExtractionService {
+        +extract() ExtractionResult
+    }
+    class MonitoringService {
+        +monitor(request) MonitorAggregate
+    }
+    class ScoringService {
+        +score(request) UpsetRanking
+    }
+    class CacheService {
+        +get(key)
+        +put(key, value)
+    }
+    class BacktestingService {
+        +run(splits) BacktestReport
+    }
+
+    SlateService --> ESPNClient
+    IngestionService --> ResearchOrchestrator
+    ExtractionService --> ExtractorAgent
+    MonitoringService --> MonitorOrchestrator
+    ScoringService --> UpsetScorer
+    BacktestingService --> DecisionModelClient
+    CacheService --> SQLiteDatabase
+
+    class HttpClientFactory {
+        +client(base_url, timeout)
+    }
+    class LLMClient {
+        +chat(messages)
+        +structured(messages, schema)
+    }
+    class EmbeddingClient {
+        +embed(texts) list
+    }
+    class DecisionModelClient {
+        +rerank(query, candidates) list
+        +score(candidates) list
+    }
+    class ESPNClient {
+        +daily_slate(date) DailySlate
+        +matchup(game_id) DailyGame
+    }
+    class CollegeBasketballProvider {
+        <<interface>>
+        +historical_game(game_id)
+        +season_games(season)
+    }
+    class MCPClientManager {
+        +search(query)
+        +fetch(url)
+        +deep_research(query)
+    }
+
+    HttpClientFactory <.. LLMClient
+    HttpClientFactory <.. EmbeddingClient
+    HttpClientFactory <.. DecisionModelClient
+    HttpClientFactory <.. ESPNClient
+    HttpClientFactory <.. CollegeBasketballProvider
+    ResearchOrchestrator --> CollegeBasketballProvider
+    ResearchOrchestrator --> MCPClientManager
+    MonitorWorker --> ESPNClient
+    MonitorWorker --> MCPClientManager
+    ExtractorAgent --> EmbeddingClient
+    ExtractorAgent --> DecisionModelClient
+    UpsetScorer --> DecisionModelClient
+
+    class SQLiteDatabase {
+        +connect()
+        +migrate()
+        +transaction()
+    }
+    class Repository {
+        +upsert(record)
+        +get(id)
+        +list(filters)
+    }
+    class ChromaStore {
+        +upsert(chunks)
+        +query(embedding, filters, top_k)
+    }
+
+    SQLiteDatabase <.. Repository
+    ResearchOrchestrator --> Repository
+    ResearchOrchestrator --> ChromaStore
+    MonitorOrchestrator --> Repository
+
+    class ChunkingService {
+        +chunk(document) list
+    }
+    class RetrievalService {
+        +retrieve(query, filters, top_k) list
+    }
+    class Reranker {
+        +rerank(query, evidence) list
+    }
+    class SourceWhitelist {
+        +is_allowed(url) bool
+        +canonicalize(url) str
+    }
+    class LeakageFilter {
+        +filter(documents, tipoff) list
+    }
+    class CitationVerifier {
+        +verify(claims, citations) Report
+    }
+    class StatisticalValidator {
+        +effect_size(data)
+        +confidence_interval(data)
+        +significance(data)
+        +out_of_sample(data)
+    }
+    class Metrics {
+        +log_loss(y_true, p)
+        +brier_score(y_true, p)
+        +calibration(y_true, p) list
+    }
+
+    ResearchOrchestrator --> ChunkingService
+    ResearchOrchestrator --> SourceWhitelist
+    ResearchOrchestrator --> LeakageFilter
+    ResearchOrchestrator --> EmbeddingClient
+    ExtractorAgent --> RetrievalService
+    ExtractorAgent --> Reranker
+    ExtractorAgent --> StatisticalValidator
+    MonitorWorker --> LeakageFilter
+    MonitorWorker --> CitationVerifier
+    UpsetScorer --> CitationVerifier
+    BacktestingService --> Metrics

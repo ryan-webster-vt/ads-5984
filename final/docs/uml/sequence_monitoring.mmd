@@ -1,0 +1,74 @@
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant UI as Streamlit UI
+    participant ESPN as ESPN API
+    participant MO as Monitor-Orchestrator
+    participant DB as SQLite
+    participant W1 as Monitor Worker 1
+    participant W2 as Monitor Worker 2
+    participant MCP as MCP Tools
+    participant SC as Upset-Scorer
+    participant D3 as d3-mini Decision Model
+
+    U->>UI: Open Condition Profiler
+    UI->>ESPN: Request today's D1 vs. D1 matchups
+    ESPN-->>UI: Return schedule, teams, and game statistics
+    UI-->>U: Display sortable and filterable matchups
+
+    loop Each user-initiated analysis run
+        U->>UI: Select games (all by default)
+        U->>UI: Click Analyze
+        UI->>UI: Initialize agent progress tracker
+        UI->>MO: Submit selected game IDs
+        MO->>DB: Retrieve validated upset preconditions
+        DB-->>MO: Return signals, thresholds, and statistics
+        MO->>MO: Partition games across two workers
+        MO-->>UI: Report monitoring started
+        UI-->>U: Display agent progress
+
+        par Monitor Worker 1
+            MO->>W1: Assign game batch and validated signals
+            loop Each assigned game
+                W1->>ESPN: Retrieve current matchup data
+                ESPN-->>W1: Return game statistics
+                W1->>MCP: Research pregame context
+                MCP-->>W1: Return cited pregame evidence
+                W1->>W1: Compare evidence to validated signals
+                W1->>W1: Flag matching games with citations
+                W1-->>MO: Report per-game progress
+                MO-->>UI: Update Worker 1 progress
+            end
+            W1-->>MO: Return evaluated games and flags
+        and Monitor Worker 2
+            MO->>W2: Assign game batch and validated signals
+            loop Each assigned game
+                W2->>ESPN: Retrieve current matchup data
+                ESPN-->>W2: Return game statistics
+                W2->>MCP: Research pregame context
+                MCP-->>W2: Return cited pregame evidence
+                W2->>W2: Compare evidence to validated signals
+                W2->>W2: Flag matching games with citations
+                W2-->>MO: Report per-game progress
+                MO-->>UI: Update Worker 2 progress
+            end
+            W2-->>MO: Return evaluated games and flags
+        end
+
+        MO->>MO: Aggregate and deduplicate worker results
+        MO-->>UI: Report monitoring complete
+
+        alt One or more games flagged
+            MO->>SC: Send flagged games and evidence
+            SC->>D3: Evaluate matchup context and signals
+            D3-->>SC: Return estimated upset probabilities
+            SC->>SC: Rank games by predicted upset risk
+            SC-->>MO: Return rankings, probabilities, and evidence
+            MO-->>UI: Send ranked upset alerts
+        else No games meet flagging criteria
+            MO-->>UI: Return no qualifying upset alerts
+        end
+
+        UI->>UI: Mark analysis complete
+        UI-->>U: Display results and supporting evidence
+    end
