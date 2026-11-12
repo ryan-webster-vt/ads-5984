@@ -1,0 +1,15 @@
+---
+title: "Lab 7 - Build a Multi-Agent System with LangGraph"
+subtitle: "ADS 5984 - Agentic AI in Practice"
+author: "Ryan Webster"
+date: today
+date-format: "MMM D, YYYY"
+
+format:
+  pdf:
+    toc: true
+    number-sections: true
+    geometry:
+      - margin=1in
+    fontsize: 11pt
+---
