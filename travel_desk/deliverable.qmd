@@ -13,3 +13,39 @@ format:
       - margin=1in
     fontsize: 11pt
 ---
+
+# Question 1
+
+## Trace the conference trip through the graph using Figure 27.3: name every node visited and every edge taken, starting from START.
+
+Nodes visited: Start, Router, Coordinator (3 times), Flight, Hotel, END
+
+Edges traced: Start -\> Router -\> Coordinator -\> Flight -\> Coordinator -\> Hotel -\> Coordinator -\> END
+
+# Question 2
+
+## List what each of the four agents is shown and what it is not shown. Point to the exact lines that decide this, and explain what would go wrong — in tool-permission terms and in context terms — if one agent held both inventories and both booking tools.
+
+Router: start and destination, depart and return dates, other notes and routing instructions. Not shown: flight/hotel inventories, log, budget. Evidence is shown in def router on line 219.
+
+Flight Desk: Shown: Flight notes, destination, current held flight, and the over-budget amount while needing to trade down. Not shown: Inventory, Anything hotel related, resolver's reasoning, budget when not needed. Evidence is shown in def desk on 246.
+
+Hotel Desk: Hotel notes, hotel at destination, current held hotel, and the over-budge amount while needing to trade down. Not shown: Inventory, Anything flight related, resolver's reasoning, budget when not needed. Evidence is shown in def hotel on 246 when kind == hotel
+
+Resolver: Shown: notes, budget, held total, the two held bookings, log history. Not shown: Inventories, origin, destination, dates, pending, and the rest of the state. Evidence shown on line 303, def make_resolver
+
+The reason why we separate duties is due to wanting least privilege amongst tool calls and inventory access and the need to keep context focused and short to reduce the risk of hallucinations.
+
+# Question 3
+
+## The coordinator is the only node that writes flight, hotel, total and status. Which Module 12 anti-pattern does that single-writer rule prevent, and what concrete bad bill could you get if the flight desk could write flight directly while the hotel quote stayed as it was?
+
+The Module 12 anti-pattern here would be shared mutable states without arbitration. Also, if the flight desk could write flight directly while the hotel quote stayed, the flight desk could change the flight while keeping the stale hotel quote, possibly overpaying for an unused hotel.
+
+# Step 8 Reflection
+
+Removing this guardrail gets rid of the no human-in-the-loop anti-pattern and allows the application to throw a GraphRecrusionError when there are no possible answers. This applies to not only this example, but any ReAct loop that may not have any possible answers and requires HITL. Also, letting a model determine when to stop is a bad design as in this example, the prompt encourages to model to keep trying the hardest it can.
+
+# Extension Question - Option A
+
+Despite the change in the traveler's preference, there were no differences between run's one through three with the original message and run's four through six with the modified message allowing cabs and being more against nonstop flights. The final total and resolution rounds were all kept the same.

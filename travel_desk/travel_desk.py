@@ -114,6 +114,7 @@ class RoutePlan(BaseModel):
 
 class Pick(BaseModel):
     """A desk's choice: an inventory ID, never a price."""
+    ### There is no field price so that the desk cannot invent one
     option_id: str
     message: str
 
@@ -131,6 +132,9 @@ class TripState(TypedDict):
     request: dict                # the booking form (read-only)
     plan: Optional[dict]         # the router's plan, recorded by coordinator
     log: list[dict]              # append-only itinerary log
+
+    ### Because agents outside of coordinator aren't allowed to mutate, they leave proposal in pending so the
+    ### coordinator can validate/commit it
     pending: Optional[dict]      # an agent's latest output, awaiting review
     flight: Optional[dict]       # held flight (coordinator writes it)
     hotel: Optional[dict]        # held hotel quote (coordinator writes it)
@@ -257,6 +261,9 @@ def make_desk(kind: str, call_fn):
         if state["trade_down"] == kind:
             # The CODE does the arithmetic: what each option saves on
             # this trip. (Models confuse per-night rates with trip totals.)
+
+            ### We want the code to compute the math instead of leaving it up to the LLM
+            ### to prevent non-deterministic answers from the LLM
             per = 1 if kind == "flight" else held["nights"]
             lines = [f"{line} (saves "
                      f"${(held[price_key] - o[price_key]) * per})"
@@ -278,6 +285,11 @@ def make_desk(kind: str, call_fn):
         # offered (hallucinated, or too expensive while trading down) is
         # replaced with the cheapest listed option. The model chooses;
         # it can never invent an option or a price.
+
+        ### Guard the ID to prevent hallucinated IDs or if too expensive,
+        ### repairs with the cheapest option instead of rejecting to prevent any
+        ### crashes or any other unexpected behavior. This is a hook from Module 7
+        ### which runs deterministic guardrails.
         ids = {o["id"] for o in options}
         option_id, message = pick.option_id, pick.message
         if option_id not in ids:
@@ -348,6 +360,11 @@ def coordinator(state: TripState) -> dict:
                 flight = find(FLIGHTS, city, pm["option_id"])
                 # (b) A new flight can move the dates. Re-price the hotel
                 # we already hold so its nights match the new flight.
+
+
+                ### The new flight might land or return on different dates,
+                ### so re-quote the held hotel or it keeps the old check-in/out
+                ### and night count which would lead to wrong dates/bill into the budget
                 if hotel is not None:
                     hotel = quote_hotel(hotel, *stay_dates(r, flight))
             trade_down = None
@@ -374,6 +391,9 @@ def coordinator(state: TripState) -> dict:
         else:
             total = ((flight["price"] if flight else 0)
                      + (hotel["total"] if hotel else 0))
+
+            ### Deterministically check if total fits with budget instead of leaving
+            ### the comparison to the Resolver LLM 
             if total <= r["budget"]:
                 status = "booked"
                 log.append({"agent": "coordinator",
@@ -381,6 +401,10 @@ def coordinator(state: TripState) -> dict:
             else:
                 rnd += 1
                 nxt = "resolver"
+
+
+                ### If too many tries to resolve issues is exceeded, stop and escalate to
+                ### the human. This solves the "No Human Escalation Path" anti-pattern
                 if rnd > state["max_rounds"]:
                     status = "escalated"
                     reason = (f"still ${total - r['budget']} over budget "
@@ -401,6 +425,12 @@ def coordinator(state: TripState) -> dict:
 # --------------------------------------------------------------------------- #
 def route(state: TripState) -> str:
     if state["status"] != "in_progress":
+
+        ### Returning end allows the coordinator to terminate the application,
+        ### whether because an inteniary was found or it was escalated to a human
+        ### which turns into a branch on a graph. This is different from the router
+        ### agent as the router agent's main goal is to determine what services
+        ### the trip needs and not to terminate.
         return "end"
     return state["next"]
 
@@ -444,9 +474,8 @@ SCENARIOS = {
         request=dict(origin="ROA", destination="ORD",
                      depart_date="2026-11-09", return_date="2026-11-12",
                      budget=1400,
-                     notes="I'm presenting at McCormick Place on Tuesday "
-                           "morning. I prefer nonstop flights and want to "
-                           "walk to the venue."),
+                     notes="I'm presenting at McCormick Place on Tuesday morning. "
+                    "I hate connections but don't mind a cab ride."),
         services=["flight", "hotel"], max_rounds=4),
     "shoestring": dict(
         request=dict(origin="ROA", destination="ORD",

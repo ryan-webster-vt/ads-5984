@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.24">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>travel_desk_explained</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="travel_desk_explained_files/libs/clipboard/clipboard.min.js"></script>
+<script src="travel_desk_explained_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="travel_desk_explained_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="travel_desk_explained_files/libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="travel_desk_explained_files/libs/quarto-html/popper.min.js"></script>
+<script src="travel_desk_explained_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="travel_desk_explained_files/libs/quarto-html/anchor.min.js"></script>
+<link href="travel_desk_explained_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="travel_desk_explained_files/libs/quarto-html/quarto-syntax-highlighting-dc55a5b9e770e841cd82e46aadbfb9b0.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="travel_desk_explained_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="travel_desk_explained_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="travel_desk_explained_files/libs/bootstrap/bootstrap-f3ee77876d7c73bad8c805a2f0e4526c.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+
+
+
+<section id="travel_desk.py-block-by-block-explanation" class="level1">
+<h1><code>travel_desk.py</code> — Block-by-Block Explanation</h1>
+<p>This file builds a <strong>multi-agent travel booking desk</strong> as a LangGraph state machine. Four LLM agents each make exactly one structured decision; a deterministic <code>coordinator</code> function is the only thing that writes to shared state and the only thing that ever touches a price.</p>
+<p>The file is organized into nine numbered comment banners. This document walks through them in order, and also covers the blocks inside each section.</p>
+<hr>
+<section id="block-0-module-docstring-lines-117" class="level2">
+<h2 class="anchored" data-anchor-id="block-0-module-docstring-lines-117">Block 0 — Module docstring (lines 1–17)</h2>
+<p><em>(Not a numbered section in the source; it comes before banner 1.)</em></p>
+<p>Describes the design contract up front:</p>
+<ul>
+<li>The traveler fills in a <strong>booking form</strong> (origin, destination, dates, budget) plus free-text notes.</li>
+<li>Four agents:
+<ul>
+<li><strong>router</strong> — reads the notes and decides which desks the trip needs.</li>
+<li><strong>flight desk</strong> — picks a flight from its own inventory.</li>
+<li><strong>hotel desk</strong> — picks a hotel from its own inventory.</li>
+<li><strong>resolver</strong> — decides what to trade down when the trip is over budget.</li>
+</ul></li>
+<li>A deterministic <strong>coordinator</strong> is the single writer of the itinerary. It looks up prices, keeps hotel dates aligned with the flight, checks the budget, books or escalates, and decides which node runs next.</li>
+<li>Key architectural rule: <strong>LangGraph owns control flow; each LLM call returns one structured decision and nothing else.</strong></li>
+</ul>
+<hr>
+</section>
+<section id="block-1-imports-lines-1932" class="level2">
+<h2 class="anchored" data-anchor-id="block-1-imports-lines-1932">Block 1 — Imports (lines 19–32)</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> time</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> datetime <span class="im">import</span> date</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Literal, Optional, TypedDict</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pydantic <span class="im">import</span> BaseModel, ValidationError</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> langgraph.graph <span class="im">import</span> StateGraph, START, END</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<ul>
+<li><code>os</code> — read the three model-related environment variables (<code>OPEN_AI_ENDPOINT</code>, <code>OPEN_AI_API_KEY</code>, <code>OPEN_AI_MODEL</code>).</li>
+<li><code>time</code> — used only for the rate-limit backoff (<code>time.sleep</code>).</li>
+<li><code>date</code> — date arithmetic for hotel nights.</li>
+<li><code>Literal</code>, <code>Optional</code>, <code>TypedDict</code> — type hints: constrained string choices, nullable fields, and the graph’s state shape.</li>
+<li><code>BaseModel</code>, <code>ValidationError</code> — Pydantic schemas for agent output and validation.</li>
+<li><code>StateGraph</code>, <code>START</code>, <code>END</code> — LangGraph primitives.</li>
+</ul>
+<section id="the-guarded-openai-import" class="level3">
+<h3 class="anchored" data-anchor-id="the-guarded-openai-import">The guarded <code>openai</code> import</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="im">from</span> openai <span class="im">import</span> OpenAI</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> <span class="pp">Exception</span>:</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    OpenAI <span class="op">=</span> <span class="va">None</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The OpenAI client is imported <strong>defensively</strong> so the module can be imported and the graph can be tested <strong>without credentials installed</strong>. The real network call lives in <code>_call_once</code>; tests inject a fake <code>call_fn</code> instead.</p>
+<hr>
+</section>
+</section>
+<section id="block-2-the-inventories-lines-3582-source-section-1" class="level2">
+<h2 class="anchored" data-anchor-id="block-2-the-inventories-lines-3582-source-section-1">Block 2 — The inventories (lines 35–82, source section 1)</h2>
+<section id="flights-lines-3965" class="level3">
+<h3 class="anchored" data-anchor-id="flights-lines-3965"><code>FLIGHTS</code> (lines 39–65)</h3>
+<p>A dict keyed by destination airport code (<code>"ORD"</code>, <code>"DEN"</code>), each holding a list of flight option dicts:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>field</th>
+<th>meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>id</code></td>
+<td>inventory key the agent must return (e.g.&nbsp;<code>"UA412"</code>)</td>
+</tr>
+<tr class="even">
+<td><code>price</code></td>
+<td><strong>trip total</strong> in dollars</td>
+</tr>
+<tr class="odd">
+<td><code>depart</code> / <code>arrive</code></td>
+<td>ISO-ish <code>"YYYY-MM-DD HH:MM"</code> strings</td>
+</tr>
+<tr class="even">
+<td><code>back</code></td>
+<td>return flight datetime</td>
+</tr>
+<tr class="odd">
+<td><code>note</code></td>
+<td>human-readable description shown to the model</td>
+</tr>
+</tbody>
+</table>
+<p>The comment above it states the central rule: <strong>prices live here and only here. No agent ever supplies or computes a price.</strong></p>
+</section>
+<section id="hotels-lines-6782" class="level3">
+<h3 class="anchored" data-anchor-id="hotels-lines-6782"><code>HOTELS</code> (lines 67–82)</h3>
+<p>Same shape, keyed by city, with:</p>
+<ul>
+<li><code>id</code>, <code>name</code>, <code>note</code></li>
+<li><code>nightly</code> — a <strong>per-night</strong> rate (contrast with flights’ trip-total <code>price</code>).</li>
+</ul>
+<p>That <code>price</code> vs <code>nightly</code> difference is the reason the coordinator and the desk code handle arithmetic themselves instead of trusting the model.</p>
+</section>
+<section id="find-lines-8586" class="level3">
+<h3 class="anchored" data-anchor-id="find-lines-8586"><code>find()</code> (lines 85–86)</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> find(inventory: <span class="bu">dict</span>, city: <span class="bu">str</span>, option_id: <span class="bu">str</span>) <span class="op">-&gt;</span> Optional[<span class="bu">dict</span>]:</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">next</span>((o <span class="cf">for</span> o <span class="kw">in</span> inventory[city] <span class="cf">if</span> o[<span class="st">"id"</span>] <span class="op">==</span> option_id), <span class="va">None</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Looks up an option by ID within a city’s list, returning <code>None</code> if absent. This is how the coordinator converts an agent’s <strong>ID-only</strong> answer into a real record (and its price) — an agent can never smuggle in a made-up price.</p>
+</section>
+<section id="stay_dates-lines-8993" class="level3">
+<h3 class="anchored" data-anchor-id="stay_dates-lines-8993"><code>stay_dates()</code> (lines 89–93)</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> stay_dates(request, flight):</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> flight <span class="kw">is</span> <span class="va">None</span>:</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> request[<span class="st">"depart_date"</span>], request[<span class="st">"return_date"</span>]</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> flight[<span class="st">"arrive"</span>][:<span class="dv">10</span>], flight[<span class="st">"back"</span>][:<span class="dv">10</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Determines hotel check-in / check-out dates. If a flight is held, check in on the day the flight <strong>lands</strong> and check out on the day it <strong>flies home</strong>. Otherwise fall back to the form’s dates. Slicing <code>[:10]</code> keeps just the <code>YYYY-MM-DD</code> part.</p>
+<p>This is the coupling that prevents the classic bug of a hotel whose nights don’t match the flight (e.g.&nbsp;an overnight flight landing the next morning).</p>
+</section>
+<section id="quote_hotel-lines-96100" class="level3">
+<h3 class="anchored" data-anchor-id="quote_hotel-lines-96100"><code>quote_hotel()</code> (lines 96–100)</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>nights <span class="op">=</span> (date.fromisoformat(check_out) <span class="op">-</span> date.fromisoformat(check_in)).days</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="cf">return</span> {<span class="op">**</span>hotel, <span class="st">"check_in"</span>: ..., <span class="st">"check_out"</span>: ..., <span class="st">"nights"</span>: nights,</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>        <span class="st">"total"</span>: hotel[<span class="st">"nightly"</span>] <span class="op">*</span> nights}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Turns a raw hotel record into a <strong>quote</strong>: adds <code>check_in</code>, <code>check_out</code>, <code>nights</code>, and <code>total</code>. All money math is done by code, not by the model.</p>
+<hr>
+</section>
+</section>
+<section id="block-3-structured-outputs-lines-103125-source-section-2" class="level2">
+<h2 class="anchored" data-anchor-id="block-3-structured-outputs-lines-103125-source-section-2">Block 3 — Structured outputs (lines 103–125, source section 2)</h2>
+<p>These Pydantic models are the <strong>only</strong> shapes an agent is allowed to emit. They are passed as the <code>response_format</code> schema, so the model is forced into a decision object rather than prose.</p>
+<section id="routeplan-lines-106112" class="level3">
+<h3 class="anchored" data-anchor-id="routeplan-lines-106112"><code>RoutePlan</code> (lines 106–112)</h3>
+<p>The router’s output:</p>
+<ul>
+<li><code>services: list[Literal["flight", "hotel"]]</code> — what the trip needs.</li>
+<li><code>flight_notes</code> / <code>hotel_notes</code> — the subset of traveler preferences each desk should see (each agent sees only what its job needs).</li>
+<li><code>unsupported: list[str]</code> — things asked for that the desk can’t book (cars, tours…).</li>
+<li><code>message</code> — one sentence for the itinerary log.</li>
+</ul>
+</section>
+<section id="pick-lines-115118" class="level3">
+<h3 class="anchored" data-anchor-id="pick-lines-115118"><code>Pick</code> (lines 115–118)</h3>
+<p>A desk’s answer: <code>option_id</code> (an inventory ID) plus a short <code>message</code>. <strong>There is no price field</strong> — deliberately, so a desk cannot invent one.</p>
+</section>
+<section id="resolution-lines-121124" class="level3">
+<h3 class="anchored" data-anchor-id="resolution-lines-121124"><code>Resolution</code> (lines 121–124)</h3>
+<p>The resolver’s answer: <code>action</code> is one of <code>trade_down_flight</code>, <code>trade_down_hotel</code>, or <code>escalate</code>, plus a <code>message</code>.</p>
+<hr>
+</section>
+</section>
+<section id="block-4-shared-state-lines-128143-source-section-3" class="level2">
+<h2 class="anchored" data-anchor-id="block-4-shared-state-lines-128143-source-section-3">Block 4 — Shared state (lines 128–143, source section 3)</h2>
+<p><code>TripState</code> is a <code>TypedDict</code> — the “itinerary sheet” every node reads and (only the coordinator) writes:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>field</th>
+<th>role</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>request</code></td>
+<td>the booking form, read-only</td>
+</tr>
+<tr class="even">
+<td><code>plan</code></td>
+<td>router’s plan, recorded by the coordinator</td>
+</tr>
+<tr class="odd">
+<td><code>log</code></td>
+<td>append-only itinerary log (<code>{"agent", "message"}</code> entries)</td>
+</tr>
+<tr class="even">
+<td><code>pending</code></td>
+<td>the latest agent output, awaiting coordinator review</td>
+</tr>
+<tr class="odd">
+<td><code>flight</code></td>
+<td>the held flight (coordinator writes it)</td>
+</tr>
+<tr class="even">
+<td><code>hotel</code></td>
+<td>the held hotel quote (coordinator writes it)</td>
+</tr>
+<tr class="odd">
+<td><code>trade_down</code></td>
+<td><code>"flight"</code> / <code>"hotel"</code> while resolving</td>
+</tr>
+<tr class="even">
+<td><code>next</code></td>
+<td>which node should run next</td>
+</tr>
+<tr class="odd">
+<td><code>round</code></td>
+<td>resolution rounds used so far</td>
+</tr>
+<tr class="even">
+<td><code>max_rounds</code></td>
+<td>the budget on retries — the guarantee the loop stops</td>
+</tr>
+<tr class="odd">
+<td><code>status</code></td>
+<td><code>"in_progress"</code> / <code>"booked"</code> / <code>"escalated"</code></td>
+</tr>
+<tr class="even">
+<td><code>total</code></td>
+<td>current trip total</td>
+</tr>
+<tr class="odd">
+<td><code>reason</code></td>
+<td>why the trip was escalated</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>pending</code> field is the core pattern: agents never mutate <code>flight</code>/<code>hotel</code>; they leave a proposal in <code>pending</code>, and the coordinator validates and commits it.</p>
+<hr>
+</section>
+<section id="block-5-the-model-call-lines-145208-source-section-4" class="level2">
+<h2 class="anchored" data-anchor-id="block-5-the-model-call-lines-145208-source-section-4">Block 5 — The model call (lines 145–208, source section 4)</h2>
+<section id="llm_call-lines-149169" class="level3">
+<h3 class="anchored" data-anchor-id="llm_call-lines-149169"><code>llm_call()</code> (lines 149–169)</h3>
+<p>A retry wrapper around one structured model call.</p>
+<ul>
+<li>Loops up to 20 times (~10 minutes worst case).</li>
+<li>If the exception text contains <code>"Rate limit"</code>, sleep 30 s and retry — because VT ARC caps the model at roughly 30 requests/minute and every turn costs a call.</li>
+<li>If it contains <code>"unavailable"</code> or (case-insensitively) <code>"disconnected"</code>, sleep 10 s and retry — riding out transient backend blips.</li>
+<li>Any other exception is re-raised immediately.</li>
+<li>If all 20 attempts fail, raise <code>RuntimeError("rate-limited for too long; giving up")</code>.</li>
+</ul>
+<p><code>agent</code> is accepted as a label (useful for logging/testing) but the actual call only needs <code>system</code>, <code>user</code>, and <code>schema</code>.</p>
+</section>
+<section id="call_once-lines-172208" class="level3">
+<h3 class="anchored" data-anchor-id="call_once-lines-172208"><code>_call_once()</code> (lines 172–208)</h3>
+<p>Does one real attempt:</p>
+<ol type="1">
+<li>Builds an <code>OpenAI</code> client from <code>OPEN_AI_ENDPOINT</code> / <code>OPEN_AI_API_KEY</code> and reads <code>OPEN_AI_MODEL</code>. Creating the client per call keeps it credential-driven and test-friendly.</li>
+<li>Sends <code>system</code> + <code>user</code> messages and calls <code>client.chat.completions.parse(..., response_format=schema, temperature=0.4)</code>.</li>
+<li>Returns <code>completion.choices[0].message.parsed</code> if present.</li>
+</ol>
+<p><strong>The endpoint-quirk fallback (lines 189–208):</strong> VT ARC’s server sometimes mangles strict-mode <code>.parse()</code> output (a stray leading <code>{</code>). If validation fails, the code:</p>
+<ol type="1">
+<li>Retries with a plain, non-strict <code>json_schema</code> response format built from <code>schema.model_json_schema()</code>.</li>
+<li>Validates the returned text with <code>schema.model_validate_json</code>.</li>
+<li>On failure, finds the <strong>second</strong> <code>{</code> and re-parses from there — repairing the known stray-brace corruption. If there is no second <code>{</code>, it re-raises.</li>
+</ol>
+<p>So even a flaky backend still yields a validated Pydantic object.</p>
+<hr>
+</section>
+</section>
+<section id="block-6-the-agents-lines-211324-source-section-5" class="level2">
+<h2 class="anchored" data-anchor-id="block-6-the-agents-lines-211324-source-section-5">Block 6 — The agents (lines 211–324, source section 5)</h2>
+<p>Each <code>make_*</code> factory takes <code>call_fn</code> and returns a LangGraph node function. This <strong>dependency injection</strong> is what lets the whole graph run offline with a fake model.</p>
+<section id="make_router-lines-214234" class="level3">
+<h3 class="anchored" data-anchor-id="make_router-lines-214234"><code>make_router()</code> (lines 214–234)</h3>
+<ul>
+<li><code>system</code> prompt: the desk can book <strong>only</strong> flights and hotels. Always include a flight for a city-to-city trip, and a hotel unless the notes say the traveler has somewhere to stay. Anything else (cars, tours, restaurants) goes in <code>unsupported</code>. Keep <code>message</code> to one sentence.</li>
+<li><code>user</code> prompt: origin → destination, dates, and the traveler’s notes.</li>
+<li>Calls the model for a <code>RoutePlan</code>.</li>
+<li><code>services = sorted(set(plan.services))</code> — dedupes and puts them in a fixed order (<code>flight</code> before <code>hotel</code>), which makes routing deterministic.</li>
+<li>Returns <code>{"pending": {...}}</code> — it does <strong>not</strong> write <code>plan</code> itself; the coordinator records it.</li>
+</ul>
+</section>
+<section id="make_deskkind-call_fn-lines-237288" class="level3">
+<h3 class="anchored" data-anchor-id="make_deskkind-call_fn-lines-237288"><code>make_desk(kind, call_fn)</code> (lines 237–288)</h3>
+<p>One factory builds both the flight and hotel desks from <code>kind</code>.</p>
+<p><strong>Setup (lines 239–240):</strong> picks the right inventory (<code>FLIGHTS</code>/<code>HOTELS</code>) and the right price key (<code>price</code>/<code>nightly</code>).</p>
+<p><strong>Node body:</strong></p>
+<ol type="1">
+<li><strong>Choose the option list (lines 243–248).</strong> Normally all options for the destination. If we’re trading down <em>this</em> kind, keep only options <strong>strictly cheaper</strong> than the one held.</li>
+<li><strong>No options → no model call (lines 249–252).</strong> Returns a <code>pending</code> with <code>option_id: None</code> and “no cheaper X available”. Saves a call and avoids asking the model an impossible question.</li>
+<li><strong>Format the option lines (lines 254–256).</strong> <code>- ID: $price[/night] — note</code>.</li>
+<li><strong>Add savings arithmetic while trading down (lines 257–263).</strong> When resolving, each line is annotated with how much that option <strong>saves on this trip</strong>:
+<ul>
+<li>flight: <code>(held_price - option_price) * 1</code></li>
+<li>hotel: <code>(held_nightly - option_nightly) * held["nights"]</code></li>
+</ul>
+This math is done in <strong>code</strong> because models confuse a per-night rate with a trip total.</li>
+<li><strong>Build the prompt (lines 265–274).</strong> <code>system</code> says “you are the {kind} desk, choose the one that best fits, reply with <code>option_id</code> exactly as listed plus one sentence.” <code>user</code> gives only that desk’s notes and the option lines. When trading down, it appends the exact overage (<code>total - budget</code>) and asks for an option that saves at least that much while respecting preferences.</li>
+<li><strong>Call the model</strong> for a <code>Pick</code>.</li>
+<li><strong>Output guardrail (lines 277–287).</strong> Build the set of offered IDs. If the returned <code>option_id</code> isn’t in it (hallucinated, or too expensive while trading down), replace it with the <strong>cheapest listed option</strong> and prefix the message with <code>[guard: '&lt;bad id&gt;' not offered]</code>. The model chooses; it can never invent an option or a price.</li>
+<li>Return the result as <code>pending</code>.</li>
+</ol>
+</section>
+<section id="make_resolver-lines-291324" class="level3">
+<h3 class="anchored" data-anchor-id="make_resolver-lines-291324"><code>make_resolver()</code> (lines 291–324)</h3>
+<ul>
+<li>Gathers what’s held: flight line (<code>id</code>, <code>price</code>, note) and hotel line (<code>name</code>, <code>nightly × nights = total</code>, note).</li>
+<li>Builds a history string from the itinerary log (<code>agent: message</code> per line).</li>
+<li><code>system</code> prompt: the trip is over budget; choose which booking to trade down, giving up what matters least. <strong>Preferences are wishes; the budget is a hard limit.</strong> Escalate to a human <strong>only</strong> if the log shows neither booking can get cheaper.</li>
+<li><code>user</code> prompt: notes, budget, held total, held items, log so far.</li>
+<li>Calls the model for a <code>Resolution</code>.</li>
+<li><strong>Consistency guard (lines 317–321):</strong> if the action is a trade-down of a service the trip doesn’t include (e.g.&nbsp;trade down a hotel on a flight-only trip), redirect it to <code>trade_down_&lt;first included service&gt;</code>.</li>
+<li>Returns <code>pending</code> with the action and message.</li>
+</ul>
+<hr>
+</section>
+</section>
+<section id="block-7-the-coordinator-lines-326396-source-section-6" class="level2">
+<h2 class="anchored" data-anchor-id="block-7-the-coordinator-lines-326396-source-section-6">Block 7 — The coordinator (lines 326–396, source section 6)</h2>
+<p><code>coordinator(state) -&gt; dict</code> is the hub of the graph and the <strong>single writer</strong> of the itinerary. It runs after the router and after every agent. It has three phases:</p>
+<section id="a-commit-the-pending-agent-output-lines-339363" class="level3">
+<h3 class="anchored" data-anchor-id="a-commit-the-pending-agent-output-lines-339363">(a) Commit the pending agent output (lines 339–363)</h3>
+<p>First, copy state into locals (<code>log</code>, <code>plan</code>, <code>flight</code>, <code>hotel</code>, <code>trade_down</code>, <code>rnd</code>, <code>status</code>, <code>reason</code>, <code>total</code>, <code>nxt</code>, <code>pm</code>).</p>
+<p>If <code>pending</code> is not <code>None</code>:</p>
+<ul>
+<li>Append <code>{agent, message}</code> to the log.</li>
+<li><strong>router</strong> → store the plan. If <code>services</code> is empty, mark <code>escalated</code> with reason <code>"nothing here we can book"</code>.</li>
+<li><strong>flight</strong> → if an ID was picked, look it up with <code>find(FLIGHTS, ...)</code> and hold the <strong>inventory record</strong> (so the price comes from the table, not the model).
+<ul>
+<li><strong>(b) Re-price the held hotel</strong> with <code>quote_hotel(hotel, *stay_dates(r, flight))</code> so its check-in/out and night count match the newly held flight.</li>
+<li>Clear <code>trade_down</code>.</li>
+</ul></li>
+<li><strong>hotel</strong> → quote the picked hotel against the current flight’s dates, hold it, clear <code>trade_down</code>.</li>
+<li><strong>resolver</strong> → <code>escalate</code> sets status + reason; otherwise set <code>trade_down</code> to <code>"flight"</code> or <code>"hotel"</code>.</li>
+</ul>
+</section>
+<section id="c-decide-what-happens-next-lines-365387" class="level3">
+<h3 class="anchored" data-anchor-id="c-decide-what-happens-next-lines-365387">(c) Decide what happens next (lines 365–387)</h3>
+<p>Only if still <code>in_progress</code>:</p>
+<ol type="1">
+<li>If <code>trade_down</code> is set → go back to that desk.</li>
+<li>Else if a flight is required but not held → <code>next = "flight"</code>.</li>
+<li>Else if a hotel is required but not held → <code>next = "hotel"</code>.</li>
+<li>Else both needs are satisfied → compute <code>total = flight.price + hotel.total</code> (0 for anything absent).
+<ul>
+<li><code>total &lt;= budget</code> → <code>status = "booked"</code>, log <code>booked for $&lt;total&gt;</code>.</li>
+<li>Otherwise → increment <code>round</code>, <code>next = "resolver"</code>. If <code>round &gt; max_rounds</code>, set <code>status = "escalated"</code> and <code>reason</code> = “still $X over budget after N rounds”. <strong>This is the loop guard.</strong></li>
+</ul></li>
+</ol>
+</section>
+<section id="escalation-logging-lines-389391" class="level3">
+<h3 class="anchored" data-anchor-id="escalation-logging-lines-389391">Escalation logging (lines 389–391)</h3>
+<p>If status <em>became</em> escalated this turn (<code>state["status"] != "escalated"</code>), append <code>coordinator: escalated to a human</code> exactly once.</p>
+</section>
+<section id="return-lines-393396" class="level3">
+<h3 class="anchored" data-anchor-id="return-lines-393396">Return (lines 393–396)</h3>
+<p>Returns the updated fields, clears <code>pending</code> back to <code>None</code>, and leaves <code>request</code> and <code>max_rounds</code> untouched. Because it returns the whole set each time, state transitions are explicit and easy to audit.</p>
+<hr>
+</section>
+</section>
+<section id="block-8-the-route-function-lines-399405-source-section-7" class="level2">
+<h2 class="anchored" data-anchor-id="block-8-the-route-function-lines-399405-source-section-7">Block 8 — The route function (lines 399–405, source section 7)</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> route(state):</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> state[<span class="st">"status"</span>] <span class="op">!=</span> <span class="st">"in_progress"</span>:</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">"end"</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> state[<span class="st">"next"</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>This is the <strong>conditional edge</strong> out of the coordinator. Once the trip is booked or escalated it returns <code>"end"</code>; otherwise it forwards the coordinator’s <code>next</code> choice. It has no side effects — pure routing.</p>
+<hr>
+</section>
+<section id="block-9-graph-construction-lines-407424-source-section-8" class="level2">
+<h2 class="anchored" data-anchor-id="block-9-graph-construction-lines-407424-source-section-8">Block 9 — Graph construction (lines 407–424, source section 8)</h2>
+<p><code>build_travel_desk(call_fn=llm_call)</code>:</p>
+<ol type="1">
+<li><code>g = StateGraph(TripState)</code> — state schema.</li>
+<li>Adds five nodes: <code>router</code>, <code>coordinator</code>, <code>flight</code>, <code>hotel</code>, <code>resolver</code> (agents built by the factories with the injected <code>call_fn</code>).</li>
+<li><strong>Edges:</strong>
+<ul>
+<li><code>START → router</code></li>
+<li><code>router → coordinator</code></li>
+<li><code>coordinator</code> → conditional edge via <code>route</code>, mapping <code>flight</code>/<code>hotel</code>/<code>resolver</code> to their nodes and <code>end</code> to <code>END</code>.</li>
+<li>Each of <code>flight</code>, <code>hotel</code>, <code>resolver</code> → back to <code>coordinator</code>.</li>
+</ul></li>
+</ol>
+<p>Result: a <strong>hub-and-spoke</strong> topology. Control always returns to the coordinator, so there is exactly one place that mutates the itinerary and one place that decides what runs next.</p>
+<pre><code>START → router → coordinator ─┬→ flight ──┐
+                              ├→ hotel ───┤
+                              ├→ resolver ┤
+                              └→ END      │
+                                 ↑─────────┘</code></pre>
+<hr>
+</section>
+<section id="block-10-run-lines-427436-source-section-9-first-half" class="level2">
+<h2 class="anchored" data-anchor-id="block-10-run-lines-427436-source-section-9-first-half">Block 10 — <code>run()</code> (lines 427–436, source section 9, first half)</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> run(request, max_rounds<span class="op">=</span><span class="dv">4</span>, call_fn<span class="op">=</span>llm_call):</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    app <span class="op">=</span> build_travel_desk(call_fn<span class="op">=</span>call_fn)</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    init <span class="op">=</span> { ...<span class="bu">all</span> state fields initialized... }</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> app.invoke(init, config<span class="op">=</span>{<span class="st">"recursion_limit"</span>: <span class="dv">60</span>})</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<ul>
+<li>Builds a fresh compiled graph (so a custom <code>call_fn</code> can be injected per run).</li>
+<li>Initializes every <code>TripState</code> field: no plan, empty log, nothing held, <code>next</code> <code>"router"</code>, <code>round</code> 0, <code>status</code> <code>"in_progress"</code>.</li>
+<li>Invokes the graph with <strong><code>recursion_limit: 60</code></strong> — LangGraph’s own hard stop, a second safety net in addition to <code>max_rounds</code>.</li>
+</ul>
+<hr>
+</section>
+<section id="block-11-scenarios-and-the-harness-lines-439499-source-section-9-second-half" class="level2">
+<h2 class="anchored" data-anchor-id="block-11-scenarios-and-the-harness-lines-439499-source-section-9-second-half">Block 11 — Scenarios and the harness (lines 439–499, source section 9, second half)</h2>
+<section id="scenarios-lines-442466" class="level3">
+<h3 class="anchored" data-anchor-id="scenarios-lines-442466"><code>SCENARIOS</code> (lines 442–466)</h3>
+<p>Three named test cases, each with a <code>request</code>, the expected <code>services</code>, and <code>max_rounds</code>:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>name</th>
+<th>route</th>
+<th>budget</th>
+<th>what it exercises</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>conference</code></td>
+<td>ROA → ORD, Nov 9–12</td>
+<td>$1400</td>
+<td>comfortable budget, prefer nonstop + walkable hotel → should book a premium itinerary</td>
+</tr>
+<tr class="even">
+<td><code>shoestring</code></td>
+<td>ROA → ORD, Nov 9–12</td>
+<td>$600</td>
+<td>tight budget, cheapest of everything → should trade down and still book</td>
+</tr>
+<tr class="odd">
+<td><code>family</code></td>
+<td>ROA → DEN, Dec 19–27</td>
+<td>$700</td>
+<td>staying with a sister, only a flight needed, <strong>and</strong> an unsupported rental-car request → flight-only booking, car noted as unsupported</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="cheapest_trip-lines-469481" class="level3">
+<h3 class="anchored" data-anchor-id="cheapest_trip-lines-469481"><code>cheapest_trip()</code> (lines 469–481)</h3>
+<p>The <strong>ground truth</strong>: the minimum possible cost of any itinerary that includes the requested services. It brute-forces every flight × hotel combination, using <code>0</code>/<code>None</code> lists when a service isn’t needed, and calls <code>quote_hotel</code> with <code>stay_dates</code> so hotel night counts match each candidate flight. This is what decides whether a booking is even <em>possible</em>.</p>
+</section>
+<section id="check-lines-484499" class="level3">
+<h3 class="anchored" data-anchor-id="check-lines-484499"><code>check()</code> (lines 484–499)</h3>
+<p>The pass/fail oracle:</p>
+<ul>
+<li><code>feasible = cheapest_trip(...) &lt;= budget</code>.</li>
+<li>If feasible: <strong>PASS</strong> only when <code>status == "booked"</code>, <code>total &lt;= budget</code>, and exactly the requested services were booked.</li>
+<li>If not feasible: <strong>PASS</strong> only when <code>status == "escalated"</code>.</li>
+<li>Prints a line with status, total, booked list, and the expectation, and returns the boolean.</li>
+</ul>
+<p>This gives the file a checkable “known answer” independent of the LLM’s choices — the same idea as a unit-test harness.</p>
+<hr>
+</section>
+</section>
+<section id="block-12-__main__-lines-502514-source-section-9-third-part" class="level2">
+<h2 class="anchored" data-anchor-id="block-12-__main__-lines-502514-source-section-9-third-part">Block 12 — <code>__main__</code> (lines 502–514, source section 9, third part)</h2>
+<p>For each scenario:</p>
+<ol type="1">
+<li>Print a header with the budget.</li>
+<li><code>run(...)</code> the graph.</li>
+<li>Print every log entry as <code>agent: message</code>.</li>
+<li>If the plan listed <code>unsupported</code> requests, print them as <code>(not handled: ...)</code>.</li>
+<li>Print the uppercase verdict (<code>BOOKED</code> / <code>ESCALATED</code>), appending the reason when escalated.</li>
+<li>Call <code>check(...)</code> to print PASS/FAIL.</li>
+</ol>
+<p>Running <code>python travel_desk.py</code> therefore executes three end-to-end bookings and verifies each against the deterministic ground truth.</p>
+<hr>
+</section>
+<section id="cross-cutting-design-takeaways" class="level2">
+<h2 class="anchored" data-anchor-id="cross-cutting-design-takeaways">Cross-cutting design takeaways</h2>
+<ol type="1">
+<li><strong>Agents propose, coordinator commits.</strong> Agents return <code>pending</code>; only the coordinator writes <code>flight</code>, <code>hotel</code>, <code>plan</code>, <code>log</code>, and <code>status</code>.</li>
+<li><strong>Prices live in one place.</strong> Agents emit IDs; <code>find()</code> resolves them to inventory records, so a hallucinated price is impossible.</li>
+<li><strong>Code does the arithmetic.</strong> Night counts, hotel totals, savings from a trade-down, and the overage are all computed in Python, never by the model.</li>
+<li><strong>Every loop has a budget.</strong> <code>max_rounds</code> in state plus <code>recursion_limit</code> in the invoke config guarantee termination.</li>
+<li><strong>Guardrails are post-hoc and deterministic.</strong> Bad option IDs get replaced by the cheapest valid option; impossible trade-down targets get redirected.</li>
+<li><strong>Testability by injection.</strong> <code>call_fn</code> flows through every factory and into <code>run</code>, so the graph can be exercised with a fake model and no credentials.</li>
+</ol>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
